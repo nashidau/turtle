@@ -25,6 +25,8 @@
     (void) (&_x == &_y);    \
     _x > _y ? _x : _y; })
 
+const int MAX_FRAMES_IN_FLIGHT = 2;
+
 struct blobby {
 	size_t len;
 	const char *data;
@@ -207,7 +209,7 @@ pickPhysicalDevice(VkInstance instance) {
 	/*
 	for (i = 0 ; i < deviceCount ; i++) {
 		if (isDeviceSuitable(device)) {
-			physicalDevice = device;
+			physicalDevice = devicqueue_info;
 			break;
 		}
 	}*/
@@ -252,10 +254,11 @@ struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfa
 }
 
 VkDevice
-createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
+createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue *graphicsQueue, VkQueue *presentQueue) {
 	struct queue_family_indices queue_family_indices;
 	float queue_priority = 1.0f;
 	VkDevice device;
+	VkDeviceQueueCreateInfo queue_info[2];
 	const char *extensions[] = {
 		VK_KHR_SWAPCHAIN_EXTENSION_NAME
 		};
@@ -263,8 +266,8 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.pNext = NULL,
 		.flags = 0,
-		.queueCreateInfoCount = 0,
-		.pQueueCreateInfos = NULL,
+		.queueCreateInfoCount = 2,
+		.pQueueCreateInfos = queue_info,
 		.enabledLayerCount = 0,
 		.ppEnabledLayerNames = NULL,
 		.enabledExtensionCount = 1,
@@ -276,7 +279,6 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
 		
 	queue_family_indices = find_queue_families(physicalDevice, surface);
 
-	VkDeviceQueueCreateInfo queue_info[2];
 	queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	queue_info[0].queueFamilyIndex = queue_family_indices.graphics_family;;
 	queue_info[0].queueCount = 1;
@@ -290,59 +292,13 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface) {
 
 	vkCreateDevice(physicalDevice, &device_info, NULL, &device);
 
+	vkGetDeviceQueue(device, queue_family_indices.graphics_family, 0, graphicsQueue);
+	vkGetDeviceQueue(device, queue_family_indices.present_family, 0, presentQueue);
+
 	return device;
-#if 0
-	QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
-
-	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-	std::set<uint32_t> uniqueQueueFamilies = {indices.graphicsFamily.value(), indices.presentFamily.value()};
-
-	float queuePriority = 1.0f;
-	for (uint32_t queueFamily : uniqueQueueFamilies) {
-		VkDeviceQueueCreateInfo queueCreateInfo{};
-		queueCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-		queueCreateInfo.queueFamilyIndex = queueFamily;
-		queueCreateInfo.queueCount = 1;
-		queueCreateInfo.pQueuePriorities = &queuePriority;
-		queueCreateInfos.push_back(queueCreateInfo);
-	}
-
-	VkPhysicalDeviceFeatures deviceFeatures{};
-
-	VkDeviceCreateInfo createInfo{};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
-	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
-	createInfo.pQueueCreateInfos = queueCreateInfos.data();
-
-	createInfo.pEnabledFeatures = &deviceFeatures;
-
-	createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-	createInfo.ppEnabledExtensionNames = deviceExtensions.data();
-
-	if (enableValidationLayers) {
-		createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
-		createInfo.ppEnabledLayerNames = validationLayers.data();
-	} else {
-		createInfo.enabledLayerCount = 0;
-	}
-
-	if (vkCreateDevice(physicalDevice, &createInfo, NULL, &device) != VK_SUCCESS) {
-		throw std::runtime_error("failed to create logical device!");
-	}
-
-	vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-	vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-#endif
 }
 
-int
-main_loop(GLFWwindow* window) {
-	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-	}
-	return 0;
-}
+
 
 
 const VkSurfaceFormatKHR *chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *availableFormats, uint32_t nformats) {
@@ -544,11 +500,19 @@ create_render_pass(VkDevice device, struct swap_chain_data *scd) {
 	VkAttachmentReference colorAttachmentRef = { 0 };
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
 	VkSubpassDescription subpass = { 0 };
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
+
+        VkSubpassDependency dependency = { 0 };
+        dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+        dependency.dstSubpass = 0;
+        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.srcAccessMask = 0;
+        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 
 	VkRenderPassCreateInfo renderPassInfo = { 0 };
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -556,6 +520,8 @@ create_render_pass(VkDevice device, struct swap_chain_data *scd) {
 	renderPassInfo.pAttachments = &colorAttachment;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
+	renderPassInfo.dependencyCount = 1;
+	renderPassInfo.pDependencies = &dependency;
 
 	if (vkCreateRenderPass(device, &renderPassInfo, NULL, &render_pass) != VK_SUCCESS) {
 		error("failed to create render pass!");
@@ -709,7 +675,7 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd, VkRenderP
 	return graphics_pipeline;
 }
 
-static void
+static VkFramebuffer *
 create_frame_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass) {
 	VkFramebuffer *framebuffers;
 
@@ -734,6 +700,165 @@ create_frame_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass 
 
 		}
 	}
+
+	return framebuffers;
+}
+
+
+VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
+	VkCommandPool command_pool;
+	struct queue_family_indices qfi = find_queue_families(physical_device, surface);
+	
+	VkCommandPoolCreateInfo pool_info = { 0 };
+	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	pool_info.queueFamilyIndex = qfi.graphics_family;
+	pool_info.flags = 0;
+
+	if (vkCreateCommandPool(device, &pool_info, NULL, &command_pool) != VK_SUCCESS) {
+		error("Failed to create command pool");
+	}
+
+	return command_pool;
+}
+
+VkCommandBuffer *create_command_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers, VkPipeline pipeline){
+	VkCommandBuffer *buffers;
+	
+	buffers = talloc_array(scd, VkCommandBuffer, scd->nimages); 
+
+        VkCommandBufferAllocateInfo allocInfo = { 0 };
+        allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        allocInfo.commandPool = command_pool;
+        allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        allocInfo.commandBufferCount = scd->nimages;
+
+        if (vkAllocateCommandBuffers(device, &allocInfo, buffers) != VK_SUCCESS) {
+		error("failed to allocate command buffers!");
+        }
+
+        for (size_t i = 0; i < scd->nimages; i++) {
+            VkCommandBufferBeginInfo beginInfo =  { 0 };
+            beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+            if (vkBeginCommandBuffer(buffers[i], &beginInfo) != VK_SUCCESS) {
+                error("failed to begin recording command buffer!");
+            }
+
+            VkRenderPassBeginInfo renderPassInfo = { 0 };
+            renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+            renderPassInfo.renderPass = render_pass;
+            renderPassInfo.framebuffer = framebuffers[i];
+            renderPassInfo.renderArea.offset.x = 0;
+            renderPassInfo.renderArea.offset.y = 0;
+            renderPassInfo.renderArea.extent = scd->extent;
+
+            VkClearValue clearColor = { .color.float32 = {0.0f, 0.0f, 0.0f, 1.0f}};
+            renderPassInfo.clearValueCount = 1;
+            renderPassInfo.pClearValues = &clearColor;
+
+	    vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	    {
+
+		    vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+		    vkCmdDraw(buffers[i], 3, 1, 0, 0);
+		}
+	    vkCmdEndRenderPass(buffers[i]);
+
+            if (vkEndCommandBuffer(buffers[i]) != VK_SUCCESS) {
+		    error("failed to record command buffer!");
+            }
+        }
+
+	return buffers;
+}
+
+VkSemaphore
+create_semaphores(VkDevice device) {
+	VkSemaphoreCreateInfo sem_info = { 0 };
+	VkSemaphore sem;
+	sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	if (vkCreateSemaphore(device, &sem_info, NULL, &sem)) {
+		error("failed tocreate sem");
+	}
+	return sem;
+}
+
+VkFence
+create_fences(VkDevice device) {
+	VkFenceCreateInfo fenceInfo = { 0 };
+	VkFence fence;
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	if (vkCreateFence(device, &fenceInfo, NULL, &fence) != VK_SUCCESS) {
+		error("Failed to create fence");
+	}
+	return fence;
+}
+
+void
+draw_frame(VkDevice device, VkSwapchainKHR swapchain,
+		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore,
+		VkFence fence, VkFence *image_fences,
+		VkCommandBuffer *buffers, VkQueue graphicsQueue, VkQueue presentQueue) {
+	// Make sure this frame was completed
+	vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+
+	uint32_t imageIndex;
+	vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_semaphore, VK_NULL_HANDLE, &imageIndex);
+
+	// Check the system has finished with this image before we start
+	// scribbling over the top of it.
+	if (image_fences[imageIndex] != VK_NULL_HANDLE) {
+		vkWaitForFences(device, 1, &image_fences[imageIndex], VK_TRUE, UINT64_MAX);
+	}
+	image_fences[imageIndex] = fence;
+
+	VkSubmitInfo submitInfo = { 0 };
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+
+	VkSemaphore waitSemaphores[] = {image_semaphore};
+	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = waitSemaphores;
+	submitInfo.pWaitDstStageMask = waitStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &buffers[imageIndex];
+
+	VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = signalSemaphores;
+
+	vkResetFences(device, 1, &fence);
+
+	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS) {
+		error("failed to submit draw command buffer!");
+	}
+
+	VkPresentInfoKHR presentInfo = { 0 };
+        presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores = signalSemaphores;
+
+        VkSwapchainKHR swapChains[] = {swapchain};
+        presentInfo.swapchainCount = 1;
+        presentInfo.pSwapchains = swapChains;
+
+        presentInfo.pImageIndices = &imageIndex;
+
+	vkQueuePresentKHR(presentQueue, &presentInfo);
+
+        //currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+}
+
+int
+main_loop(GLFWwindow* window) {
+	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+		//draw_frame();
+	}
+	return 0;
 }
 
 int
@@ -745,20 +870,58 @@ main(int argc, char **argv) {
 	VkSurfaceKHR surface;
 	struct swap_chain_data *scd;
 	VkRenderPass render_pass;
+	VkFramebuffer *framebuffers;
+	VkPipeline pipeline;
+	VkCommandPool command_pool;
+	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
+	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
+	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
+	VkFence *images_in_flight;
+	VkCommandBuffer *command_buffers;
+	VkQueue graphicsQueue;
+	VkQueue presentQueue;
 
 	window = window_init();
 	instance = createInstance(window);
 	surface = create_surface(instance, window);
 	physical_device = pickPhysicalDevice(instance);
-	device = createLogicalDevice(physical_device, surface);
+	device = createLogicalDevice(physical_device, surface, &graphicsQueue, &presentQueue);
 
         scd = create_swap_chain(device, physical_device, surface);
         create_image_views(device, scd);
 	render_pass = create_render_pass(device, scd);
-	create_graphics_pipeline(device, scd, render_pass);
-	create_frame_buffers(device, scd, render_pass);
+	pipeline = create_graphics_pipeline(device, scd, render_pass);
+	framebuffers = create_frame_buffers(device, scd, render_pass);
 
-	main_loop(window);
+	command_pool = create_command_pool(device, physical_device, surface);
+	command_buffers = create_command_buffers(
+			device,
+			scd,
+			render_pass,
+			command_pool,
+			framebuffers,
+			pipeline);
+	for (int i = 0 ; i < MAX_FRAMES_IN_FLIGHT ; i ++){
+		image_ready_sem[i] = create_semaphores(device);
+		render_done_sem[i] = create_semaphores(device);
+		in_flight_fences[i] = create_fences(device);
+	}
+	images_in_flight = talloc_array(scd, VkFence, scd->nimages);
+	// FIXME: Should do this when creating the Scd structure
+	for (int i = 0; i < scd->nimages; i++) {
+		images_in_flight[i] = VK_NULL_HANDLE;
+	}
+
+	int currentFrame = 0;
+	while (!glfwWindowShouldClose(window)) {
+		glfwPollEvents();
+		draw_frame(device, scd->swap_chain, image_ready_sem[currentFrame], render_done_sem[currentFrame], in_flight_fences[currentFrame], images_in_flight, command_buffers, graphicsQueue, presentQueue);
+		currentFrame ++;
+		currentFrame %= MAX_FRAMES_IN_FLIGHT;
+	}
+	vkDeviceWaitIdle(device);
+
+//	main_loop(window);
 
 	return 0;
 }
