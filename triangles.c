@@ -32,6 +32,48 @@ struct blobby {
 	const char *data;
 };
 
+
+// Belongs in render frame state
+static bool frame_buffer_resized = false;
+
+// Context stored with the main window.
+struct window_context {
+	
+};
+
+// All data used to render a frame
+struct render_context {
+	GLFWwindow *window;
+	VkDevice device;
+
+	struct swap_chain_data *scd;
+
+	// Used to recreate (and clean up) swap chain
+	VkCommandPool command_pool;
+	
+};
+
+struct swap_chain_data {
+	// Used in the destructor, not deleted in the destructor
+	struct render_context *render;
+
+	VkSwapchainKHR swap_chain;
+	VkImage *images;
+	uint32_t nimages;
+	VkImageView *image_views; 
+	VkFormat image_format; // Swap chain image formt
+	VkExtent2D extent; // Extent of the images
+	VkFramebuffer *framebuffers;
+	VkPipelineLayout pipeline_layout;
+	VkPipeline pipeline;
+	VkRenderPass render_pass;
+
+	uint32_t nbuffers;
+	VkCommandBuffer *command_buffers;
+};
+static int swap_chain_data_destructor(struct swap_chain_data *scd);
+
+
 /**
  * Allocates and returns a blobby from a file.
  *
@@ -89,18 +131,28 @@ error(const char *msg) {
 
 /** Window stuff (glfw) */
 
+static void
+window_resize_cb(GLFWwindow *window, int width, int height) {
+	frame_buffer_resized = true;
+	printf("Window resized\n");	
+}
+
 GLFWwindow *window_init(void) {
 	GLFWwindow *window;
 
 	glfwInit();
 
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 	window = glfwCreateWindow(800, 600, "Vulkan", NULL, NULL);
+	glfwSetFramebufferSizeCallback(window, window_resize_cb);
 
 	return window;
 }
+
+
+
 
 VkInstance createInstance(GLFWwindow *window) {
 	VkInstance instance;
@@ -136,15 +188,6 @@ VkInstance createInstance(GLFWwindow *window) {
 	}
 	return instance;
 }
-
-struct swap_chain_data {
-	VkSwapchainKHR swap_chain;
-	VkImage *images;
-	uint32_t nimages;
-	VkImageView *image_views; 
-	VkFormat image_format; // Swap chain image formt
-	VkExtent2D extent; // Extent of the images
-};
 
 struct queue_family_indices {
 	uint32_t graphics_family;
@@ -373,6 +416,7 @@ querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
 
 struct swap_chain_data *create_swap_chain(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
 	struct swap_chain_data *scd = talloc_zero(NULL, struct swap_chain_data);
+	talloc_set_destructor(scd, swap_chain_data_destructor);
 
 	struct swap_chain_support_details *swapChainSupport = querySwapChainSupport(physical_device, surface);
 
@@ -640,7 +684,6 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd, VkRenderP
 	dynamicState.dynamicStateCount = 2;
 	dynamicState.pDynamicStates = dynamicStates;
 
-	VkPipelineLayout pipelineLayout;
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo = { 0 };
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -649,7 +692,7 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd, VkRenderP
 	pipelineLayoutInfo.pushConstantRangeCount = 0; // Optional
 	pipelineLayoutInfo.pPushConstantRanges = NULL; // Optional
 
-	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, NULL, &pipelineLayout) != VK_SUCCESS) {
+	if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, NULL, &scd->pipeline_layout) != VK_SUCCESS) {
 		error("failed to create pipeline layout!");
 	}
 
@@ -663,7 +706,7 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd, VkRenderP
         pipelineInfo.pRasterizationState = &rasterizer;
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
-        pipelineInfo.layout = pipelineLayout;
+        pipelineInfo.layout = scd->pipeline_layout;
         pipelineInfo.renderPass = render_pass;
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -723,8 +766,10 @@ VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_dev
 
 VkCommandBuffer *create_command_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers, VkPipeline pipeline){
 	VkCommandBuffer *buffers;
+
+	scd->nbuffers = scd->nimages;
 	
-	buffers = talloc_array(scd, VkCommandBuffer, scd->nimages); 
+	buffers = talloc_array(scd, VkCommandBuffer, scd->nbuffers); 
 
         VkCommandBufferAllocateInfo allocInfo = { 0 };
         allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -796,16 +841,68 @@ create_fences(VkDevice device) {
 	return fence;
 }
 
+static int swap_chain_data_destructor(struct swap_chain_data *scd) {
+	VkDevice device;
+	int i;
+
+	device = scd->render->device;
+
+	for (i = 0; i < scd->nimages; i ++) {
+		vkDestroyFramebuffer(device, scd->framebuffers[i], NULL);
+		vkDestroyImageView(device, scd->image_views[i], NULL);
+	}
+
+	vkFreeCommandBuffers(device, scd->render->command_pool, scd->nbuffers, scd->command_buffers);
+
+	vkDestroyPipeline(device, scd->pipeline, NULL);
+	vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
+	vkDestroyRenderPass(device, scd->render_pass, NULL);
+
+	vkDestroySwapchainKHR(device, scd->swap_chain, NULL);
+	return 0;
+}
+
 void
-draw_frame(VkDevice device, VkSwapchainKHR swapchain,
+recreate_swap_chain(struct render_context *render) {
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(render->window, &width, &height);
+
+	// a width/height of 0 is minimised, just wait for
+	// events to recover (for now);
+	while (width == 0 || height == 0) {
+		printf("Size 0, wait\n");
+		glfwWaitEvents();
+		glfwGetFramebufferSize(render->window,  &width, &height);
+	}
+
+	vkDeviceWaitIdle(render->device);
+
+	talloc_free(render->scd);
+
+	render->scd = create_swap_chain(render-.>device, physical_device, surface);
+
+	printf("Done\n");
+
+}
+
+void
+draw_frame(struct render_context *render, VkDevice device, VkSwapchainKHR swapchain,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore,
 		VkFence fence, VkFence *image_fences,
 		VkCommandBuffer *buffers, VkQueue graphicsQueue, VkQueue presentQueue) {
+	VkResult result;
+
 	// Make sure this frame was completed
 	vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
-	vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_semaphore, VK_NULL_HANDLE, &imageIndex);
+	result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_semaphore, VK_NULL_HANDLE, &imageIndex);
+	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+		recreate_swap_chain(render);
+		return;
+	} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
+		error("Failed to get swap chain image");
+	}
 
 	// Check the system has finished with this image before we start
 	// scribbling over the top of it.
@@ -847,9 +944,14 @@ draw_frame(VkDevice device, VkSwapchainKHR swapchain,
 
         presentInfo.pImageIndices = &imageIndex;
 
-	vkQueuePresentKHR(presentQueue, &presentInfo);
+	result = vkQueuePresentKHR(presentQueue, &presentInfo);
 
-        //currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frame_buffer_resized) {
+		frame_buffer_resized = true;
+		recreate_swap_chain(render);
+	} else if (result != VK_SUCCESS) {
+		error("Failed to present swap chain image");
+	}
 }
 
 int
@@ -863,38 +965,36 @@ main_loop(GLFWwindow* window) {
 
 int
 main(int argc, char **argv) {
-	GLFWwindow *window;
+	struct render_context *render;
+
 	VkInstance instance;
 	VkPhysicalDevice physical_device;
 	VkDevice device;
 	VkSurfaceKHR surface;
 	struct swap_chain_data *scd;
-	VkRenderPass render_pass;
-	VkFramebuffer *framebuffers;
-	VkPipeline pipeline;
-	VkCommandPool command_pool;
 	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
 	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
 	VkFence *images_in_flight;
-	VkCommandBuffer *command_buffers;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 
-	window = window_init();
-	instance = createInstance(window);
-	surface = create_surface(instance, window);
+	render = talloc(NULL, struct render_context);
+
+	render->window = window_init();
+	instance = createInstance(render->window);
+	surface = create_surface(instance, render->window);
 	physical_device = pickPhysicalDevice(instance);
 	device = createLogicalDevice(physical_device, surface, &graphicsQueue, &presentQueue);
 
         scd = create_swap_chain(device, physical_device, surface);
         create_image_views(device, scd);
-	render_pass = create_render_pass(device, scd);
-	pipeline = create_graphics_pipeline(device, scd, render_pass);
-	framebuffers = create_frame_buffers(device, scd, render_pass);
+	scd->render_pass = create_render_pass(device, scd);
+	scd->pipeline = create_graphics_pipeline(device, scd);
+	scd->framebuffers = create_frame_buffers(device, scd);
 
 	command_pool = create_command_pool(device, physical_device, surface);
-	command_buffers = create_command_buffers(
+	scd->command_buffers = create_command_buffers(
 			device,
 			scd,
 			render_pass,
@@ -913,9 +1013,9 @@ main(int argc, char **argv) {
 	}
 
 	int currentFrame = 0;
-	while (!glfwWindowShouldClose(window)) {
+	while (!glfwWindowShouldClose(render->window)) {
 		glfwPollEvents();
-		draw_frame(device, scd->swap_chain, image_ready_sem[currentFrame], render_done_sem[currentFrame], in_flight_fences[currentFrame], images_in_flight, command_buffers, graphicsQueue, presentQueue);
+		draw_frame(render, device, scd->swap_chain, image_ready_sem[currentFrame], render_done_sem[currentFrame], in_flight_fences[currentFrame], images_in_flight, command_buffers, graphicsQueue, presentQueue);
 		currentFrame ++;
 		currentFrame %= MAX_FRAMES_IN_FLIGHT;
 	}
