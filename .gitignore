@@ -1,2 +1,5 @@
 triangles
 shaders/*spv
+*.o
+*.trace
+*.dSYM
