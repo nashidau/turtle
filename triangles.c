@@ -45,12 +45,12 @@ struct window_context {
 struct render_context {
 	GLFWwindow *window;
 	VkDevice device;
+	VkPhysicalDevice physical_device;
+	VkSurfaceKHR surface;
 
 	struct swap_chain_data *scd;
 
-	// Used to recreate (and clean up) swap chain
-	VkCommandPool command_pool;
-	
+	VkFence *images_in_flight;
 };
 
 struct swap_chain_data {
@@ -69,7 +69,10 @@ struct swap_chain_data {
 	VkRenderPass render_pass;
 
 	uint32_t nbuffers;
+	// Used to recreate (and clean up) swap chain
+	VkCommandPool command_pool;
 	VkCommandBuffer *command_buffers;
+
 };
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
@@ -272,7 +275,7 @@ struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfa
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, properties);
 
 	for (int i = 0; i < queueFamilyCount ; i ++){
-		printf("Loop %d %p %d %p\n",i, device, i, surface);
+		//printf("Loop %d %p %d %p\n",i, device, i, surface);
 		VkQueueFamilyProperties *queue_family = properties + i;
 
 		if (queue_family->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
@@ -575,7 +578,7 @@ create_render_pass(VkDevice device, struct swap_chain_data *scd) {
 }
 
 VkPipeline
-create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass) {
+create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 	VkPipeline graphics_pipeline;
 	struct blobby *fragcode = blobby_from_file("shaders/frag.spv");
 	struct blobby *vertcode = blobby_from_file("shaders/vert.spv");
@@ -707,7 +710,7 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd, VkRenderP
         pipelineInfo.pMultisampleState = &multisampling;
         pipelineInfo.pColorBlendState = &colorBlending;
         pipelineInfo.layout = scd->pipeline_layout;
-        pipelineInfo.renderPass = render_pass;
+        pipelineInfo.renderPass = scd->render_pass;
         pipelineInfo.subpass = 0;
         pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
@@ -719,7 +722,7 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd, VkRenderP
 }
 
 static VkFramebuffer *
-create_frame_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass) {
+create_frame_buffers(VkDevice device, struct swap_chain_data *scd) {
 	VkFramebuffer *framebuffers;
 
 	framebuffers = talloc_array(scd, VkFramebuffer, scd->nimages);
@@ -731,7 +734,7 @@ create_frame_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass 
 
 		VkFramebufferCreateInfo framebufferInfo = { 0 };
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = render_pass;
+		framebufferInfo.renderPass = scd->render_pass;
 		framebufferInfo.attachmentCount = 1;
 		framebufferInfo.pAttachments = attachments;
 		framebufferInfo.width = scd->extent.width;
@@ -849,15 +852,18 @@ static int swap_chain_data_destructor(struct swap_chain_data *scd) {
 
 	for (i = 0; i < scd->nimages; i ++) {
 		vkDestroyFramebuffer(device, scd->framebuffers[i], NULL);
-		vkDestroyImageView(device, scd->image_views[i], NULL);
 	}
 
-	vkFreeCommandBuffers(device, scd->render->command_pool, scd->nbuffers, scd->command_buffers);
+	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
 
 	vkDestroyPipeline(device, scd->pipeline, NULL);
 	vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
 	vkDestroyRenderPass(device, scd->render_pass, NULL);
 
+	for (i = 0 ; i < scd->nimages ; i++) {
+		vkDestroyImageView(device, scd->image_views[i], NULL);
+	}
+	
 	vkDestroySwapchainKHR(device, scd->swap_chain, NULL);
 	return 0;
 }
@@ -879,24 +885,44 @@ recreate_swap_chain(struct render_context *render) {
 
 	talloc_free(render->scd);
 
-	render->scd = create_swap_chain(render-.>device, physical_device, surface);
+	render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
+	struct swap_chain_data *scd = render->scd;
+	scd->render = render;
+        create_image_views(render->device, render->scd);
+	scd->render_pass = create_render_pass(render->device, scd);
+	scd->pipeline = create_graphics_pipeline(render->device, scd);
+	scd->framebuffers = create_frame_buffers(render->device, scd);
 
-	printf("Done\n");
+	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
+	scd->command_buffers = create_command_buffers(
+			render->device,
+			scd,
+			scd->render_pass,
+			scd->command_pool,
+			scd->framebuffers,
+			scd->pipeline);
+
+	for (int i = 0; i < scd->nimages; i++) {
+		render->images_in_flight[i] = VK_NULL_HANDLE;
+	}
+
 
 }
 
 void
-draw_frame(struct render_context *render, VkDevice device, VkSwapchainKHR swapchain,
+draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore,
-		VkFence fence, VkFence *image_fences,
-		VkCommandBuffer *buffers, VkQueue graphicsQueue, VkQueue presentQueue) {
+		VkFence fence, 
+
+		VkQueue graphicsQueue, VkQueue presentQueue) {
 	VkResult result;
+	VkDevice device = render->device;
 
 	// Make sure this frame was completed
-	vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+	vkWaitForFences(render->device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
-	result = vkAcquireNextImageKHR(device, swapchain, UINT64_MAX, image_semaphore, VK_NULL_HANDLE, &imageIndex);
+	result = vkAcquireNextImageKHR(device, scd->swap_chain, UINT64_MAX, image_semaphore, VK_NULL_HANDLE, &imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 		recreate_swap_chain(render);
 		return;
@@ -906,10 +932,10 @@ draw_frame(struct render_context *render, VkDevice device, VkSwapchainKHR swapch
 
 	// Check the system has finished with this image before we start
 	// scribbling over the top of it.
-	if (image_fences[imageIndex] != VK_NULL_HANDLE) {
-		vkWaitForFences(device, 1, &image_fences[imageIndex], VK_TRUE, UINT64_MAX);
+	if (render->images_in_flight[imageIndex] != VK_NULL_HANDLE) {
+		vkWaitForFences(device, 1, &render->images_in_flight[imageIndex], VK_TRUE, UINT64_MAX);
 	}
-	image_fences[imageIndex] = fence;
+	render->images_in_flight[imageIndex] = fence;
 
 	VkSubmitInfo submitInfo = { 0 };
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -921,7 +947,7 @@ draw_frame(struct render_context *render, VkDevice device, VkSwapchainKHR swapch
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &buffers[imageIndex];
+	submitInfo.pCommandBuffers = &scd->command_buffers[imageIndex];
 
 	VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
 	submitInfo.signalSemaphoreCount = 1;
@@ -929,8 +955,12 @@ draw_frame(struct render_context *render, VkDevice device, VkSwapchainKHR swapch
 
 	vkResetFences(device, 1, &fence);
 
-	if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence) != VK_SUCCESS) {
-		error("failed to submit draw command buffer!");
+	result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence);
+	if (result != VK_SUCCESS) {
+		printf("failed to submit draw command buffer %d! %p %p %p\n",
+				result,
+				graphicsQueue, &submitInfo, fence);
+		exit(1);
 	}
 
 	VkPresentInfoKHR presentInfo = { 0 };
@@ -938,7 +968,7 @@ draw_frame(struct render_context *render, VkDevice device, VkSwapchainKHR swapch
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = {swapchain};
+        VkSwapchainKHR swapChains[] = {scd->swap_chain};
         presentInfo.swapchainCount = 1;
         presentInfo.pSwapchains = swapChains;
 
@@ -968,14 +998,9 @@ main(int argc, char **argv) {
 	struct render_context *render;
 
 	VkInstance instance;
-	VkPhysicalDevice physical_device;
-	VkDevice device;
-	VkSurfaceKHR surface;
-	struct swap_chain_data *scd;
 	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
 	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
-	VkFence *images_in_flight;
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 
@@ -983,43 +1008,47 @@ main(int argc, char **argv) {
 
 	render->window = window_init();
 	instance = createInstance(render->window);
-	surface = create_surface(instance, render->window);
-	physical_device = pickPhysicalDevice(instance);
-	device = createLogicalDevice(physical_device, surface, &graphicsQueue, &presentQueue);
+	render->surface = create_surface(instance, render->window);
+	render->physical_device = pickPhysicalDevice(instance);
+	render->device = createLogicalDevice(render->physical_device, render->surface, &graphicsQueue, &presentQueue);
 
-        scd = create_swap_chain(device, physical_device, surface);
-        create_image_views(device, scd);
-	scd->render_pass = create_render_pass(device, scd);
-	scd->pipeline = create_graphics_pipeline(device, scd);
-	scd->framebuffers = create_frame_buffers(device, scd);
+        render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
+	struct swap_chain_data *scd = render->scd;
+	scd->render = render;
+        create_image_views(render->device, render->scd);
+	scd->render_pass = create_render_pass(render->device, scd);
+	scd->pipeline = create_graphics_pipeline(render->device, scd);
+	scd->framebuffers = create_frame_buffers(render->device, scd);
 
-	command_pool = create_command_pool(device, physical_device, surface);
+	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
 	scd->command_buffers = create_command_buffers(
-			device,
+			render->device,
 			scd,
-			render_pass,
-			command_pool,
-			framebuffers,
-			pipeline);
+			scd->render_pass,
+			scd->command_pool,
+			scd->framebuffers,
+			scd->pipeline);
+
+
 	for (int i = 0 ; i < MAX_FRAMES_IN_FLIGHT ; i ++){
-		image_ready_sem[i] = create_semaphores(device);
-		render_done_sem[i] = create_semaphores(device);
-		in_flight_fences[i] = create_fences(device);
+		image_ready_sem[i] = create_semaphores(render->device);
+		render_done_sem[i] = create_semaphores(render->device);
+		in_flight_fences[i] = create_fences(render->device);
 	}
-	images_in_flight = talloc_array(scd, VkFence, scd->nimages);
+	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
 	for (int i = 0; i < scd->nimages; i++) {
-		images_in_flight[i] = VK_NULL_HANDLE;
+		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
 	int currentFrame = 0;
 	while (!glfwWindowShouldClose(render->window)) {
 		glfwPollEvents();
-		draw_frame(render, device, scd->swap_chain, image_ready_sem[currentFrame], render_done_sem[currentFrame], in_flight_fences[currentFrame], images_in_flight, command_buffers, graphicsQueue, presentQueue);
+		draw_frame(render, render->scd, image_ready_sem[currentFrame], render_done_sem[currentFrame], in_flight_fences[currentFrame], graphicsQueue, presentQueue);
 		currentFrame ++;
 		currentFrame %= MAX_FRAMES_IN_FLIGHT;
 	}
-	vkDeviceWaitIdle(device);
+	vkDeviceWaitIdle(render->device);
 
 //	main_loop(window);
 
