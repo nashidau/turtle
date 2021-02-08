@@ -1,5 +1,4 @@
 
-
 VULKANCFLAGS=/
 VULKANLIBS=-lvulkan 
 
@@ -7,11 +6,10 @@ VULKANLIBS=-lvulkan
 
 PKGS=talloc glfw3
 
-CFLAGS+=-g -Wall -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks -iframework /Library/Frameworks -framework Cocoa -framework IOSurface -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal
-LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan
-#LDFLAGS+=`pkg-config --libs ${PKGS}` /Library/Frameworks/MoltenVK.xcframework/macos-arm64_x86_64/libMoltenVK.a
+CFLAGS+=-g -Wall -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks -iframework /Library/Frameworks 
+LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal
 
-SHADERCC=hi
+SHADERCC=glslc
 
 ALL: triangles shaders/frag.spv shaders/vert.spv
 
@@ -21,5 +19,8 @@ shaders/frag.spv: shaders/shader.frag
 shaders/vert.spv: shaders/shader.vert
 	${SHADERCC} -o $@ $<
 
-triangles: triangles.c
-	${CC} ${CFLAGS} -o $@ $< ${LDFLAGS}
+triangles.o: triangles.c vertex.h
+
+vertex.o: vertex.c vertex.h
+
+triangles: triangles.o vertex.o

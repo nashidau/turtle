@@ -3,6 +3,9 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+// c++, there is a C library at https://github.com/recp/cglm
+//#include <glm/glm.hpp>
+
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -12,6 +15,9 @@
 #include <unistd.h>
 
 #include <talloc.h>
+
+#include "vertex.h"
+
 
 #define MIN(x,y) ({ \
     typeof(x) _x = (x);     \
@@ -32,6 +38,12 @@ struct blobby {
 	const char *data;
 };
 
+// Temp static vertices
+static const struct vertex vertices[] = {
+    {{0.0f, -0.5f}, {1.0f, 0.0f, 1.0f}},
+    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+};
 
 // Belongs in render frame state
 static bool frame_buffer_resized = false;
@@ -47,6 +59,9 @@ struct render_context {
 	VkDevice device;
 	VkPhysicalDevice physical_device;
 	VkSurfaceKHR surface;
+	
+	VkBuffer vertex_buffers;
+
 
 	struct swap_chain_data *scd;
 
@@ -600,12 +615,20 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
+
+	VkVertexInputBindingDescription binding_description;
+	VkVertexInputAttributeDescription *attribute_description;
+
+	binding_description = vertex_binding_description_get(vertices);
+	// FIXME: leaky
+	attribute_description = get_attribute_description_pair(vertices);
+
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = { 0 };
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.vertexBindingDescriptionCount = 0;
-	vertexInputInfo.pVertexBindingDescriptions = NULL; // Optional
-	vertexInputInfo.vertexAttributeDescriptionCount = 0;
-	vertexInputInfo.pVertexAttributeDescriptions = NULL; // Optional
+	vertexInputInfo.vertexBindingDescriptionCount = 1;
+	vertexInputInfo.pVertexBindingDescriptions = &binding_description;
+	vertexInputInfo.vertexAttributeDescriptionCount = 2; // magic
+	vertexInputInfo.pVertexAttributeDescriptions = attribute_description;
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = { 0 };
 	inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -767,7 +790,7 @@ VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_dev
 	return command_pool;
 }
 
-VkCommandBuffer *create_command_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers, VkPipeline pipeline){
+VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd, VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers, VkPipeline pipeline){
 	VkCommandBuffer *buffers;
 
 	scd->nbuffers = scd->nimages;
@@ -780,7 +803,7 @@ VkCommandBuffer *create_command_buffers(VkDevice device, struct swap_chain_data 
         allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
         allocInfo.commandBufferCount = scd->nimages;
 
-        if (vkAllocateCommandBuffers(device, &allocInfo, buffers) != VK_SUCCESS) {
+        if (vkAllocateCommandBuffers(render->device, &allocInfo, buffers) != VK_SUCCESS) {
 		error("failed to allocate command buffers!");
         }
 
@@ -806,9 +829,12 @@ VkCommandBuffer *create_command_buffers(VkDevice device, struct swap_chain_data 
 
 	    vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	    {
-
-		    vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
+		    vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, scd->pipeline);
+		    VkBuffer vertexBuffers[] = {render->vertex_buffers};
+		    VkDeviceSize offsets[] = {0};
+		    vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
+	
+		    // FIXME: That 3 shoudl be array size
 		    vkCmdDraw(buffers[i], 3, 1, 0, 0);
 		}
 	    vkCmdEndRenderPass(buffers[i]);
@@ -895,7 +921,7 @@ recreate_swap_chain(struct render_context *render) {
 
 	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
 	scd->command_buffers = create_command_buffers(
-			render->device,
+			render,
 			scd,
 			scd->render_pass,
 			scd->command_pool,
@@ -909,6 +935,58 @@ recreate_swap_chain(struct render_context *render) {
 
 }
 
+uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
+	VkPhysicalDeviceMemoryProperties memProperties;
+	vkGetPhysicalDeviceMemoryProperties(render->physical_device, &memProperties);
+
+	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
+		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+			return i;
+		}
+	}
+
+	error("failed to find suitable memory type!");
+	return -1;
+}
+
+VkBuffer
+create_vertex_buffers(struct render_context *render) {
+	VkBuffer vertex_buffer;
+	VkDeviceMemory vertex_buffer_memory;
+
+	VkBufferCreateInfo bufferInfo = { 0 };
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	// FIXME: From the global :-(
+	bufferInfo.size = sizeof(vertices);
+	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+        if (vkCreateBuffer(render->device, &bufferInfo, NULL, &vertex_buffer) != VK_SUCCESS) {
+            error("failed to create vertex buffer!");
+        }
+
+        VkMemoryRequirements memRequirements = { 0 };
+	vkGetBufferMemoryRequirements(render->device, vertex_buffer,
+			&memRequirements);
+
+        VkMemoryAllocateInfo allocInfo = { 0 };
+        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+        allocInfo.allocationSize = memRequirements.size;
+        allocInfo.memoryTypeIndex = findMemoryType(render, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+        if (vkAllocateMemory(render->device, &allocInfo, NULL, &vertex_buffer_memory) != VK_SUCCESS) {
+            error("failed to allocate vertex buffer memory!");
+        }
+
+        vkBindBufferMemory(render->device, vertex_buffer, vertex_buffer_memory, 0);
+
+        void* data;
+        vkMapMemory(render->device, vertex_buffer_memory, 0, bufferInfo.size, 0, &data);
+            memcpy(data, vertices, sizeof(vertices));
+        vkUnmapMemory(render->device, vertex_buffer_memory);
+
+	return vertex_buffer;
+}
 void
 draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore,
@@ -1021,8 +1099,11 @@ main(int argc, char **argv) {
 	scd->framebuffers = create_frame_buffers(render->device, scd);
 
 	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
+
+	render->vertex_buffers = create_vertex_buffers(render);
+
 	scd->command_buffers = create_command_buffers(
-			render->device,
+			render,
 			scd,
 			scd->render_pass,
 			scd->command_pool,
