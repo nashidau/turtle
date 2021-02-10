@@ -92,6 +92,8 @@ struct swap_chain_data {
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
 
+uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+
 /**
  * Allocates and returns a blobby from a file.
  *
@@ -790,6 +792,39 @@ VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_dev
 	return command_pool;
 }
 
+/**
+ * Create a generic buffer with the supplied flags.
+ * Return is in VkBuffer/VkDeviceMemory,
+ */
+void
+createBuffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
+		VkMemoryPropertyFlags properties, VkBuffer* buffer,
+		VkDeviceMemory* bufferMemory) {
+    VkBufferCreateInfo bufferInfo = {};
+    bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferInfo.size = size;
+    bufferInfo.usage = usage;
+    bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    if (vkCreateBuffer(render->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+        error("failed to create buffer!");
+    }
+
+    VkMemoryRequirements memRequirements = { 0 };
+    vkGetBufferMemoryRequirements(render->device, *buffer, &memRequirements);
+
+    VkMemoryAllocateInfo allocInfo = { 0 };
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(render, memRequirements.memoryTypeBits, properties);
+
+    if (vkAllocateMemory(render->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
+        error("failed to allocate buffer memory!");
+    }
+
+    vkBindBufferMemory(render->device, *buffer, *bufferMemory, 0);
+}
+
 VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd, VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers, VkPipeline pipeline){
 	VkCommandBuffer *buffers;
 
@@ -987,6 +1022,8 @@ create_vertex_buffers(struct render_context *render) {
 
 	return vertex_buffer;
 }
+
+
 void
 draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore,
