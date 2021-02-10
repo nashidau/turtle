@@ -40,9 +40,13 @@ struct blobby {
 
 // Temp static vertices
 static const struct vertex vertices[] = {
-    {{0.0f, -0.5f}, {1.0f, 0.0f, 1.0f}},
-    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+};
+static const uint16_t indices[] = {
+    0, 1, 2, 2, 3, 0
 };
 
 // Belongs in render frame state
@@ -61,6 +65,9 @@ struct render_context {
 	VkSurfaceKHR surface;
 	
 	VkBuffer vertex_buffers;
+
+	VkBuffer index_buffer;
+	VkDeviceMemory index_buffer_memory;
 
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
@@ -89,7 +96,6 @@ struct swap_chain_data {
 	// Used to recreate (and clean up) swap chain
 	VkCommandPool command_pool;
 	VkCommandBuffer *command_buffers;
-
 };
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
@@ -870,9 +876,10 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 		    VkBuffer vertexBuffers[] = {render->vertex_buffers};
 		    VkDeviceSize offsets[] = {0};
 		    vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
+		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0, VK_INDEX_TYPE_UINT16);
 	
-		    // FIXME: That 3 shoudl be array size
-		    vkCmdDraw(buffers[i], 3, 1, 0, 0);
+		    // FIXME: That 6 shoudl be array size
+		    vkCmdDrawIndexed(buffers[i], 6/*static_cast<uint32_t>(indices.size())*/, 1, 0, 0, 0);
 		}
 	    vkCmdEndRenderPass(buffers[i]);
 
@@ -1051,6 +1058,38 @@ create_vertex_buffers(struct render_context *render) {
 	return vertex_buffer;
 }
 
+VkBuffer
+create_index_buffer(struct render_context *render, VkDeviceMemory *memory) {
+	VkDeviceSize bufferSize = sizeof(indices);
+
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer,
+			&stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+	memcpy(data, indices, (size_t) bufferSize);
+	vkUnmapMemory(render->device, stagingBufferMemory);
+
+	VkBuffer index_buffer;
+	create_buffer(render, bufferSize,
+			VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer,
+			memory);
+
+	copyBuffer(render, stagingBuffer, index_buffer, bufferSize);
+
+	vkDestroyBuffer(render->device, stagingBuffer, NULL);
+	vkFreeMemory(render->device, stagingBufferMemory, NULL);
+
+    	return index_buffer;
+}
+
+
 void
 draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore,
@@ -1161,6 +1200,8 @@ main(int argc, char **argv) {
 	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
 
 	render->vertex_buffers = create_vertex_buffers(render);
+
+	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
 
 	scd->command_buffers = create_command_buffers(
 			render,
