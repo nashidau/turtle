@@ -797,7 +797,7 @@ VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_dev
  * Return is in VkBuffer/VkDeviceMemory,
  */
 void
-createBuffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
+create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties, VkBuffer* buffer,
 		VkDeviceMemory* bufferMemory) {
     VkBufferCreateInfo bufferInfo = {};
@@ -989,40 +989,20 @@ create_vertex_buffers(struct render_context *render) {
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
 
-	VkBufferCreateInfo bufferInfo = { 0 };
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	// FIXME: From the global :-(
-	bufferInfo.size = sizeof(vertices);
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	VkDeviceSize bufferSize = sizeof(vertices);
+	create_buffer(render, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_buffer,
+			&vertex_buffer_memory);
 
-        if (vkCreateBuffer(render->device, &bufferInfo, NULL, &vertex_buffer) != VK_SUCCESS) {
-            error("failed to create vertex buffer!");
-        }
-
-        VkMemoryRequirements memRequirements = { 0 };
-	vkGetBufferMemoryRequirements(render->device, vertex_buffer,
-			&memRequirements);
-
-        VkMemoryAllocateInfo allocInfo = { 0 };
-        allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize = memRequirements.size;
-        allocInfo.memoryTypeIndex = findMemoryType(render, memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-        if (vkAllocateMemory(render->device, &allocInfo, NULL, &vertex_buffer_memory) != VK_SUCCESS) {
-            error("failed to allocate vertex buffer memory!");
-        }
-
-        vkBindBufferMemory(render->device, vertex_buffer, vertex_buffer_memory, 0);
-
-        void* data;
-        vkMapMemory(render->device, vertex_buffer_memory, 0, bufferInfo.size, 0, &data);
-            memcpy(data, vertices, sizeof(vertices));
-        vkUnmapMemory(render->device, vertex_buffer_memory);
-
+	{
+		void* data;
+		vkMapMemory(render->device, vertex_buffer_memory, 0, bufferSize, 0, &data);
+		memcpy(data, vertices, bufferSize);
+		vkUnmapMemory(render->device, vertex_buffer_memory);
+	}
 	return vertex_buffer;
 }
-
 
 void
 draw_frame(struct render_context *render, struct swap_chain_data *scd,
