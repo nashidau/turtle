@@ -62,6 +62,8 @@ struct render_context {
 	
 	VkBuffer vertex_buffers;
 
+	VkQueue graphicsQueue;
+	VkQueue presentQueue;
 
 	struct swap_chain_data *scd;
 
@@ -970,6 +972,41 @@ recreate_swap_chain(struct render_context *render) {
 
 }
 
+void copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+	VkCommandBufferAllocateInfo alloc_info = { 0 };
+	alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	alloc_info.commandPool = render->scd->command_pool;
+	alloc_info.commandBufferCount = 1;
+
+	VkCommandBuffer command_buffer;
+	vkAllocateCommandBuffers(render->device, &alloc_info, &command_buffer);
+	VkCommandBufferBeginInfo begin_info = { 0 };
+	begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+	vkBeginCommandBuffer(command_buffer, &begin_info);
+	VkBufferCopy copyRegion = { 0 };
+	copyRegion.srcOffset = 0;
+	copyRegion.dstOffset = 0;
+	copyRegion.size = size;
+	vkCmdCopyBuffer(command_buffer, srcBuffer, dstBuffer, 1, &copyRegion);
+
+	vkEndCommandBuffer(command_buffer);
+
+	VkSubmitInfo submitInfo = { 0 };
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &command_buffer;
+
+	vkQueueSubmit(render->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(render->graphicsQueue);
+
+	vkFreeCommandBuffers(render->device, render->scd->command_pool, 1,
+			&command_buffer);
+
+}
+
 uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPropertyFlags properties) {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(render->physical_device, &memProperties);
@@ -986,30 +1023,38 @@ uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMe
 
 VkBuffer
 create_vertex_buffers(struct render_context *render) {
+	VkDeviceSize bufferSize = sizeof(vertices);
+	VkBuffer stagingBuffer;
+	VkDeviceMemory stagingBufferMemory;
+	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer,
+			&stagingBufferMemory);
+
+	void* data;
+	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, vertices, (size_t) bufferSize);
+	vkUnmapMemory(render->device, stagingBufferMemory);
+
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
-
-	VkDeviceSize bufferSize = sizeof(vertices);
-	create_buffer(render, bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &vertex_buffer,
+	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+			VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer,
 			&vertex_buffer_memory);
 
-	{
-		void* data;
-		vkMapMemory(render->device, vertex_buffer_memory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices, bufferSize);
-		vkUnmapMemory(render->device, vertex_buffer_memory);
-	}
+	copyBuffer(render, stagingBuffer, vertex_buffer, bufferSize);
+
+	vkDestroyBuffer(render->device, stagingBuffer, NULL);
+	vkFreeMemory(render->device, stagingBufferMemory, NULL);
+
 	return vertex_buffer;
 }
 
 void
 draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore,
-		VkFence fence, 
-
-		VkQueue graphicsQueue, VkQueue presentQueue) {
+		VkFence fence) {
 	VkResult result;
 	VkDevice device = render->device;
 
@@ -1050,11 +1095,11 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd,
 
 	vkResetFences(device, 1, &fence);
 
-	result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, fence);
+	result = vkQueueSubmit(render->graphicsQueue, 1, &submitInfo, fence);
 	if (result != VK_SUCCESS) {
 		printf("failed to submit draw command buffer %d! %p %p %p\n",
 				result,
-				graphicsQueue, &submitInfo, fence);
+				render->graphicsQueue, &submitInfo, fence);
 		exit(1);
 	}
 
@@ -1069,7 +1114,7 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd,
 
         presentInfo.pImageIndices = &imageIndex;
 
-	result = vkQueuePresentKHR(presentQueue, &presentInfo);
+	result = vkQueuePresentKHR(render->presentQueue, &presentInfo);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frame_buffer_resized) {
 		frame_buffer_resized = true;
@@ -1096,8 +1141,6 @@ main(int argc, char **argv) {
 	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
 	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
 
 	render = talloc(NULL, struct render_context);
 
@@ -1105,7 +1148,7 @@ main(int argc, char **argv) {
 	instance = createInstance(render->window);
 	render->surface = create_surface(instance, render->window);
 	render->physical_device = pickPhysicalDevice(instance);
-	render->device = createLogicalDevice(render->physical_device, render->surface, &graphicsQueue, &presentQueue);
+	render->device = createLogicalDevice(render->physical_device, render->surface, &render->graphicsQueue, &render->presentQueue);
 
         render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
 	struct swap_chain_data *scd = render->scd;
@@ -1142,7 +1185,10 @@ main(int argc, char **argv) {
 	int currentFrame = 0;
 	while (!glfwWindowShouldClose(render->window)) {
 		glfwPollEvents();
-		draw_frame(render, render->scd, image_ready_sem[currentFrame], render_done_sem[currentFrame], in_flight_fences[currentFrame], graphicsQueue, presentQueue);
+		draw_frame(render, render->scd,
+				image_ready_sem[currentFrame],
+				render_done_sem[currentFrame],
+				in_flight_fences[currentFrame]);
 		currentFrame ++;
 		currentFrame %= MAX_FRAMES_IN_FLIGHT;
 	}
