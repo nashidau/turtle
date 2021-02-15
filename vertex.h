@@ -9,10 +9,13 @@ struct pos2d {
 	float x, y;
 };
 
-
 struct vertex {
 	struct pos2d pos;
 	struct color color;
+};
+
+struct matrix4 {
+	float vals[16];
 };
 
 static_assert(sizeof(struct pos2d) == sizeof(float) * 2, "Urk");

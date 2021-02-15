@@ -2,11 +2,9 @@
 VULKANCFLAGS=/
 VULKANLIBS=-lvulkan 
 
-
-
 PKGS=talloc glfw3
 
-CFLAGS+=-g -Wall -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks -iframework /Library/Frameworks 
+CFLAGS+=-g -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks -iframework /Library/Frameworks  -Icglm/include
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal
 
 SHADERCC=glslc
@@ -23,4 +21,8 @@ triangles.o: triangles.c vertex.h
 
 vertex.o: vertex.c vertex.h
 
-triangles: triangles.o vertex.o
+triangles: triangles.o vertex.o images.o
+
+.PHONY: tags
+tags:
+	ctags . cglm/include/cglm/*
