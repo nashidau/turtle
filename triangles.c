@@ -91,6 +91,10 @@ struct render_context {
 	struct swap_chain_data *scd;
 
 	VkFence *images_in_flight;
+
+	// Textures
+	VkImage texture_image;
+	VkDeviceMemory texture_image_memory;
 };
 
 struct swap_chain_data {
@@ -1034,6 +1038,9 @@ static int swap_chain_data_destructor(struct swap_chain_data *scd) {
 
 static int
 render_context_destructor(struct render_context *render) {
+
+	vkDestroyImage(render->device, render->texture_image, NULL);
+	vkFreeMemory(render->device, render->texture_image_memory, NULL);
 	return 0;	
 }
 
