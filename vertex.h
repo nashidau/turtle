@@ -12,6 +12,7 @@ struct pos2d {
 struct vertex {
 	struct pos2d pos;
 	struct color color;
+	struct pos2d tex_coord;
 };
 
 struct matrix4 {

@@ -24,8 +24,8 @@
 
 #include "vertex.h"
 
-#define pup_alloc  __attribute__((warn_unused_result))
-#define pup_noreturn  __attribute__((noreturn))
+#define trtl_alloc  __attribute__((warn_unused_result))
+#define trtl_noreturn  __attribute__((noreturn))
 
 #define MIN(x,y) ({ \
     typeof(x) _x = (x);     \
@@ -48,11 +48,12 @@ struct blobby {
 
 // Temp static vertices
 static const struct vertex vertices[] = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}}
+	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
+	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
 };
+
 static const uint16_t indices[] = {
     0, 1, 2, 2, 3, 0
 };
@@ -63,6 +64,12 @@ struct UniformBufferObject {
     mat4 proj;
 };
 
+#define TRTL_ARRAY_SIZE(array)  ((uint32_t)(sizeof(array)/sizeof(array[0])))
+
+static const char *required_extensions[] = {
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
+#define N_REQUIRED_EXTENSIONS ((int)(sizeof(required_extensions)/sizeof(required_extensions[0])))
 
 // Belongs in render frame state
 static bool frame_buffer_resized = false;
@@ -95,6 +102,8 @@ struct render_context {
 	// Textures
 	VkImage texture_image;
 	VkDeviceMemory texture_image_memory;
+	VkImageView texture_image_view;
+	VkSampler texture_sampler;
 };
 
 struct swap_chain_data {
@@ -124,15 +133,14 @@ struct swap_chain_data {
 };
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
-
 uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPropertyFlags properties);
 void create_uniform_buffers(struct swap_chain_data *scd);
 void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties, VkBuffer* buffer,
 		VkDeviceMemory* bufferMemory);
-pup_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
-pup_alloc static VkDescriptorSet *create_descriptor_sets(struct swap_chain_data *scd);
-	
+trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
+trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct swap_chain_data *scd);
+static struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 /**
  * Allocates and returns a blobby from a file.
@@ -179,7 +187,7 @@ blobby_from_file(const char *path) {
 /** Generic */
 
 
-pup_noreturn int
+trtl_noreturn int
 error(const char *msg) {
 	fputs(msg, stderr);
 	exit(1);
@@ -256,26 +264,84 @@ struct queue_family_indices {
 };
 
 struct swap_chain_support_details {
-    VkSurfaceCapabilitiesKHR capabilities;
-    uint32_t nformats;
-    uint32_t npresentmodes;
-    VkSurfaceFormatKHR *formats;
-    VkPresentModeKHR *presentModes;
+	VkSurfaceCapabilitiesKHR capabilities;
+	uint32_t nformats;
+	uint32_t npresentmodes;
+	VkSurfaceFormatKHR *formats;
+	VkPresentModeKHR *presentModes;
 };
 
-/*bool isDeviceSuitable(VkPhysicalDevice device) {
-        QueueFamilyIndices indices = findQueueFamilies(device);
+static bool
+check_device_extension_support(VkPhysicalDevice device) {
+        uint32_t extensionCount;
+	VkExtensionProperties *available_extensions;
 
-        bool extensionsSupported = checkDeviceExtensionSupport(device);
+        vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, NULL);
+
+	available_extensions = talloc_array(NULL, VkExtensionProperties, extensionCount);
+        vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, available_extensions);
+
+	int j;
+	for (int i = 0 ; i < N_REQUIRED_EXTENSIONS ; i ++) {
+		for (j = 0 ; j < extensionCount ; j ++) {
+			printf("Found Extension: %s (%d)\n", available_extensions[j].extensionName,
+					available_extensions[j].specVersion);
+			if (strcmp(required_extensions[i], available_extensions[j].extensionName) == 0) {
+				break;
+			}
+		}
+		if (j == extensionCount) {
+			return false;
+		}
+	}
+        return true;
+}
+
+static struct swap_chain_support_details *
+query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface) {
+	struct swap_chain_support_details *details;
+	details = talloc(NULL, struct swap_chain_support_details);
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details->capabilities);
+
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details->nformats,NULL);
+
+	if (details->nformats != 0) {
+		details->formats = talloc_array(details, VkSurfaceFormatKHR, details->nformats);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details->nformats, details->formats);
+	}
+
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details->npresentmodes, NULL);
+
+	if (details->npresentmodes != 0) {
+		details->presentModes = talloc_array(details, VkPresentModeKHR, details->npresentmodes);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details->npresentmodes, details->presentModes);
+	}
+
+	return details;
+}
+
+static bool
+is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
+        struct queue_family_indices indices = find_queue_families(physical_device, surface);
+	struct swap_chain_support_details *swap_chain_support;
+
+        bool extensionsSupported = check_device_extension_support(physical_device);
 
         bool swapChainAdequate = false;
         if (extensionsSupported) {
-            SwapChainSupportDetails swapChainSupport = querySwapChainSupport(device);
-            swapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
+		swap_chain_support = query_swap_chain_support(physical_device, surface);
+		if (swap_chain_support->npresentmodes > 0 && swap_chain_support->nformats > 0) {
+			swapChainAdequate = true;
+		}
+		talloc_free(swap_chain_support);
         }
 
-        return indices.isComplete() && extensionsSupported && swapChainAdequate;
-}*/
+        VkPhysicalDeviceFeatures supportedFeatures;
+        vkGetPhysicalDeviceFeatures(physical_device, &supportedFeatures);
+
+        return indices.has_present && indices.has_present && extensionsSupported && swapChainAdequate && supportedFeatures.samplerAnisotropy;
+}
 
 VkSurfaceKHR
 create_surface(VkInstance instance, GLFWwindow *window) {
@@ -318,7 +384,8 @@ pickPhysicalDevice(VkInstance instance) {
 	return devices[0];
 }
 
-struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface) {
+static struct queue_family_indices
+find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface) {
 	struct queue_family_indices indices = { 0,0,false,false };
 	VkQueueFamilyProperties *properties;
 
@@ -356,14 +423,11 @@ struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfa
 }
 
 VkDevice
-createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue *graphicsQueue, VkQueue *presentQueue) {
+create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue *graphicsQueue, VkQueue *presentQueue) {
 	struct queue_family_indices queue_family_indices;
 	float queue_priority = 1.0f;
 	VkDevice device;
 	VkDeviceQueueCreateInfo queue_info[2];
-	const char *extensions[] = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME
-		};
 	VkDeviceCreateInfo device_info = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.pNext = NULL,
@@ -372,8 +436,8 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQue
 		.pQueueCreateInfos = queue_info,
 		.enabledLayerCount = 0,
 		.ppEnabledLayerNames = NULL,
-		.enabledExtensionCount = 1,
-		.ppEnabledExtensionNames = extensions,
+		.enabledExtensionCount = N_REQUIRED_EXTENSIONS,
+		.ppEnabledExtensionNames = required_extensions,
 		.pEnabledFeatures = NULL,
 	};
 
@@ -391,7 +455,6 @@ createLogicalDevice(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQue
 	queue_info[1].queueCount = 1;
 	queue_info[1].pQueuePriorities = &queue_priority;
 		
-
 	vkCreateDevice(physicalDevice, &device_info, NULL, &device);
 
 	vkGetDeviceQueue(device, queue_family_indices.graphics_family, 0, graphicsQueue);
@@ -449,35 +512,13 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR* capabilities) {
     }
 
 
-struct swap_chain_support_details *
-querySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface) {
-	struct swap_chain_support_details *details;
-	details = talloc(NULL, struct swap_chain_support_details);
 
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details->capabilities);
-
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details->nformats,NULL);
-
-	if (details->nformats != 0) {
-		details->formats = talloc_array(details, VkSurfaceFormatKHR, details->nformats);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details->nformats, details->formats);
-	}
-
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details->npresentmodes, NULL);
-
-	if (details->npresentmodes != 0) {
-		details->presentModes = talloc_array(details, VkPresentModeKHR, details->npresentmodes);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details->npresentmodes, details->presentModes);
-	}
-
-	return details;
-}
 
 struct swap_chain_data *create_swap_chain(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface) {
 	struct swap_chain_data *scd = talloc_zero(NULL, struct swap_chain_data);
 	talloc_set_destructor(scd, swap_chain_data_destructor);
 
-	struct swap_chain_support_details *swapChainSupport = querySwapChainSupport(physical_device, surface);
+	struct swap_chain_support_details *swapChainSupport = query_swap_chain_support(physical_device, surface);
 
         const VkSurfaceFormatKHR *surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport->formats, swapChainSupport->nformats);
         VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport->presentModes, swapChainSupport->npresentmodes);
@@ -535,33 +576,62 @@ struct swap_chain_data *create_swap_chain(VkDevice device, VkPhysicalDevice phys
 	return scd;
 }
 
+static VkImageView
+create_image_view(struct render_context *render, VkImage image, VkFormat format) {
+	VkImageViewCreateInfo viewInfo = { 0 };
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.image = image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = format;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.levelCount = 1;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+
+	VkImageView imageView;
+	if (vkCreateImageView(render->device, &viewInfo, NULL, &imageView) != VK_SUCCESS) {
+		error("failed to create texture image view!");
+	}
+
+	return imageView;
+}
 
 void create_image_views(VkDevice device, struct swap_chain_data *scd) {
 	scd->image_views = talloc_array(scd, VkImageView, scd->nimages);
 
         for (uint32_t i = 0; i < scd->nimages; i++) {
-            VkImageViewCreateInfo createInfo = { 0 };
-            createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-            createInfo.image = scd->images[i];
-            createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-            createInfo.format = scd->image_format;
-            createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-            createInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-            createInfo.subresourceRange.baseMipLevel = 0;
-            createInfo.subresourceRange.levelCount = 1;
-            createInfo.subresourceRange.baseArrayLayer = 0;
-            createInfo.subresourceRange.layerCount = 1;
-
-            if (vkCreateImageView(device, &createInfo, NULL, &scd->image_views[i]) != VK_SUCCESS) {
-		    error("failed to create image views!");
-            }
+		scd->image_views[i] = create_image_view(scd->render, scd->images[i], scd->image_format);
         }
-    }
+}
 
-/** End Window */
+static VkSampler
+create_texture_sampler(struct render_context *render) {
+	VkSampler sampler;
+	VkPhysicalDeviceProperties properties = { 0 };
+        vkGetPhysicalDeviceProperties(render->physical_device, &properties);
+
+        VkSamplerCreateInfo sampler_info = { 0 };
+        sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+        sampler_info.magFilter = VK_FILTER_LINEAR;
+        sampler_info.minFilter = VK_FILTER_LINEAR;
+        sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        sampler_info.anisotropyEnable = VK_TRUE;
+        sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+        sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+        sampler_info.unnormalizedCoordinates = VK_FALSE;
+        sampler_info.compareEnable = VK_FALSE;
+        sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+        sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+        if (vkCreateSampler(render->device, &sampler_info, NULL, &sampler) != VK_SUCCESS) {
+		error("failed to create texture sampler!");
+        }
+	return sampler;
+}
+
 
 VkCommandBuffer beginSingleTimeCommands(struct render_context *render) {
 	VkCommandBufferAllocateInfo allocInfo = { 0 };
@@ -688,7 +758,6 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-
 	VkVertexInputBindingDescription binding_description;
 	VkVertexInputAttributeDescription *attribute_description;
 
@@ -700,7 +769,7 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.pVertexBindingDescriptions = &binding_description;
-	vertexInputInfo.vertexAttributeDescriptionCount = 2; // magic
+	vertexInputInfo.vertexAttributeDescriptionCount = 3; // magic
 	vertexInputInfo.pVertexAttributeDescriptions = attribute_description;
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = { 0 };
@@ -738,7 +807,6 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 	rasterizer.lineWidth = 1.0f;
 	rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
 	rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	//rasterizer.frontFace = VK_FRONT_FACE_CLOCKWISE;
 	rasterizer.depthBiasEnable = VK_FALSE;
 	rasterizer.depthBiasConstantFactor = 0.0f; // Optional
 	rasterizer.depthBiasClamp = 0.0f; // Optional
@@ -822,17 +890,27 @@ VkDescriptorSetLayout
 create_descriptor_set_layout(struct render_context *render) {
 	VkDescriptorSetLayout descriptor_set_layout; 
 
-        VkDescriptorSetLayoutBinding uboLayoutBinding = { 0 };
-        uboLayoutBinding.binding = 0;
-        uboLayoutBinding.descriptorCount = 1;
-        uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        uboLayoutBinding.pImmutableSamplers = NULL;
-        uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+        VkDescriptorSetLayoutBinding ubo_layout_binding = { 0 };
+        ubo_layout_binding.binding = 0;
+        ubo_layout_binding.descriptorCount = 1;
+        ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        ubo_layout_binding.pImmutableSamplers = NULL;
+        ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
+	VkDescriptorSetLayoutBinding sampler_layout_binding = { 0 };
+	sampler_layout_binding.binding = 1;
+	sampler_layout_binding.descriptorCount = 1;
+	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	sampler_layout_binding.pImmutableSamplers = NULL;
+	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutBinding bindings[2];
+	bindings[0] = ubo_layout_binding;
+	bindings[1] = sampler_layout_binding;
         VkDescriptorSetLayoutCreateInfo layoutInfo = { 0 };
         layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        layoutInfo.bindingCount = 1;
-        layoutInfo.pBindings = &uboLayoutBinding;
+        layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
+        layoutInfo.pBindings = bindings;
 
         if (vkCreateDescriptorSetLayout(render->device, &layoutInfo, NULL, &descriptor_set_layout) != VK_SUCCESS) {
             error("failed to create descriptor set layout!");
@@ -1219,18 +1297,20 @@ update_uniform_buffer(struct swap_chain_data *scd, uint32_t currentImage) {
 	vkUnmapMemory(scd->render->device, scd->uniform_buffers_memory[currentImage]);
 }
 
-pup_alloc static VkDescriptorPool
+trtl_alloc static VkDescriptorPool
 create_descriptor_pool(struct swap_chain_data *scd) {
 	VkDescriptorPool descriptor_pool;
-	VkDescriptorPoolSize pool_size = { 0 };
+	VkDescriptorPoolSize pool_sizes[2];
 	
-        pool_size.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        pool_size.descriptorCount = scd->nimages;
+        pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        pool_sizes[0].descriptorCount = scd->nimages;
+	pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	pool_sizes[1].descriptorCount = scd->nimages;
 
         VkDescriptorPoolCreateInfo pool_info = { 0 };
         pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.poolSizeCount = 1;
-        pool_info.pPoolSizes = &pool_size;
+        pool_info.poolSizeCount = TRTL_ARRAY_SIZE(pool_sizes);;
+        pool_info.pPoolSizes = pool_sizes;
         pool_info.maxSets = scd->nimages;
 
 	if (vkCreateDescriptorPool(scd->render->device, &pool_info, NULL,
@@ -1375,7 +1455,7 @@ void copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImag
 	endSingleTimeCommands(render, commandBuffer);
 }
 
-static void
+static VkImage
 create_texture_image(struct render_context *render) {
 	VkImage image;
 	VkDeviceMemory imageMemory;
@@ -1416,9 +1496,16 @@ create_texture_image(struct render_context *render) {
 
         vkDestroyBuffer(render->device, staging_buffer, NULL);
         vkFreeMemory(render->device, staging_buffer_memory, NULL);
+
+	return image;
 }
 
-pup_alloc static VkDescriptorSet *
+static VkImageView
+create_texture_image_view(struct render_context *render, VkImage texture_image) {
+	return create_image_view(render, texture_image, VK_FORMAT_R8G8B8A8_SRGB);
+}
+
+trtl_alloc static VkDescriptorSet *
 create_descriptor_sets(struct swap_chain_data *scd) {
 	VkDescriptorSet *sets = talloc_array(scd, VkDescriptorSet, scd->nimages);
 	VkDescriptorSetLayout *layouts = talloc_array(NULL, VkDescriptorSetLayout, scd->nimages);
@@ -1442,16 +1529,32 @@ create_descriptor_sets(struct swap_chain_data *scd) {
 		buffer_info.offset = 0;
 		buffer_info.range = sizeof(struct UniformBufferObject);
 
-		VkWriteDescriptorSet descriptorWrite = { 0 };
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = sets[i];
-		descriptorWrite.dstBinding = 0;
-		descriptorWrite.dstArrayElement = 0;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pBufferInfo = &buffer_info;
+		VkDescriptorImageInfo image_info = { 0 };
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = scd->render->texture_image_view;
+		image_info.sampler = scd->render->texture_sampler;
 
-		vkUpdateDescriptorSets(scd->render->device, 1, &descriptorWrite, 0, NULL);
+		VkWriteDescriptorSet descriptorWrites[2] = { 0 };
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = sets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &buffer_info;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = sets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &image_info;
+
+		vkUpdateDescriptorSets(scd->render->device,
+				TRTL_ARRAY_SIZE(descriptorWrites),
+				descriptorWrites, 0, NULL);
 	}
 
 	return sets;
@@ -1557,7 +1660,7 @@ main(int argc, char **argv) {
 	instance = createInstance(render->window);
 	render->surface = create_surface(instance, render->window);
 	render->physical_device = pickPhysicalDevice(instance);
-	render->device = createLogicalDevice(render->physical_device, render->surface, &render->graphicsQueue, &render->presentQueue);
+	render->device = create_logical_device(render->physical_device, render->surface, &render->graphicsQueue, &render->presentQueue);
 
         render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
 	struct swap_chain_data *scd = render->scd;
@@ -1571,7 +1674,9 @@ main(int argc, char **argv) {
 
 	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
 
-	create_texture_image(render);
+	render->texture_image = create_texture_image(render);
+	render->texture_image_view = create_texture_image_view(render, render->texture_image);
+	render->texture_sampler = create_texture_sampler(render);
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
 	create_uniform_buffers(scd);
