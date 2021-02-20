@@ -3,3 +3,4 @@ shaders/*spv
 *.o
 *.trace
 *.dSYM
+tags
