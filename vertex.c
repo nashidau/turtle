@@ -20,14 +20,14 @@ vertex_binding_description_get(const struct vertex *vertex) {
 
 // Tag as pure
 VkVertexInputAttributeDescription *
-get_attribute_description_pair(const struct vertex *vertex) {
+get_attribute_description_pair(const struct vertex *vertex, uint32_t *nentries) {
 	VkVertexInputAttributeDescription *descriptions;
 
 	descriptions = talloc_zero_array(NULL, VkVertexInputAttributeDescription, 3);
 
         descriptions[0].binding = 0;
         descriptions[0].location = 0;
-        descriptions[0].format = VK_FORMAT_R32G32_SFLOAT;
+        descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
         descriptions[0].offset = offsetof(struct vertex, pos);
 
         descriptions[1].binding = 0;
@@ -39,6 +39,10 @@ get_attribute_description_pair(const struct vertex *vertex) {
         descriptions[2].location = 2;
         descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
         descriptions[2].offset = offsetof(struct vertex, tex_coord);
+
+	if (nentries) {
+		*nentries = 3;
+	}
 
         return descriptions;
 }

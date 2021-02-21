@@ -48,14 +48,21 @@ struct blobby {
 
 // Temp static vertices
 static const struct vertex vertices[] = {
-	{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
-	{{-0.5f, 0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}}
+	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
+	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+
+	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
+	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
 };
 
 static const uint16_t indices[] = {
-    0, 1, 2, 2, 3, 0
+    0, 1, 2, 2, 3, 0,
+
+    4, 5, 6, 6, 7, 4,
 };
 
 struct UniformBufferObject {
@@ -761,15 +768,16 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 	VkVertexInputBindingDescription binding_description;
 	VkVertexInputAttributeDescription *attribute_description;
 
+	uint32_t nentries;
 	binding_description = vertex_binding_description_get(vertices);
 	// FIXME: leaky
-	attribute_description = get_attribute_description_pair(vertices);
+	attribute_description = get_attribute_description_pair(vertices, &nentries);
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = { 0 };
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.pVertexBindingDescriptions = &binding_description;
-	vertexInputInfo.vertexAttributeDescriptionCount = 3; // magic
+	vertexInputInfo.vertexAttributeDescriptionCount = nentries;
 	vertexInputInfo.pVertexAttributeDescriptions = attribute_description;
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = { 0 };
@@ -1047,7 +1055,7 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 				    scd->pipeline_layout, 0, 1,
 				    &scd->descriptor_sets[i], 0, NULL);
 		    // FIXME: That 6 shoudl be array size
-		    vkCmdDrawIndexed(buffers[i], 6/*static_cast<uint32_t>(indices.size())*/, 1, 0, 0, 0);
+		    vkCmdDrawIndexed(buffers[i], TRTL_ARRAY_SIZE(indices), 1, 0, 0, 0);
 		}
 	    vkCmdEndRenderPass(buffers[i]);
 
