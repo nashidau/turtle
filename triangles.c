@@ -5,8 +5,10 @@
 
 // c++, there is a C library at https://github.com/recp/cglm
 //#include <glm/glm.hpp>
-// This is the C version of glm
+// This is the C version of glm; so these don't work
 #define CGLM_DEFINE_PRINTS 
+#define CGLM_FORCE_RADIANS
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "cglm/cglm.h"   /* for inline */
 //#include <cglm/call.h>   /* for library call (this also includes cglm.h) */
 
@@ -57,12 +59,19 @@ static const struct vertex vertices[] = {
 	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
 	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
 	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
+
+	{{-0.5f, -0.5f, -0.25f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
+	{{0.5f, -0.5f, -0.25f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
+	{{0.5f, 0.5f, -0.25f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
+	{{-0.5f, 0.5f, -0.25f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
 };
 
 static const uint16_t indices[] = {
     0, 1, 2, 2, 3, 0,
 
     4, 5, 6, 6, 7, 4,
+    
+    8, 9, 10, 10, 11, 8,
 };
 
 struct UniformBufferObject {
