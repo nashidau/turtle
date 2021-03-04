@@ -148,6 +148,10 @@ struct swap_chain_data {
 
 	VkBuffer *uniform_buffers;
 	VkDeviceMemory *uniform_buffers_memory;
+
+	VkImage depth_image;
+	VkDeviceMemory depth_image_memory;
+	VkImageView depth_image_view;
 };
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
@@ -159,6 +163,11 @@ void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsa
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct swap_chain_data *scd);
 static struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
+static void create_image(struct render_context *render, uint32_t width, uint32_t
+		height, VkFormat format, VkImageTiling tiling,
+		VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+		VkImage* image, VkDeviceMemory* imageMemory);
+	
 
 /**
  * Allocates and returns a blobby from a file.
@@ -462,7 +471,36 @@ find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface) {
 	return indices;
 }
 
-VkDevice
+static VkFormat
+find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, VkFormat *candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+	for (uint32_t i = 0 ; i < ncandidates ; i ++) {
+		VkFormat format = candidates[i];
+		VkFormatProperties props;
+		vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+			return format;
+		} else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+			return format;
+		}
+	}
+
+	error("Failed to find a supported format");
+}
+
+static VkFormat
+find_depth_format(VkPhysicalDevice physical_device) {
+	VkFormat formats[] = {VK_FORMAT_D32_SFLOAT,
+		VK_FORMAT_D32_SFLOAT_S8_UINT, VK_FORMAT_D24_UNORM_S8_UINT};
+
+	return find_supported_format(physical_device,
+			TRTL_ARRAY_SIZE(formats), formats,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT
+			);
+}
+
+static VkDevice
 create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue *graphicsQueue, VkQueue *presentQueue) {
 	struct queue_family_indices queue_family_indices;
 	float queue_priority = 1.0f;
@@ -617,13 +655,13 @@ struct swap_chain_data *create_swap_chain(VkDevice device, VkPhysicalDevice phys
 }
 
 static VkImageView
-create_image_view(struct render_context *render, VkImage image, VkFormat format) {
+create_image_view(struct render_context *render, VkImage image, VkFormat format, VkImageAspectFlags aspect_flags) {
 	VkImageViewCreateInfo viewInfo = { 0 };
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = image;
 	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	viewInfo.format = format;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.aspectMask = aspect_flags;
 	viewInfo.subresourceRange.baseMipLevel = 0;
 	viewInfo.subresourceRange.levelCount = 1;
 	viewInfo.subresourceRange.baseArrayLayer = 0;
@@ -641,8 +679,10 @@ void create_image_views(VkDevice device, struct swap_chain_data *scd) {
 	scd->image_views = talloc_array(scd, VkImageView, scd->nimages);
 
         for (uint32_t i = 0; i < scd->nimages; i++) {
-		scd->image_views[i] = create_image_view(scd->render, scd->images[i], scd->image_format);
-        }
+		scd->image_views[i] = create_image_view(scd->render,
+				scd->images[i], scd->image_format,
+				VK_IMAGE_ASPECT_COLOR_BIT);
+	}
 }
 
 static VkSampler
@@ -742,27 +782,44 @@ create_render_pass(VkDevice device, struct swap_chain_data *scd) {
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
+	VkAttachmentDescription depthAttachment = { 0 };
+	depthAttachment.format = find_depth_format(scd->render->physical_device);
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
 	VkAttachmentReference colorAttachmentRef = { 0 };
 	colorAttachmentRef.attachment = 0;
 	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef = { 0 };
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
 	VkSubpassDescription subpass = { 0 };
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
 	subpass.pColorAttachments = &colorAttachmentRef;
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;
 
         VkSubpassDependency dependency = { 0 };
         dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
         dependency.dstSubpass = 0;
-        dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
         dependency.srcAccessMask = 0;
-        dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-        dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+	VkAttachmentDescription attachments[2] = { colorAttachment, depthAttachment };
 
 	VkRenderPassCreateInfo renderPassInfo = { 0 };
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = 1;
-	renderPassInfo.pAttachments = &colorAttachment;
+	renderPassInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);;
+	renderPassInfo.pAttachments = attachments;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
 	renderPassInfo.dependencyCount = 1;
@@ -862,6 +919,14 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 	multisampling.alphaToCoverageEnable = VK_FALSE; // Optional
 	multisampling.alphaToOneEnable = VK_FALSE; // Optional
 
+        VkPipelineDepthStencilStateCreateInfo depth_stencil = { 0 };
+        depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+        depth_stencil.depthTestEnable = VK_TRUE;
+        depth_stencil.depthWriteEnable = VK_TRUE;
+        depth_stencil.depthCompareOp = VK_COMPARE_OP_LESS;
+        depth_stencil.depthBoundsTestEnable = VK_FALSE;
+        depth_stencil.stencilTestEnable = VK_FALSE;
+
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = { 0 };
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = VK_FALSE;
@@ -914,7 +979,9 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
         pipelineInfo.pViewportState = &viewportState;
         pipelineInfo.pRasterizationState = &rasterizer;
         pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = &depth_stencil; 
         pipelineInfo.pColorBlendState = &colorBlending;
+
         pipelineInfo.layout = scd->pipeline_layout;
         pipelineInfo.renderPass = scd->render_pass;
         pipelineInfo.subpass = 0;
@@ -967,13 +1034,14 @@ create_frame_buffers(VkDevice device, struct swap_chain_data *scd) {
 
 	for (uint32_t i = 0; i < scd->nimages ; i++) {
 		VkImageView attachments[] = {
-			scd->image_views[i]
+			scd->image_views[i],
+			scd->depth_image_view,
 		};
 
 		VkFramebufferCreateInfo framebufferInfo = { 0 };
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
 		framebufferInfo.renderPass = scd->render_pass;
-		framebufferInfo.attachmentCount = 1;
+		framebufferInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
 		framebufferInfo.pAttachments = attachments;
 		framebufferInfo.width = scd->extent.width;
 		framebufferInfo.height = scd->extent.height;
@@ -1003,6 +1071,24 @@ VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_dev
 	}
 
 	return command_pool;
+}
+
+/**
+ *
+ * We only need one depth image view as only one render pass is running
+ * at a time.
+ */
+static void
+create_depth_resources(struct swap_chain_data *scd) {
+	VkFormat depthFormat = find_depth_format(scd->render->physical_device);
+
+	create_image(scd->render, scd->extent.width, scd->extent.height,
+			depthFormat, VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &scd->depth_image,
+			&scd->depth_image_memory);
+	scd->depth_image_view = create_image_view(scd->render, scd->depth_image,
+			depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 /**
@@ -1071,9 +1157,12 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
             renderPassInfo.renderArea.offset.y = 0;
             renderPassInfo.renderArea.extent = scd->extent;
 
-            VkClearValue clearColor = { .color.float32 = {0.0f, 0.0f, 0.0f, 1.0f}};
-            renderPassInfo.clearValueCount = 1;
-            renderPassInfo.pClearValues = &clearColor;
+            VkClearValue clearValues[] = {
+		    { .color = (VkClearColorValue){0.0f, 0.0f, 0.0f, 1.0f} },
+		    { .depthStencil = (VkClearDepthStencilValue){1.0f, 0} },
+	    };
+            renderPassInfo.clearValueCount = TRTL_ARRAY_SIZE(clearValues);
+            renderPassInfo.pClearValues = clearValues;
 
 	    vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 	    {
@@ -1087,7 +1176,6 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 				    VK_PIPELINE_BIND_POINT_GRAPHICS,
 				    scd->pipeline_layout, 0, 1,
 				    &scd->descriptor_sets[i], 0, NULL);
-		    // FIXME: That 6 shoudl be array size
 		    vkCmdDrawIndexed(buffers[i], TRTL_ARRAY_SIZE(indices), 1, 0, 0, 0);
 		}
 	    vkCmdEndRenderPass(buffers[i]);
@@ -1187,12 +1275,13 @@ recreate_swap_chain(struct render_context *render) {
 	scd->render_pass = create_render_pass(render->device, scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 	scd->pipeline = create_graphics_pipeline(render->device, scd);
-	scd->framebuffers = create_frame_buffers(render->device, scd);
 
 	create_uniform_buffers(scd);
 	scd->descriptor_pool = create_descriptor_pool(scd);
     	scd->descriptor_sets = create_descriptor_sets(scd);
 	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
+	create_depth_resources(scd);
+	scd->framebuffers = create_frame_buffers(render->device, scd);
 	scd->command_buffers = create_command_buffers(
 			render,
 			scd,
@@ -1363,7 +1452,7 @@ create_descriptor_pool(struct swap_chain_data *scd) {
 }
 
 static void
-createImage(struct render_context *render, uint32_t width, uint32_t
+create_image(struct render_context *render, uint32_t width, uint32_t
 		height, VkFormat format, VkImageTiling tiling,
 		VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
 		VkImage* image, VkDeviceMemory* imageMemory) {
@@ -1523,7 +1612,7 @@ create_texture_image(struct render_context *render) {
 
         stbi_image_free(pixels);
 
-	createImage(render, width, height, VK_FORMAT_R8G8B8A8_SRGB,
+	create_image(render, width, height, VK_FORMAT_R8G8B8A8_SRGB,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DST_BIT |
 			VK_IMAGE_USAGE_SAMPLED_BIT,
@@ -1543,7 +1632,8 @@ create_texture_image(struct render_context *render) {
 
 static VkImageView
 create_texture_image_view(struct render_context *render, VkImage texture_image) {
-	return create_image_view(render, texture_image, VK_FORMAT_R8G8B8A8_SRGB);
+	return create_image_view(render, texture_image, VK_FORMAT_R8G8B8A8_SRGB,
+				VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 trtl_alloc static VkDescriptorSet *
