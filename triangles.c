@@ -87,6 +87,8 @@ static const char *required_extensions[] = {
 };
 #define N_REQUIRED_EXTENSIONS ((int)(sizeof(required_extensions)/sizeof(required_extensions[0])))
 
+static const char *VALIDATION_LAYER = "VK_LAYER_KHRONOS_validation";
+
 // Belongs in render frame state
 static bool frame_buffer_resized = false;
 
@@ -235,6 +237,23 @@ GLFWwindow *window_init(void) {
 }
 
 
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+	printf("Validation Layer: %s\n", pCallbackData->pMessage);
+
+        return VK_FALSE;
+}
+
+static VkDebugUtilsMessengerCreateInfoEXT
+populate_debug_messenger_create_info(void) {
+        VkDebugUtilsMessengerCreateInfoEXT createInfo = { 0 };
+        createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        createInfo.pfnUserCallback = debugCallback;
+
+	return createInfo;
+}
 
 
 VkInstance createInstance(GLFWwindow *window) {
@@ -248,7 +267,7 @@ VkInstance createInstance(GLFWwindow *window) {
         appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
         appInfo.apiVersion = VK_API_VERSION_1_0;
 
-       uint32_t glfwExtensionCount;
+	uint32_t glfwExtensionCount;
 	const char **glfwExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 	printf("Need %d extensions\n", glfwExtensionCount);
@@ -256,14 +275,19 @@ VkInstance createInstance(GLFWwindow *window) {
 		printf("  - %s\n", glfwExtensions[i]);
 	}
 
+	VkDebugUtilsMessengerCreateInfoEXT debug_create_info = populate_debug_messenger_create_info();
+
 	VkInstanceCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
         createInfo.enabledExtensionCount = glfwExtensionCount;
         createInfo.ppEnabledExtensionNames = glfwExtensions;
-
-	createInfo.enabledLayerCount = 0;
-	createInfo.pNext = NULL;
+	// FIXME: A flag to toggle validation layers
+	// createInfo.enabledLayerCount = 0;
+	//createInfo.pNext = NULL;
+	createInfo.enabledLayerCount = 1;
+	createInfo.ppEnabledLayerNames = &VALIDATION_LAYER;
+	createInfo.pNext = &debug_create_info;
 
         if (vkCreateInstance(&createInfo, NULL, &instance) != VK_SUCCESS) {
 		error("Unable tp create instance");
@@ -1652,6 +1676,26 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd,
 	}
 }
 
+
+static bool
+check_validation_layer_support(void) {
+        uint32_t layer_count;
+        vkEnumerateInstanceLayerProperties(&layer_count, NULL);
+
+	VkLayerProperties *available = talloc_array(NULL, VkLayerProperties, layer_count);
+        vkEnumerateInstanceLayerProperties(&layer_count, available);
+
+	for (uint32_t i = 0 ; i < layer_count ; i ++) {
+		VkLayerProperties layerName = available[i];
+                if (strcmp(VALIDATION_LAYER,  layerName.layerName) == 0) {
+			talloc_free(available);
+			return true;
+		}
+	}
+
+        return false;
+}
+
 int
 main_loop(GLFWwindow* window) {
 	while (!glfwWindowShouldClose(window)) {
@@ -1669,6 +1713,8 @@ main(int argc, char **argv) {
 	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
 	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
+
+	printf("Validation Layer SUpport: %s\n", check_validation_layer_support() ? "Yes" : "No");
 
 	render = talloc(NULL, struct render_context);
 	talloc_set_destructor(render, render_context_destructor);
