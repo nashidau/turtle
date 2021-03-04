@@ -167,7 +167,9 @@ static void create_image(struct render_context *render, uint32_t width, uint32_t
 		height, VkFormat format, VkImageTiling tiling,
 		VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
 		VkImage* image, VkDeviceMemory* imageMemory);
-	
+
+// This has a big fixme on it
+VkDebugUtilsMessengerEXT debugMessenger;
 
 /**
  * Allocates and returns a blobby from a file.
@@ -1795,6 +1797,28 @@ main_loop(GLFWwindow* window) {
 	return 0;
 }
 
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+	PFN_vkCreateDebugUtilsMessengerEXT func =  (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (func != NULL) {
+        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    } else {
+        return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+}
+
+static void setupDebugMessenger(VkInstance instance) {
+	VkResult err;
+        //if (!enableValidationLayers) return;
+
+        VkDebugUtilsMessengerCreateInfoEXT createInfo = populate_debug_messenger_create_info();
+
+	err = CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger);
+	if (err != VK_SUCCESS) {
+		printf("Err code is %d\n", err);
+		//error("failed to set up debug messenger!");
+        }
+    }
+
 int
 main(int argc, char **argv) {
 	struct render_context *render;
@@ -1811,6 +1835,9 @@ main(int argc, char **argv) {
 
 	render->window = window_init();
 	instance = createInstance(render->window);
+
+	setupDebugMessenger(instance);
+
 	render->surface = create_surface(instance, render->window);
 	render->physical_device = pickPhysicalDevice(instance);
 	render->device = create_logical_device(render->physical_device, render->surface, &render->graphicsQueue, &render->presentQueue);
@@ -1851,6 +1878,7 @@ main(int argc, char **argv) {
 	}
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
+	// createInfo.pNext = &debug_create_info;u
 	for (int i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
