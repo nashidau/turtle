@@ -22,7 +22,7 @@ triangles.o: triangles.c vertex.h
 
 vertex.o: vertex.c vertex.h
 
-triangles: triangles.o vertex.o images.o
+triangles: triangles.o vertex.o images.o helpers.o
 
 .PHONY: tags
 tags:

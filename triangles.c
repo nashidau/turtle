@@ -25,6 +25,7 @@
 #include <talloc.h>
 
 #include "vertex.h"
+#include "helpers.h"
 
 #define trtl_alloc  __attribute__((warn_unused_result))
 #define trtl_noreturn  __attribute__((noreturn))
@@ -83,9 +84,12 @@ struct UniformBufferObject {
 #define TRTL_ARRAY_SIZE(array)  ((uint32_t)(sizeof(array)/sizeof(array[0])))
 
 static const char *required_extensions[] = {
-	VK_KHR_SWAPCHAIN_EXTENSION_NAME
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	//VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
+	//"VK_KHR_get_physical_device_properties2",
+		//"VK_KHR_portability_subset",
 };
-#define N_REQUIRED_EXTENSIONS ((int)(sizeof(required_extensions)/sizeof(required_extensions[0])))
+#define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
 
 static const char *VALIDATION_LAYER = "VK_LAYER_KHRONOS_validation";
 
@@ -222,6 +226,11 @@ error(const char *msg) {
 	exit(1);
 }
 
+trtl_noreturn int
+error_msg(VkResult result, const char *msg) {
+	fprintf(stderr, "Error: %s Return: %s\n", msg, vk_err_msg(result));
+	exit(1);
+}
 
 /** End Generic */
 
@@ -408,10 +417,11 @@ create_surface(VkInstance instance, GLFWwindow *window) {
 }
 
 VkPhysicalDevice
-pickPhysicalDevice(VkInstance instance) {
+pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface) {
 	uint32_t deviceCount = 0;
 	// Urgh; leaky leaky leak
 	VkPhysicalDevice *devices;
+	VkPhysicalDevice candidate;
 
 	vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
 
@@ -420,19 +430,24 @@ pickPhysicalDevice(VkInstance instance) {
 		return NULL;
 	}
 
-	devices = calloc(deviceCount, sizeof(VkPhysicalDevice)); // FIXME: talloc
+	devices = talloc_array(NULL, VkPhysicalDevice, deviceCount);
 
 	vkEnumeratePhysicalDevices(instance, &deviceCount, devices);
 	printf("Found %d devices\n", deviceCount);
+	candidate = VK_NULL_HANDLE;
 
-	/*
-	for (i = 0 ; i < deviceCount ; i++) {
-		if (isDeviceSuitable(device)) {
-			physicalDevice = devicqueue_info;
+	for (int i = 0 ; i < deviceCount ; i++) {
+		if (is_device_suitable(devices[i], surface)) {
+			candidate = devices[i];
 			break;
 		}
-	}*/
-	return devices[0];
+	}
+	
+	if (candidate == VK_NULL_HANDLE) {
+		error("Unable to find suitable device\n");
+	}
+
+	return candidate;
 }
 
 static struct queue_family_indices
@@ -534,8 +549,12 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 	queue_info[1].queueFamilyIndex = queue_family_indices.present_family;;
 	queue_info[1].queueCount = 1;
 	queue_info[1].pQueuePriorities = &queue_priority;
-		
-	vkCreateDevice(physicalDevice, &device_info, NULL, &device);
+	printf("queue_info: %d %d\n", queue_family_indices.graphics_family, queue_family_indices.present_family);
+
+	VkResult result = vkCreateDevice(physicalDevice, &device_info, NULL, &device);
+	if (result != VK_SUCCESS) {
+		error_msg(result, "vkCreateDevice");
+	}
 
 	vkGetDeviceQueue(device, queue_family_indices.graphics_family, 0, graphicsQueue);
 	vkGetDeviceQueue(device, queue_family_indices.present_family, 0, presentQueue);
@@ -1814,8 +1833,7 @@ static void setupDebugMessenger(VkInstance instance) {
 
 	err = CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger);
 	if (err != VK_SUCCESS) {
-		printf("Err code is %d\n", err);
-		//error("failed to set up debug messenger!");
+		//error_msg(err, "failed to set up debug messenger!");
         }
     }
 
@@ -1839,7 +1857,7 @@ main(int argc, char **argv) {
 	setupDebugMessenger(instance);
 
 	render->surface = create_surface(instance, render->window);
-	render->physical_device = pickPhysicalDevice(instance);
+	render->physical_device = pickPhysicalDevice(instance, render->surface);
 	render->device = create_logical_device(render->physical_device, render->surface, &render->graphicsQueue, &render->presentQueue);
 
         render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
