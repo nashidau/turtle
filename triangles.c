@@ -1867,10 +1867,11 @@ main(int argc, char **argv) {
 	scd->render_pass = create_render_pass(render->device, scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 	scd->pipeline = create_graphics_pipeline(render->device, scd);
-	scd->framebuffers = create_frame_buffers(render->device, scd);
 
 
 	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
+	create_depth_resources(scd);
+	scd->framebuffers = create_frame_buffers(render->device, scd);
 
 	render->texture_image = create_texture_image(render);
 	render->texture_image_view = create_texture_image_view(render, render->texture_image);
