@@ -523,6 +523,9 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 	float queue_priority = 1.0f;
 	VkDevice device;
 	VkDeviceQueueCreateInfo queue_info[2];
+	VkPhysicalDeviceFeatures device_features = {
+		.samplerAnisotropy = VK_TRUE,
+	};
 	VkDeviceCreateInfo device_info = {
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.pNext = NULL,
@@ -533,11 +536,10 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 		.ppEnabledLayerNames = NULL,
 		.enabledExtensionCount = N_REQUIRED_EXTENSIONS,
 		.ppEnabledExtensionNames = required_extensions,
-		.pEnabledFeatures = NULL,
+		.pEnabledFeatures = &device_features,
 	};
 
 	// Once for graphics, once for present
-		
 	queue_family_indices = find_queue_families(physicalDevice, surface);
 
 	queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -549,6 +551,7 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 	queue_info[1].queueFamilyIndex = queue_family_indices.present_family;;
 	queue_info[1].queueCount = 1;
 	queue_info[1].pQueuePriorities = &queue_priority;
+	// FIXME: Should be distinct
 	printf("queue_info: %d %d\n", queue_family_indices.graphics_family, queue_family_indices.present_family);
 
 	VkResult result = vkCreateDevice(physicalDevice, &device_info, NULL, &device);
