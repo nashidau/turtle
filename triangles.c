@@ -751,11 +751,11 @@ void endSingleTimeCommands(struct render_context *render, VkCommandBuffer comman
 
 VkShaderModule
 create_shader(VkDevice device, struct blobby *blobby) {
-	VkShaderModuleCreateInfo shader_info;
 	VkShaderModule shader_module;
 		
 	if (!blobby) return 0;
 
+	VkShaderModuleCreateInfo shader_info = { 0 };
 	shader_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	shader_info.codeSize = blobby->len;
 	shader_info.pCode = (void*)blobby->data;
