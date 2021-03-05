@@ -522,7 +522,7 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 	struct queue_family_indices queue_family_indices;
 	float queue_priority = 1.0f;
 	VkDevice device;
-	VkDeviceQueueCreateInfo queue_info[2];
+	VkDeviceQueueCreateInfo queue_info[2] = { 0 };
 	VkPhysicalDeviceFeatures device_features = {
 		.samplerAnisotropy = VK_TRUE,
 	};
@@ -530,7 +530,7 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
 		.pNext = NULL,
 		.flags = 0,
-		.queueCreateInfoCount = 2,
+		.queueCreateInfoCount = TRTL_ARRAY_SIZE(queue_info),
 		.pQueueCreateInfos = queue_info,
 		.enabledLayerCount = 0,
 		.ppEnabledLayerNames = NULL,
