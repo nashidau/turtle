@@ -25,6 +25,7 @@
 #include <talloc.h>
 
 #include "vertex.h"
+#include "blobby.h"
 #include "helpers.h"
 
 #define trtl_alloc  __attribute__((warn_unused_result))
@@ -44,10 +45,8 @@
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-struct blobby {
-	size_t len;
-	const char *data;
-};
+static const char *MODEL_PATH = "models/viking_room.obj";
+static const char *TEXTURE_PATH = "textures/viking_room.png";
 
 // Temp static vertices
 static const struct vertex vertices[] = {
@@ -174,50 +173,6 @@ static void create_image(struct render_context *render, uint32_t width, uint32_t
 
 // This has a big fixme on it
 VkDebugUtilsMessengerEXT debugMessenger;
-
-/**
- * Allocates and returns a blobby from a file.
- *
- * @param path to file
- * @return blobby or NULL on error
- */
-struct blobby *
-blobby_from_file(const char *path) {
-	struct stat fileinfo;
-	struct blobby *blobby;
-
-	int fd;
-	fd = open(path, O_RDONLY);
-	if (fd < 0) {
-		perror("open");
-		return NULL;
-	}
-
-	if (fstat(fd, &fileinfo) != 0) {
-		close(fd);
-		perror("fstat");
-		return NULL;
-	}
-	
-	blobby = talloc(NULL, struct blobby);
-	blobby->len = fileinfo.st_size;
-	blobby->data = talloc_size(blobby, blobby->len);
-
-	if (read(fd, (void*)(blobby->data), blobby->len) != blobby->len) {
-		perror("read");
-		close(fd);
-		talloc_free(blobby);
-		return NULL;
-	}
-
-	close(fd);
-	return blobby;
-}
-
-/** End Blobby */
-
-
-/** Generic */
 
 
 trtl_noreturn int
@@ -1615,7 +1570,7 @@ create_texture_image(struct render_context *render) {
 	VkDeviceMemory imageMemory;
 	int width, height, channels;
 
-	stbi_uc* pixels = stbi_load("images/mac-picchu-512.jpg", &width, &height, &channels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load(TEXTURE_PATH, &width, &height, &channels, STBI_rgb_alpha);
 
 	if (pixels == NULL) {
 		error("failed to load texture image!");
@@ -1662,8 +1617,8 @@ create_texture_image_view(struct render_context *render, VkImage texture_image) 
 
 trtl_alloc static VkDescriptorSet *
 create_descriptor_sets(struct swap_chain_data *scd) {
-	VkDescriptorSet *sets = talloc_array(scd, VkDescriptorSet, scd->nimages);
-	VkDescriptorSetLayout *layouts = talloc_array(NULL, VkDescriptorSetLayout, scd->nimages);
+	VkDescriptorSet *sets = talloc_zero_array(scd, VkDescriptorSet, scd->nimages);
+	VkDescriptorSetLayout *layouts = talloc_zero_array(NULL, VkDescriptorSetLayout, scd->nimages);
 	for (int i = 0 ; i < scd->nimages; i ++) {
 		layouts[i] = scd->render->descriptor_set_layout;
 	}
