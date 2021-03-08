@@ -24,8 +24,8 @@ struct matrix4 {
 };
 
 struct trtl_model {
-	uint32_t nindexes;
-	uint32_t *indexes;
+	uint32_t nindices;
+	uint32_t *indices;
 	struct vertex *vertices;
 	uint32_t nvertices;
 };
@@ -34,9 +34,9 @@ static_assert(sizeof(struct pos2d) == sizeof(float) * 2, "Urk");
 static_assert(sizeof(struct color) == sizeof(float) * 3, "Glurk");
 
 VkVertexInputBindingDescription 
-vertex_binding_description_get(const struct vertex *vertex);
+vertex_binding_description_get(const struct trtl_model *model);
 VkVertexInputAttributeDescription *
-get_attribute_description_pair(const struct vertex *vertex,
+get_attribute_description_pair(const struct trtl_model *model,
 		uint32_t *nentries);
 
 struct trtl_model *load_model(const char *basename);

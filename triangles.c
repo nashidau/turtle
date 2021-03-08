@@ -48,32 +48,6 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 static const char *MODEL_PATH = "models/viking_room.obj";
 static const char *TEXTURE_PATH = "textures/viking_room.png";
 
-// Temp static vertices
-static const struct vertex vertices[] = {
-	{{-0.5f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, -0.5f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, 0.5f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
-	{{-0.5f, 0.5f, 0.0f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.5f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.5f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
-	{{-0.5f, 0.5f, -0.5f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-
-	{{-0.5f, -0.5f, -0.25f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.0f}},
-	{{0.5f, -0.5f, -0.25f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f}},
-	{{0.5f, 0.5f, -0.25f}, {0.0f, 0.0f, 1.0f}, {0.0f, 1.0f }},
-	{{-0.5f, 0.5f, -0.25f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f}},
-};
-
-static const uint16_t indices[] = {
-    0, 1, 2, 2, 3, 0,
-
-    4, 5, 6, 6, 7, 4,
-    
-    8, 9, 10, 10, 11, 8,
-};
-
 struct UniformBufferObject {
     mat4 model;
     mat4 view;
@@ -125,6 +99,9 @@ struct render_context {
 	VkDeviceMemory texture_image_memory;
 	VkImageView texture_image_view;
 	VkSampler texture_sampler;
+
+	// What we are drawing (sadly one for now)
+	struct trtl_model *model;
 };
 
 struct swap_chain_data {
@@ -838,9 +815,9 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 	VkVertexInputAttributeDescription *attribute_description;
 
 	uint32_t nentries;
-	binding_description = vertex_binding_description_get(vertices);
+	binding_description = vertex_binding_description_get(scd->render->model);
 	// FIXME: leaky
-	attribute_description = get_attribute_description_pair(vertices, &nentries);
+	attribute_description = get_attribute_description_pair(scd->render->model, &nentries);
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = { 0 };
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -1149,13 +1126,13 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 		    VkBuffer vertexBuffers[] = {render->vertex_buffers};
 		    VkDeviceSize offsets[] = {0};
 		    vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
-		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0, VK_INDEX_TYPE_UINT16);
+		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 	
 		    vkCmdBindDescriptorSets(buffers[i],
 				    VK_PIPELINE_BIND_POINT_GRAPHICS,
 				    scd->pipeline_layout, 0, 1,
 				    &scd->descriptor_sets[i], 0, NULL);
-		    vkCmdDrawIndexed(buffers[i], TRTL_ARRAY_SIZE(indices), 1, 0, 0, 0);
+		    vkCmdDrawIndexed(buffers[i],  scd->render->model->nindices, 1, 0, 0, 0);
 		}
 	    vkCmdEndRenderPass(buffers[i]);
 
@@ -1300,9 +1277,11 @@ uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMe
 	return -1;
 }
 
+// FIXME: Trtl should take a model and create a vertex buffer for this
 VkBuffer
 create_vertex_buffers(struct render_context *render) {
-	VkDeviceSize bufferSize = sizeof(vertices);
+	// FIXME: trtl_model_vertex_buffer_size_get() or something to just do this
+	VkDeviceSize bufferSize = sizeof(struct vertex) * render->model->nvertices;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1312,7 +1291,7 @@ create_vertex_buffers(struct render_context *render) {
 
 	void* data;
 	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, vertices, (size_t) bufferSize);
+		memcpy(data, render->model->vertices, (size_t) bufferSize);
 	vkUnmapMemory(render->device, stagingBufferMemory);
 
 	VkBuffer vertex_buffer;
@@ -1332,7 +1311,7 @@ create_vertex_buffers(struct render_context *render) {
 
 VkBuffer
 create_index_buffer(struct render_context *render, VkDeviceMemory *memory) {
-	VkDeviceSize bufferSize = sizeof(indices);
+	VkDeviceSize bufferSize = sizeof(render->model->indices[0]) * render->model->nindices;
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -1343,7 +1322,7 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory) {
 
 	void* data;
 	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, indices, (size_t) bufferSize);
+	memcpy(data, render->model->indices, (size_t) bufferSize);
 	vkUnmapMemory(render->device, stagingBufferMemory);
 
 	VkBuffer index_buffer;
@@ -1834,6 +1813,9 @@ main(int argc, char **argv) {
 	render->texture_image = create_texture_image(render);
 	render->texture_image_view = create_texture_image_view(render, render->texture_image);
 	render->texture_sampler = create_texture_sampler(render);
+
+	render->model = load_model(MODEL_PATH);
+
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
 	create_uniform_buffers(scd);
