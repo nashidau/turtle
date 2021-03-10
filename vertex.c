@@ -14,7 +14,8 @@ struct vhash;
 static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, bool *new);
 static struct vhash * vhash_init(int32_t size);
 static int vhash_netries(struct vhash *vhash, int *lookups);
-	
+
+#define DEBUGTHIS 0
 
 // FIXME Tag as pure
 VkVertexInputBindingDescription 
@@ -57,7 +58,6 @@ get_attribute_description_pair(const struct trtl_model *model, uint32_t *nentrie
 }
 
 
-// FIXME: WHen the hell does 'buf' get freed.
 static void
 tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len) {
 	struct blobby *blobby;
@@ -176,8 +176,7 @@ load_model(const char *basename) {
 	}
 	int lookups;
 	vhash_netries(vhash, &lookups);
-	printf("Unique entruies: %d %d\n", vhash_netries(vhash, NULL), lookups);
-//	talloc_free(vhash);
+	talloc_free(vhash);
 #else
 	// dumb
 	model->vertices = talloc_array(model, struct vertex, attrib.num_faces);
@@ -205,12 +204,14 @@ load_model(const char *basename) {
 	}
 #endif
 
-	for (int j = 0 ; j < model->nindices ; j ++) {
-		struct vertex *v = model->vertices + model->indices[j];
-		printf("Vertex %4d: %lf %lf %lf  / %lf %lf\n",
-				j,
-				v->pos.x, v->pos.y, v->pos.z,
-				v->tex_coord.x, v->tex_coord.y);
+	if (DEBUGTHIS) {
+		for (int j = 0 ; j < model->nindices ; j ++) {
+			struct vertex *v = model->vertices + model->indices[j];
+			printf("Vertex %4d: %lf %lf %lf  / %lf %lf\n",
+					j,
+					v->pos.x, v->pos.y, v->pos.z,
+					v->tex_coord.x, v->tex_coord.y);
+		}
 	}
 
 	return model;
