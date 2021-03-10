@@ -117,37 +117,19 @@ load_model(const char *basename) {
 	// Release the file buffer (blobby) allocated in the reader
    	talloc_free(ctx);
 
-	printf("We have %d Vertices\n", attrib.num_vertices);
-	for (int i = 0; i < num_shapes; i ++) {
-		printf("Shape %d %d %d %s\n", i, shapes[i].face_offset, shapes[i].length, shapes[i].name);
+	if (DEBUGTHIS) {
+		printf("We have %d Vertices\n", attrib.num_vertices);
+		for (int i = 0; i < num_shapes; i ++) {
+			printf("Shape %d %d %d %s\n", i, shapes[i].face_offset,
+					shapes[i].length, shapes[i].name);
+		}
+
+		printf("Model Details:\n Vertices: %d\n Faces: %d\n Face N Verts: %d\n",
+				attrib.num_vertices, attrib.num_faces, attrib.num_face_num_verts);
 	}
-
-	printf("Model Details:\n Vertices: %d\n Faces: %d\n Face N Verts: %d\n",
-			attrib.num_vertices, attrib.num_faces, attrib.num_face_num_verts);
-
-
 
 	model = talloc_zero(NULL, struct trtl_model);
-	
-	// FIXME: This is the dumb way; each index just once
-	
-	// Load our vertices
-	/* 
-	model->vertices = talloc_array(model, struct vertex, attrib.num_vertices);
-	model->nvertices = attrib.num_vertices;
-	for (int i = 0 ; i < attrib.num_vertices ; i++) {
-		struct vertex  *v = model->vertices + i;
-		v->pos.x = attrib.vertices[i * 3];
-		v->pos.y = attrib.vertices[i * 3 + 1];
-		v->pos.z = attrib.vertices[i * 3 + 2];
-		v->tex_coord.x = attrib.texcoords[i * 2];
-		v->tex_coord.y = 1.0f - attrib.texcoords[i * 2 + 1];
-		v->color = (struct color){1.0f,1.0f,1.0f};
-	}
-	*/
 
-#if 1
-	// dumb
 	model->vertices = talloc_array(model, struct vertex, attrib.num_faces);
 	model->nvertices = attrib.num_faces;
 
@@ -177,32 +159,6 @@ load_model(const char *basename) {
 	int lookups;
 	vhash_netries(vhash, &lookups);
 	talloc_free(vhash);
-#else
-	// dumb
-	model->vertices = talloc_array(model, struct vertex, attrib.num_faces);
-	model->nvertices = attrib.num_faces;
-
-	// Load our indices
-	model->indices = talloc_array(model, uint32_t, attrib.num_faces);
-	model->nindices = attrib.num_faces;
-
-	int	mi = 0;
-	for (int i = 0 ; i < attrib.num_faces ; i ++ ) {
-		model->indices[i] = i;
-		struct vertex *v = model->vertices + i;
-		tinyobj_vertex_index_t idx = attrib.faces[i];
-
-		v->pos.x = attrib.vertices[idx.v_idx * 3];
-		v->pos.y = attrib.vertices[idx.v_idx * 3+ 1];
-		v->pos.z = attrib.vertices[idx.v_idx * 3+ 2];
-		v->tex_coord.x = attrib.texcoords[idx.vt_idx * 2];
-		v->tex_coord.y = 1.0f - attrib.texcoords[idx.vt_idx * 2 + 1];
-
-		
-		//strut vertex *v = model->vertices + i;
-		//v->posx.
-	}
-#endif
 
 	if (DEBUGTHIS) {
 		for (int j = 0 ; j < model->nindices ; j ++) {
