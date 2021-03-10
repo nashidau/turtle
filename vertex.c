@@ -1,5 +1,6 @@
 
 #include <assert.h>
+#include <stdbool.h>
 
 #include <vulkan/vulkan.h>
 
@@ -8,6 +9,12 @@
 #include "vertex.h"
 #include "blobby.h"
 #include "../../tinyobjloader-c/tinyobj_loader_c.h"
+
+struct vhash;
+static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, bool *new);
+static struct vhash * vhash_init(int32_t size);
+static int vhash_netries(struct vhash *vhash, int *lookups);
+	
 
 // FIXME Tag as pure
 VkVertexInputBindingDescription 
@@ -139,6 +146,39 @@ load_model(const char *basename) {
 	}
 	*/
 
+#if 1
+	// dumb
+	model->vertices = talloc_array(model, struct vertex, attrib.num_faces);
+	model->nvertices = attrib.num_faces;
+
+	// Load our indices
+	model->indices = talloc_array(model, uint32_t, attrib.num_faces);
+	model->nindices = attrib.num_faces;
+
+	struct vhash *vhash = vhash_init(attrib.num_faces);
+	for (int i = 0 ; i < attrib.num_faces ; i ++) {
+		bool new = true;
+		tinyobj_vertex_index_t idx = attrib.faces[i];
+		int n = vhash_find(vhash, idx.v_idx, idx.vt_idx, &new);
+		// Already seen it
+		model->indices[i] = n;
+		if (!new) {
+			continue;
+		}
+
+		struct vertex *v = model->vertices + n;
+
+		v->pos.x = attrib.vertices[idx.v_idx * 3];
+		v->pos.y = attrib.vertices[idx.v_idx * 3+ 1];
+		v->pos.z = attrib.vertices[idx.v_idx * 3+ 2];
+		v->tex_coord.x = attrib.texcoords[idx.vt_idx * 2];
+		v->tex_coord.y = 1.0f - attrib.texcoords[idx.vt_idx * 2 + 1];
+	}
+	int lookups;
+	vhash_netries(vhash, &lookups);
+	printf("Unique entruies: %d %d\n", vhash_netries(vhash, NULL), lookups);
+//	talloc_free(vhash);
+#else
 	// dumb
 	model->vertices = talloc_array(model, struct vertex, attrib.num_faces);
 	model->nvertices = attrib.num_faces;
@@ -163,50 +203,90 @@ load_model(const char *basename) {
 		//strut vertex *v = model->vertices + i;
 		//v->posx.
 	}
+#endif
 
-      /*size_t f;
-      for (f = 0; f < (size_t)attrib.faces[i] / 3; f++) {
-
-        tinyobj_vertex_index_t idx0 = attrib.faces[face_offset + 3 * f + 0];
-        tinyobj_vertex_index_t idx1 = attrib.faces[face_offset + 3 * f + 1];
-        tinyobj_vertex_index_t idx2 = attrib.faces[face_offset + 3 * f + 2];
-
-	model->indices[mi++] = attrib.faces[f * 3.v_idx;
-	model->indices[mi++] = idx1.v_idx;
-	model->indices[mi++] = idx2.v_idx;
-
-      }
-    }
-
-}*/
+	for (int j = 0 ; j < model->nindices ; j ++) {
+		struct vertex *v = model->vertices + model->indices[j];
+		printf("Vertex %4d: %lf %lf %lf  / %lf %lf\n",
+				j,
+				v->pos.x, v->pos.y, v->pos.z,
+				v->tex_coord.x, v->tex_coord.y);
+	}
 
 	return model;
-	/*
-	for (size_t s = 0; s < num_shapes ; s ++) {
-		shape = shapes[s];
-		for (size_t
-
-	}
-for (const auto& shape : shapes) {
-    for (const auto& index : shape.mesh.indices) {
-        Vertex vertex{};
-
-        vertices.push_back(vertex);
-        indices.push_back(indices.size());
-    }
-
-vertex.pos = {
-    attrib.vertices[3 * index.vertex_index + 0],
-    attrib.vertices[3 * index.vertex_index + 1],
-    attrib.vertices[3 * index.vertex_index + 2]
-};
-
-vertex.texCoord = {
-    attrib.texcoords[2 * index.texcoord_index + 0],
-   attrib.texcoords[2 * index.texcoord_index + 1]
-};
-
-vertex.color = {1.0f, 1.0f, 1.0f}; 
-*/
-	return NULL;
 }
+
+struct vhash {
+	int32_t size;
+	int32_t next;
+	// Could use a 0 length array to save an allocation here
+	struct vhash_node **nodes;
+
+	// stats:
+	int lookups;
+};
+
+struct vhash_node {
+	struct vhash_node *next;
+	uint32_t vertex_index;
+	uint32_t texture_index;
+
+	int32_t vindex;
+};
+
+static uint32_t 
+hash(uint32_t vertex_index, uint32_t texture_index, uint32_t size) {
+	return (vertex_index + texture_index) % size;
+}
+
+// Returns the index to use for this vertex.
+static int32_t
+vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, bool *created) {
+	struct vhash_node *node;
+	uint32_t key = hash(vertex_index, texture_index, vhash->size);
+
+	vhash->lookups ++;
+
+	node = vhash->nodes[key];
+	while (node) {
+		if (node->vertex_index == vertex_index && node->texture_index == texture_index) {
+			if (created) *created = false;
+			return node->vindex;
+		}
+		node = node->next;
+	}
+
+	// Didn't find it
+	node = talloc(vhash, struct vhash_node);
+	node->texture_index = texture_index;
+	node->vertex_index = vertex_index;
+	node->vindex = vhash->next ++;
+
+	node->next = vhash->nodes[key];
+	vhash->nodes[key] = node;
+			
+	if (created) *created = true;
+
+	return node->vindex;
+}
+
+static struct vhash *
+vhash_init(int32_t size) {
+	struct vhash *vhash;
+
+	vhash = talloc(NULL, struct vhash);
+	vhash->size = size;
+	vhash->next = 0;
+	vhash->nodes = talloc_zero_array(NULL, struct vhash_node *, size);
+	vhash->lookups = 0;
+	
+	return vhash;
+}
+
+static int
+vhash_netries(struct vhash *vhash, int *lookups) {
+	if (lookups) *lookups = vhash->lookups;
+	return vhash->next;
+}
+
+
