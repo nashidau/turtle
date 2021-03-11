@@ -94,10 +94,6 @@ struct trtl_model *
 load_model(const char *basename) {
 	void *ctx;
 	struct trtl_model *model;
-   // tinyobj::attrib_t attrib;
-   // std::vector<tinyobj::shape_t> shapes;
-    //std::vector<tinyobj::material_t> materials;
-    //std::string warn, err;
     	tinyobj_attrib_t attrib;
 	tinyobj_shape_t *shapes;
 	tinyobj_material_t *materials;
@@ -106,9 +102,9 @@ load_model(const char *basename) {
 
 	ctx = talloc_init("Model Data buffer: %s", basename);
 
-   // if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
-    //    throw std::runtime_error(warn + err);
-	int ret = tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials, &num_materials, basename, tinyobj_file_reader, ctx, TINYOBJ_FLAG_TRIANGULATE);
+	int ret = tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials,
+			&num_materials, basename, tinyobj_file_reader, ctx,
+			TINYOBJ_FLAG_TRIANGULATE);
 	if (ret != 0) {
 		printf("parse object failed\n");
 		exit(1);
