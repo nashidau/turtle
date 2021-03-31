@@ -10,6 +10,9 @@ LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurf
 
 SHADERCC=glslc
 
+%.spv : %.frag
+	${SHADERCC} -o $@ $<
+
 ALL: triangles shaders/frag.spv shaders/vert.spv
 
 shaders/frag.spv: shaders/shader.frag
@@ -23,6 +26,10 @@ triangles.o: triangles.c vertex.h
 vertex.o: vertex.c vertex.h
 
 triangles: triangles.o vertex.o images.o helpers.o objloader.o blobby.o
+
+.PHONY: clean
+clean:
+	rm -f ${OBJECTS} triangles ${SHADERS}
 
 .PHONY: tags
 tags:
