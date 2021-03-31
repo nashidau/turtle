@@ -97,6 +97,8 @@ load_model(const char *basename) {
     	tinyobj_attrib_t attrib;
 	tinyobj_shape_t *shapes;
 	tinyobj_material_t *materials;
+	struct pos3d *vertices;
+	struct pos2d *texcoords;
 	size_t num_shapes;
 	size_t num_materials;
 
@@ -133,6 +135,9 @@ load_model(const char *basename) {
 	model->indices = talloc_array(model, uint32_t, attrib.num_faces);
 	model->nindices = attrib.num_faces;
 
+	vertices = (struct pos3d *)attrib.vertices;
+	texcoords = (struct pos2d *)attrib.texcoords;
+
 	struct vhash *vhash = vhash_init(attrib.num_faces);
 	for (int i = 0 ; i < attrib.num_faces ; i ++) {
 		bool new = true;
@@ -146,11 +151,11 @@ load_model(const char *basename) {
 
 		struct vertex *v = model->vertices + n;
 
-		v->pos.x = attrib.vertices[idx.v_idx * 3];
-		v->pos.y = attrib.vertices[idx.v_idx * 3+ 1];
-		v->pos.z = attrib.vertices[idx.v_idx * 3+ 2];
-		v->tex_coord.x = attrib.texcoords[idx.vt_idx * 2];
-		v->tex_coord.y = 1.0f - attrib.texcoords[idx.vt_idx * 2 + 1];
+		v->pos.x = vertices[idx.v_idx].x;
+		v->pos.y = vertices[idx.v_idx].y;
+		v->pos.z = vertices[idx.v_idx].z;
+		v->tex_coord.x = texcoords[idx.vt_idx].x;
+		v->tex_coord.y = 1.0f - texcoords[idx.vt_idx].y;
 	}
 	int lookups;
 	vhash_netries(vhash, &lookups);
