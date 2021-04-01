@@ -397,12 +397,14 @@ find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface) {
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, properties);
 
 	for (int i = 0; i < queueFamilyCount ; i ++){
-		//printf("Loop %d %p %d %p\n",i, device, i, surface);
 		VkQueueFamilyProperties *queue_family = properties + i;
 
-		if (queue_family->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-			indices.graphics_family = i;
-			indices.has_graphics = true;
+		if (!indices.has_graphics) {
+			if (queue_family->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
+				indices.graphics_family = i;
+				indices.has_graphics = true;
+				continue;
+			}
 		}
 
 		VkBool32 presentSupport = false;
