@@ -21,6 +21,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include <talloc.h>
 
@@ -1772,18 +1773,53 @@ static void setupDebugMessenger(VkInstance instance) {
 	if (err != VK_SUCCESS) {
 		//error_msg(err, "failed to set up debug messenger!");
         }
-    }
+}
+
+static void
+show_usage(const char *binary) {
+	printf("%s: Simple game\n", binary);
+	puts(" --debug | -d   Set debug.  More 'd's more debug.");
+	puts(" --help | -h    Show help.");
+}
+
+static int debug = 0;
+
+static void
+parse_arguments(int argc, char **argv) {
+	static struct option options[] = {
+		{ "debug", no_argument, NULL, 'd' },
+		{ "help", no_argument, NULL, 'h' },
+		{ NULL, 0, NULL, 0 },
+	};
+	int option;
+
+	while ((option = getopt_long(argc, argv, "dh", options, NULL)) != -1) {
+		switch (option) {
+		case 'h':
+			show_usage(argv[0]);
+			exit(0);
+		case 'd':
+			debug = 1;
+			continue;
+		default:
+			show_usage(argv[0]);
+			exit(0);
+		}
+	}
+}
+
 
 int
 main(int argc, char **argv) {
 	struct render_context *render;
-
 	VkInstance instance;
 	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
 	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
 
-	printf("Validation Layer SUpport: %s\n", check_validation_layer_support() ? "Yes" : "No");
+	parse_arguments(argc, argv);
+	
+	printf("Validation Layer Support: %s\n", check_validation_layer_support() ? "Yes" : "No");
 
 	render = talloc(NULL, struct render_context);
 	talloc_set_destructor(render, render_context_destructor);
