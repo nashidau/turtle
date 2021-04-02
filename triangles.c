@@ -478,12 +478,12 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 	queue_family_indices = find_queue_families(physicalDevice, surface);
 
 	queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queue_info[0].queueFamilyIndex = queue_family_indices.graphics_family;;
+	queue_info[0].queueFamilyIndex = queue_family_indices.graphics_family;
 	queue_info[0].queueCount = 1;
 	queue_info[0].pQueuePriorities = &queue_priority;
 
 	queue_info[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queue_info[1].queueFamilyIndex = queue_family_indices.present_family;;
+	queue_info[1].queueFamilyIndex = queue_family_indices.present_family;
 	queue_info[1].queueCount = 1;
 	queue_info[1].pQueuePriorities = &queue_priority;
 	// FIXME: Should be distinct
