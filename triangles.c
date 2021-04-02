@@ -580,11 +580,11 @@ struct swap_chain_data *create_swap_chain(VkDevice device, VkPhysicalDevice phys
 
 	struct queue_family_indices queue_family_indices;
 	queue_family_indices = find_queue_families(physical_device, surface);
+	uint32_t queueFamilyIndices[2];
 
 	if (queue_family_indices.graphics_family != queue_family_indices.present_family) {
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		createInfo.queueFamilyIndexCount = 2;
-		uint32_t queueFamilyIndices[2];
 		queueFamilyIndices[0] = queue_family_indices.graphics_family;
 		queueFamilyIndices[1] = queue_family_indices.present_family;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
