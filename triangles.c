@@ -46,6 +46,30 @@
     (void) (&_x == &_y);    \
     _x > _y ? _x : _y; })
 
+
+enum trtl_debug {
+	TRTL_DEBUG_ERROR = 0,
+	TRTL_DEBUG_WARNING = 1,
+	TRTL_DEBUG_INFO = 2,
+	TRTL_DEBUG_VERBOSE = 3,
+	TRTL_DEBUG_DEBUG = 4,
+};
+
+static int debug = TRTL_DEBUG_INFO;
+
+static void
+verbose(enum trtl_debug msg_level, const char *fmt, ...) {
+	if (msg_level <= debug) {
+		va_list ap;
+		va_start(ap, fmt);
+		vprintf(fmt, ap);
+		va_end(ap);
+	}
+}
+
+#define LOG(x, ...) verbose(TRTL_DEBUG_ ## x, __VA_ARGS__)
+
+
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
 static const char *MODEL_PATH = "models/viking_room.obj";
@@ -172,7 +196,8 @@ error_msg(VkResult result, const char *msg) {
 static void
 window_resize_cb(GLFWwindow *window, int width, int height) {
 	frame_buffer_resized = true;
-	printf("Window resized\n");	
+	if (debug)
+		printf("Window resized\n");	
 }
 
 GLFWwindow *window_init(void) {
@@ -192,7 +217,7 @@ GLFWwindow *window_init(void) {
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-	printf("Validation Layer: %s\n", pCallbackData->pMessage);
+	LOG(VERBOSE, "Validation Layer: %s\n", pCallbackData->pMessage);
 
         return VK_FALSE;
 }
@@ -282,7 +307,8 @@ check_device_extension_support(VkPhysicalDevice device) {
 	int j;
 	for (int i = 0 ; i < N_REQUIRED_EXTENSIONS ; i ++) {
 		for (j = 0 ; j < extensionCount ; j ++) {
-			printf("Found Extension: %s (%d)\n", available_extensions[j].extensionName,
+			LOG(VERBOSE, "Found Extension: %s (%d)\n",
+					available_extensions[j].extensionName,
 					available_extensions[j].specVersion);
 			if (strcmp(required_extensions[i], available_extensions[j].extensionName) == 0) {
 				break;
@@ -1789,7 +1815,6 @@ show_usage(const char *binary) {
 	puts(" --help | -h    Show help.");
 }
 
-static int debug = 0;
 
 static void
 parse_arguments(int argc, char **argv) {
@@ -1880,7 +1905,7 @@ main(int argc, char **argv) {
 	}
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
-	// createInfo.pNext = &debug_create_info;u
+	// createInfo.pNext = &debug_create_info;
 	for (int i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
