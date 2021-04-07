@@ -2,6 +2,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
+#include <vulkan/vulkan_beta.h>
+
 
 // c++, there is a C library at https://github.com/recp/cglm
 //#include <glm/glm.hpp>
@@ -59,9 +61,7 @@ struct UniformBufferObject {
 
 static const char *required_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	//VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME,
-	//"VK_KHR_get_physical_device_properties2",
-		//"VK_KHR_portability_subset",
+	VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
 };
 #define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
 
@@ -222,19 +222,24 @@ VkInstance createInstance(GLFWwindow *window) {
 
 	uint32_t glfwExtensionCount;
 	const char **glfwExtensions;
+	char **allExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 	printf("Need %d extensions\n", glfwExtensionCount);
 	for (int i = 0; i < glfwExtensionCount; i++){
 		printf("  - %s\n", glfwExtensions[i]);
 	}
+	// FIXME: talloc this
+	allExtensions = calloc(glfwExtensionCount + 1, sizeof(char *));
+	memcpy(allExtensions, glfwExtensions, glfwExtensionCount * sizeof(char*));
+	allExtensions[glfwExtensionCount] = strdup("VK_KHR_get_physical_device_properties2");
 
 	VkDebugUtilsMessengerCreateInfoEXT debug_create_info = populate_debug_messenger_create_info();
 
 	VkInstanceCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
         createInfo.pApplicationInfo = &appInfo;
-        createInfo.enabledExtensionCount = glfwExtensionCount;
-        createInfo.ppEnabledExtensionNames = glfwExtensions;
+        createInfo.enabledExtensionCount = glfwExtensionCount + 1;
+        createInfo.ppEnabledExtensionNames = (const char *const *)allExtensions;
 	// FIXME: A flag to toggle validation layers
 	// createInfo.enabledLayerCount = 0;
 	//createInfo.pNext = NULL;
