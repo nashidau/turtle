@@ -31,8 +31,6 @@
 #include "blobby.h"
 #include "helpers.h"
 
-#define trtl_alloc  __attribute__((warn_unused_result))
-#define trtl_noreturn  __attribute__((noreturn))
 
 #define MIN(x,y) ({ \
     typeof(x) _x = (x);     \
@@ -175,19 +173,6 @@ static void create_image(struct render_context *render, uint32_t width, uint32_t
 
 // This has a big fixme on it
 VkDebugUtilsMessengerEXT debugMessenger;
-
-
-trtl_noreturn int
-error(const char *msg) {
-	fputs(msg, stderr);
-	exit(1);
-}
-
-trtl_noreturn int
-error_msg(VkResult result, const char *msg) {
-	fprintf(stderr, "Error: %s Return: %s\n", msg, vk_err_msg(result));
-	exit(1);
-}
 
 /** End Generic */
 
@@ -1167,7 +1152,7 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 				    scd->pipeline_layout, 0, 1,
 				    &scd->descriptor_sets[i], 0, NULL);
 		    vkCmdDrawIndexed(buffers[i],  scd->render->model->nindices, 1, 0, 0, 0);
-		}
+	    }
 	    vkCmdEndRenderPass(buffers[i]);
 
             if (vkEndCommandBuffer(buffers[i]) != VK_SUCCESS) {
@@ -1400,17 +1385,16 @@ update_uniform_buffer(struct swap_chain_data *scd, uint32_t currentImage) {
 
 	struct UniformBufferObject ubo = { 0 };
 	// m4, andgle, vector -> m4
-	//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	glm_mat4_identity(ubo.model);
 	glm_rotate(ubo.model, glm_rad(time), GLM_ZUP);
 
-	//ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	glm_lookat((vec3){2.0f, 2.0f, 2.0f}  , GLM_VEC3_ZERO, GLM_ZUP, ubo.view);
-//t(vec3 eye, vec3 center, vec3 up, mat4 dest)
+	{ vec3 y = { 0, 0, sin(time / 100) / 2 };
+	glm_translate(ubo.model, y);
+	}
 
+	glm_lookat((vec3){2.0f, 2.0f, 2.0f}  , GLM_VEC3_ZERO, GLM_ZUP, ubo.view);
 
 	glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo.proj);
-	//ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f);
 	ubo.proj[1][1] *= -1;
 
 	void* data;

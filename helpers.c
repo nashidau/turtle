@@ -1,6 +1,21 @@
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "vulkan/vulkan.h"
 
 #include "helpers.h"
+
+trtl_noreturn int
+error(const char *msg) {
+	fputs(msg, stderr);
+	exit(1);
+}
+
+trtl_noreturn int
+error_msg(VkResult result, const char *msg) {
+	fprintf(stderr, "Error: %s Return: %s\n", msg, vk_err_msg(result));
+	exit(1);
+}
 
 const char *
 vk_err_msg(VkResult errorCode) {
