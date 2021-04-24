@@ -2,7 +2,7 @@
 VULKANCFLAGS=/
 VULKANLIBS=-lvulkan 
 
-PKGS=talloc glfw3
+PKGS=talloc glfw3 check
 CTAGS=/opt/homebrew/bin/ctags
 
 CFLAGS+=-g -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks -iframework /Library/Frameworks  -Icglm/include
@@ -33,4 +33,4 @@ clean:
 
 .PHONY: tags
 tags:
-	${CTAGS} . cglm/include/cglm/*.h
+	${CTAGS} *.c *.h cglm/include/cglm/*.h
