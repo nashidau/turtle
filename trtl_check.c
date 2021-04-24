@@ -18,8 +18,6 @@ int main(int argc, char **argv) {
 	int nfailed;
 	int i;
 
-	talloc_enable_leak_report_full();
-
 	ctx = talloc_init("Test Context");
 
 	sr = srunner_create(NULL);
