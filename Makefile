@@ -10,10 +10,17 @@ LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurf
 
 SHADERCC=glslc
 
+TESTS=	\
+	trtl_uniform.o \
+	helpers.o \
+	trtl_uniform_check.o
+
 %.spv : %.frag
 	${SHADERCC} -o $@ $<
 
-ALL: triangles shaders/frag.spv shaders/vert.spv
+ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv
+
+trtl_check: trtl_check.o ${TESTS}
 
 shaders/frag.spv: shaders/shader.frag
 	${SHADERCC} -o $@ $<

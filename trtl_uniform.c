@@ -21,6 +21,7 @@
 
 #include <talloc.h>
 
+#include "trtl_uniform.h"
 #include "helpers.h"
 
 /**
@@ -37,9 +38,6 @@ struct trtl_uniform {
 
 	uint8_t *buffers[0];
 };
-static struct trtl_uniform *uniforms;
-
-
 
 
 // Returned from an allocation
@@ -65,8 +63,10 @@ static int trtl_uniform_destructor(struct trtl_uniform *x);
  * @param nframes Number of frames in flight at once.
  * @param size Size of the uniform pool.  Zero (0) indicates the default size.
  */
-int
+struct trtl_uniform *
 trtl_uniform_init(void *ctx, uint8_t nframes, size_t size) {
+	struct trtl_uniform *uniforms;
+
 	if (nframes < 1) {
 		nframes = 1;
 	}
@@ -74,9 +74,6 @@ trtl_uniform_init(void *ctx, uint8_t nframes, size_t size) {
 	if (size == 0) {
 		size = TRTL_DEFAULT_SIZE;
 	}
-
-	// Multi init is bad
-	assert(uniforms == NULL);
 
 	uniforms = talloc_size(ctx, offsetof(struct trtl_uniform, buffers[nframes]));
 	assert(uniforms);
@@ -95,7 +92,7 @@ trtl_uniform_init(void *ctx, uint8_t nframes, size_t size) {
 	// Initilise the (terrible) bump alloator
 	uniforms->bump.offset = 0;
 
-	return 0;
+	return uniforms;
 }
 
 /**
@@ -109,7 +106,7 @@ trtl_uniform_render(int frame) {
 }
 
 struct trtl_uniform_info *
-trtl_uniform_alloc(size_t size) {
+trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size) {
 	struct trtl_uniform_info *info;
 
 	// FIXME: Check size is nicely aligned
