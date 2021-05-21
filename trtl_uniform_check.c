@@ -24,6 +24,19 @@ START_TEST(test_uniform_alloc) {
 	talloc_free(uniforms);
 } END_TEST
 
+START_TEST(test_uniform_alloc_too_much) {
+	struct trtl_uniform *uniforms = trtl_uniform_init(NULL, 2, 100);
+
+	struct trtl_uniform_info *info = trtl_uniform_alloc(uniforms, 96);
+	ck_assert_ptr_ne(info, NULL);
+
+	// 192 bytes is larger than 100 -> should barf
+	info = trtl_uniform_alloc(uniforms, 96);
+	ck_assert_ptr_eq(info, NULL);
+
+	// Free should release the info too
+	talloc_free(uniforms);
+} END_TEST
 
 Suite *
 trtl_uniform_suite(void *ctx) {
@@ -35,6 +48,7 @@ trtl_uniform_suite(void *ctx) {
 
         tcase_add_test(tc_alloc, test_uniform_init);
         tcase_add_test(tc_alloc, test_uniform_alloc);
+        tcase_add_test(tc_alloc, test_uniform_alloc_too_much);
 	/*
         tcase_add_test(tc_seq, test_seq_single_value);
         tcase_add_test(tc_seq, test_seq_all_values);

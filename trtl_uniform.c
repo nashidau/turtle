@@ -112,9 +112,8 @@ trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size) {
 	// FIXME: Check size is nicely aligned
 
 	if (uniforms->bump.offset + size > uniforms->buffer_size) {
-		error("Allocation too large for uniform allocator");
-		assert(!"Allocation too large for uniform allocator");
-		exit(1);
+		warning("Allocation too large for uniform allocator");
+		return NULL;
 	}
 
 	info = talloc_zero_size(uniforms, size);

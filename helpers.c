@@ -11,6 +11,17 @@ error(const char *msg) {
 	exit(1);
 }
 
+/*
+ * FIXME: Should take a printfstrings
+ * FIXME: Should have (runtime) option to exit on warning
+ * FIXME: Should print line number and file of the caller
+ */
+int
+warning(const char *msg) {
+	fputs(msg, stderr);
+	return 0;
+}
+
 trtl_noreturn int
 error_msg(VkResult result, const char *msg) {
 	fprintf(stderr, "Error: %s Return: %s\n", msg, vk_err_msg(result));
