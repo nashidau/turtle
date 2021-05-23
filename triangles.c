@@ -238,8 +238,8 @@ VkInstance createInstance(GLFWwindow *window) {
 	for (int i = 0; i < glfwExtensionCount; i++){
 		printf("  - %s\n", glfwExtensions[i]);
 	}
-	// FIXME: talloc this
-	allExtensions = calloc(glfwExtensionCount + 1, sizeof(char *));
+
+	allExtensions = talloc_zero_array(NULL, char *, glfwExtensionCount + 1);
 	memcpy(allExtensions, glfwExtensions, glfwExtensionCount * sizeof(char*));
 	allExtensions[glfwExtensionCount] = strdup("VK_KHR_get_physical_device_properties2");
 
