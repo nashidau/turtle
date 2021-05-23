@@ -159,14 +159,16 @@ struct swap_chain_data {
 };
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
-uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPropertyFlags properties);
+uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
+		VkMemoryPropertyFlags properties);
 void create_uniform_buffers(struct swap_chain_data *scd);
 void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
 		VkMemoryPropertyFlags properties, VkBuffer* buffer,
 		VkDeviceMemory* bufferMemory);
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct swap_chain_data *scd);
-static struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
+static struct queue_family_indices find_queue_families(VkPhysicalDevice device,
+		VkSurfaceKHR surface);
 static void create_image(struct render_context *render, uint32_t width, uint32_t
 		height, VkFormat format, VkImageTiling tiling,
 		VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
@@ -1258,7 +1260,8 @@ recreate_swap_chain(struct render_context *render) {
 	create_uniform_buffers(scd);
 	scd->descriptor_pool = create_descriptor_pool(scd);
     	scd->descriptor_sets = create_descriptor_sets(scd);
-	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
+	scd->command_pool = create_command_pool(render->device, render->physical_device,
+			render->surface);
 	create_depth_resources(scd);
 	scd->framebuffers = create_frame_buffers(render->device, scd);
 	scd->command_buffers = create_command_buffers(
@@ -1276,7 +1279,8 @@ recreate_swap_chain(struct render_context *render) {
 
 }
 
-void copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size) {
+void copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer,
+		VkDeviceSize size) {
     VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
 
     VkBufferCopy copyRegion = { 0 };
@@ -1601,9 +1605,12 @@ create_texture_image(struct render_context *render) {
 			&imageMemory);
 	
 
-        transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-            copy_buffer_to_image(render, staging_buffer, image, width, height);
-        transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+		copy_buffer_to_image(render, staging_buffer, image, width, height);
+	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB,
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
         vkDestroyBuffer(render->device, staging_buffer, NULL);
         vkFreeMemory(render->device, staging_buffer_memory, NULL);
@@ -1620,7 +1627,9 @@ create_texture_image_view(struct render_context *render, VkImage texture_image) 
 trtl_alloc static VkDescriptorSet *
 create_descriptor_sets(struct swap_chain_data *scd) {
 	VkDescriptorSet *sets = talloc_zero_array(scd, VkDescriptorSet, scd->nimages);
-	VkDescriptorSetLayout *layouts = talloc_zero_array(NULL, VkDescriptorSetLayout, scd->nimages);
+	VkDescriptorSetLayout *layouts = talloc_zero_array(NULL, VkDescriptorSetLayout,
+			scd->nimages);
+
 	for (int i = 0 ; i < scd->nimages; i ++) {
 		layouts[i] = scd->render->descriptor_set_layout;
 	}
@@ -1683,8 +1692,8 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd,
 	vkWaitForFences(render->device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
-	result = vkAcquireNextImageKHR(device, scd->swap_chain, UINT64_MAX, image_semaphore, VK_NULL_HANDLE, &imageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+	result = vkAcquireNextImageKHR(device, scd->swap_chain, UINT64_MAX, image_semaphore,
+			VK_NULL_HANDLE, &imageIndex); if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 		recreate_swap_chain(render);
 		return;
 	} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
@@ -1696,8 +1705,8 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd,
 	// Check the system has finished with this image before we start
 	// scribbling over the top of it.
 	if (render->images_in_flight[imageIndex] != VK_NULL_HANDLE) {
-		vkWaitForFences(device, 1, &render->images_in_flight[imageIndex], VK_TRUE, UINT64_MAX);
-	}
+		vkWaitForFences(device, 1, &render->images_in_flight[imageIndex], VK_TRUE,
+				UINT64_MAX); }
 	render->images_in_flight[imageIndex] = fence;
 
 	VkSubmitInfo submitInfo = { 0 };
@@ -1739,7 +1748,8 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd,
 
 	result = vkQueuePresentKHR(render->presentQueue, &presentInfo);
 
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || frame_buffer_resized) {
+	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
+			frame_buffer_resized) {
 		frame_buffer_resized = true;
 		recreate_swap_chain(render);
 	} else if (result != VK_SUCCESS) {
@@ -1776,13 +1786,18 @@ main_loop(GLFWwindow* window) {
 	return 0;
 }
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-	PFN_vkCreateDebugUtilsMessengerEXT func =  (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (func != NULL) {
-        return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    } else {
-        return VK_ERROR_EXTENSION_NOT_PRESENT;
-    }
+VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
+		const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+		const VkAllocationCallbacks* pAllocator,
+		VkDebugUtilsMessengerEXT* pDebugMessenger) {
+	PFN_vkCreateDebugUtilsMessengerEXT func =
+		(PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance,
+				"vkCreateDebugUtilsMessengerEXT");
+	if (func != NULL) {
+		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+	} else {
+		return VK_ERROR_EXTENSION_NOT_PRESENT;
+	}
 }
 
 static void setupDebugMessenger(VkInstance instance) {
@@ -1852,7 +1867,8 @@ main(int argc, char **argv) {
 
 	render->surface = create_surface(instance, render->window);
 	render->physical_device = pickPhysicalDevice(instance, render->surface);
-	render->device = create_logical_device(render->physical_device, render->surface, &render->graphicsQueue, &render->presentQueue);
+	render->device = create_logical_device(render->physical_device, render->surface,
+			&render->graphicsQueue, &render->presentQueue);
 
         render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
 	struct swap_chain_data *scd = render->scd;
@@ -1863,7 +1879,8 @@ main(int argc, char **argv) {
 	scd->pipeline = create_graphics_pipeline(render->device, scd);
 
 
-	scd->command_pool = create_command_pool(render->device, render->physical_device, render->surface);
+	scd->command_pool = create_command_pool(render->device, render->physical_device,
+			render->surface);
 	create_depth_resources(scd);
 	scd->framebuffers = create_frame_buffers(render->device, scd);
 
