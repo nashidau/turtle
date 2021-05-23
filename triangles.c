@@ -441,15 +441,18 @@ find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface) {
 }
 
 static VkFormat
-find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, VkFormat *candidates, VkImageTiling tiling, VkFormatFeatureFlags features) {
+find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, VkFormat *candidates,
+		VkImageTiling tiling, VkFormatFeatureFlags features) {
 	for (uint32_t i = 0 ; i < ncandidates ; i ++) {
 		VkFormat format = candidates[i];
 		VkFormatProperties props;
 		vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
 
-		if (tiling == VK_IMAGE_TILING_LINEAR && (props.linearTilingFeatures & features) == features) {
+		if (tiling == VK_IMAGE_TILING_LINEAR &&
+				(props.linearTilingFeatures & features) == features) {
 			return format;
-		} else if (tiling == VK_IMAGE_TILING_OPTIMAL && (props.optimalTilingFeatures & features) == features) {
+		} else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+				(props.optimalTilingFeatures & features) == features) {
 			return format;
 		}
 	}
@@ -1387,10 +1390,11 @@ update_uniform_buffer(struct swap_chain_data *scd, uint32_t currentImage) {
 	struct UniformBufferObject ubo = { 0 };
 	// m4, andgle, vector -> m4
 	glm_mat4_identity(ubo.model);
-	glm_rotate(ubo.model, glm_rad(time), GLM_ZUP);
+	glm_rotate(ubo.model, 0, GLM_ZUP);
 
-	{ vec3 y = { 0, 0, sin(time / 100) / 2 };
-	glm_translate(ubo.model, y);
+	{
+		vec3 y = { 0, 0, 0 };
+		glm_translate(ubo.model, y);
 	}
 
 	glm_lookat((vec3){2.0f, 2.0f, 2.0f}  , GLM_VEC3_ZERO, GLM_ZUP, ubo.view);
