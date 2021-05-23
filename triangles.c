@@ -27,6 +27,7 @@
 
 #include <talloc.h>
 
+#include "trtl.h"
 #include "vertex.h"
 #include "blobby.h"
 #include "helpers.h"
