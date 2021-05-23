@@ -5,8 +5,10 @@ VULKANLIBS=-lvulkan
 PKGS=talloc glfw3 check
 CTAGS=/opt/homebrew/bin/ctags
 
-CFLAGS+=-g -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks -iframework /Library/Frameworks  -Icglm/include
-LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal
+CFLAGS+=-g -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
+	-iframework /Library/Frameworks  -Icglm/include
+LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
+	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal
 
 SHADERCC=glslc
 
