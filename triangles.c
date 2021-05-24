@@ -1160,7 +1160,8 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 		    VkBuffer vertexBuffers[] = {render->vertex_buffers};
 		    VkDeviceSize offsets[] = {0};
 		    vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
-		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0, VK_INDEX_TYPE_UINT32);
+		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0,
+				    VK_INDEX_TYPE_UINT32);
 
 		    for (int obj = 0; obj < render->nobjects ; obj ++) {
 			    render->objects[obj]->draw(render->objects[obj], buffers[i],
