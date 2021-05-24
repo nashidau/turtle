@@ -6,3 +6,17 @@ First move the model iteself into the trtl object
 	Basically at create time it should take in the params
 
 Then we need to add some code to handle multiple uniforms 
+
+
+
+Simple Tasks:
+	- Makefile
+		- Add a 'clean' target
+		- Add a proper list of objects in the C file
+		- add a fixme target
+	- Clean some fixes.
+	- vertex.h -> trtl_model?
+	- Add some tests for trtl_object_draw
+		    
+
+	
