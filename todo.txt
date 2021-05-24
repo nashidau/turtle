@@ -1,0 +1,8 @@
+First up is to clear the warning.  We want a clean compile. 
+
+Next is to make trtle object do something useful
+
+First move the model iteself into the trtl object
+	Basically at create time it should take in the params
+
+Then we need to add some code to handle multiple uniforms 
