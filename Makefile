@@ -5,7 +5,7 @@ VULKANLIBS=-lvulkan
 PKGS=talloc glfw3 check
 CTAGS=/opt/homebrew/bin/ctags
 
-CFLAGS+=-g -O2 `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
+CFLAGS+=-g -O2 -Wall -Wextra `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
 	-iframework /Library/Frameworks  -Icglm/include
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
 	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal
@@ -34,7 +34,7 @@ triangles.o: triangles.c vertex.h
 
 vertex.o: vertex.c vertex.h
 
-triangles: triangles.o vertex.o images.o helpers.o objloader.o blobby.o trtl_uniform.o
+triangles: triangles.o vertex.o images.o helpers.o objloader.o blobby.o trtl_uniform.o trtl_object.o
 
 .PHONY: clean
 clean:

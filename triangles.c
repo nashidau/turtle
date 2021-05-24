@@ -32,6 +32,8 @@
 #include "blobby.h"
 #include "helpers.h"
 
+#include "trtl_object.h"
+
 
 #define MIN(x,y) ({ \
     typeof(x) _x = (x);     \
@@ -126,6 +128,11 @@ struct render_context {
 
 	// What we are drawing (sadly one for now)
 	struct trtl_model *model;
+
+	// Lots of FIXME here.  Just one hardcoded now
+	// DOesn't belong here = part of global state?
+	int nobjects;
+	struct trtl_object **objects;
 };
 
 struct swap_chain_data {
@@ -1105,7 +1112,9 @@ create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFla
     vkBindBufferMemory(render->device, *buffer, *bufferMemory, 0);
 }
 
-VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd, VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers, VkPipeline pipeline){
+VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
+		VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers,
+		VkPipeline pipeline){
 	VkCommandBuffer *buffers;
 
 	scd->nbuffers = scd->nimages;
@@ -1152,12 +1161,13 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 		    VkDeviceSize offsets[] = {0};
 		    vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
 		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0, VK_INDEX_TYPE_UINT32);
-	
-		    vkCmdBindDescriptorSets(buffers[i],
-				    VK_PIPELINE_BIND_POINT_GRAPHICS,
-				    scd->pipeline_layout, 0, 1,
-				    &scd->descriptor_sets[i], 0, NULL);
-		    vkCmdDrawIndexed(buffers[i],  scd->render->model->nindices, 1, 0, 0, 0);
+
+		    for (int obj = 0; obj < render->nobjects ; obj ++) {
+			    render->objects[obj]->draw(render->objects[obj], buffers[i],
+					    scd->pipeline_layout,
+					    &scd->descriptor_sets[i]);
+		    }
+		   
 	    }
 	    vkCmdEndRenderPass(buffers[i]);
 
@@ -1895,6 +1905,14 @@ main(int argc, char **argv) {
 	create_uniform_buffers(scd);
 	scd->descriptor_pool = create_descriptor_pool(scd);
     	scd->descriptor_sets = create_descriptor_sets(scd);
+
+
+	render->objects = talloc_array(render, struct trtl_object *, 1);
+	// FIXME: Object is destroyed when screen chages; wrong
+	render->objects[0] = trtl_object_create(render, render->model);
+	render->nobjects = 1;
+
+
 	scd->command_buffers = create_command_buffers(
 			render,
 			scd,
