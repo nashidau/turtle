@@ -1918,7 +1918,7 @@ main(int argc, char **argv) {
 
 	render->objects = talloc_array(render, struct trtl_object *, 1);
 	// FIXME: Object is destroyed when screen chages; wrong
-	render->objects[0] = trtl_object_create(render, render->model);
+	render->objects[0] = trtl_object_create(render, MODEL_PATH);
 	render->nobjects = 1;
 
 

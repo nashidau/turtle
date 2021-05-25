@@ -5,6 +5,7 @@
 
 #include "trtl_object.h"
 #include "vertex.h"  // FIXME: has trtl_model in it
+#include "helpers.h"
 
 static void
 trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
@@ -17,15 +18,25 @@ trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
 	vkCmdDrawIndexed(cmd_buffer,  obj->model->nindices, 1, 0, 0, 0);
 }
 
-// This is a terrible signature.
+static int
+trtl_object_destructor(trtl_arg_unused struct trtl_object *obj) {
+	// FIXME: Free model
+	return 0;	
+}
+
 struct trtl_object *
-trtl_object_create(void *ctx, struct trtl_model *model) {
+trtl_object_create(void *ctx, const char *path) {
 	struct trtl_object *obj;
 
 	obj = talloc_zero(ctx, struct trtl_object);
+	talloc_set_destructor(obj, trtl_object_destructor);
 	obj->draw = trtl_object_draw_;
-
-	obj->model = model;
+	
+	obj->model = load_model(path);		
+	if (!obj->model) {
+		talloc_free(obj);
+		return NULL;
+	}
 
 	return obj;
 }

@@ -18,4 +18,4 @@ struct trtl_object {
 
 // Once again: concreate implementation
 struct trtl_object *
-trtl_object_create(void *ctx, struct trtl_model *model);
+trtl_object_create(void *ctx, const char *path);
