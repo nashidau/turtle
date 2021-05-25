@@ -253,7 +253,7 @@ createInstance(trtl_arg_unused GLFWwindow *window) {
 	char **allExtensions;
 	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
 	printf("Need %d extensions\n", glfwExtensionCount);
-	for (int i = 0; i < glfwExtensionCount; i++){
+	for (uint32_t i = 0; i < glfwExtensionCount; i++){
 		printf("  - %s\n", glfwExtensions[i]);
 	}
 
@@ -307,8 +307,8 @@ check_device_extension_support(VkPhysicalDevice device) {
 	available_extensions = talloc_array(NULL, VkExtensionProperties, extensionCount);
         vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, available_extensions);
 
-	int j;
-	for (int i = 0 ; i < N_REQUIRED_EXTENSIONS ; i ++) {
+	uint32_t j;
+	for (uint32_t i = 0 ; i < N_REQUIRED_EXTENSIONS ; i ++) {
 		for (j = 0 ; j < extensionCount ; j ++) {
 			LOG(VERBOSE, "Found Extension: %s (%d)\n",
 					available_extensions[j].extensionName,
@@ -403,7 +403,7 @@ pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface) {
 	printf("Found %d devices\n", deviceCount);
 	candidate = VK_NULL_HANDLE;
 
-	for (int i = 0 ; i < deviceCount ; i++) {
+	for (uint32_t i = 0 ; i < deviceCount ; i++) {
 		if (is_device_suitable(devices[i], surface)) {
 			candidate = devices[i];
 			break;
@@ -430,7 +430,7 @@ find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface) {
 
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, properties);
 
-	for (int i = 0; i < queueFamilyCount ; i ++){
+	for (uint32_t i = 0; i < queueFamilyCount ; i ++){
 		VkQueueFamilyProperties *queue_family = properties + i;
 
 		if (!indices.has_graphics) {
@@ -671,7 +671,7 @@ create_image_view(struct render_context *render, VkImage image, VkFormat format,
 	return imageView;
 }
 
-void create_image_views(VkDevice device, struct swap_chain_data *scd) {
+void create_image_views(trtl_arg_unused VkDevice device, struct swap_chain_data *scd) {
 	scd->image_views = talloc_array(scd, VkImageView, scd->nimages);
 
         for (uint32_t i = 0; i < scd->nimages; i++) {
@@ -1122,7 +1122,7 @@ create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFla
 
 VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
 		VkRenderPass render_pass, VkCommandPool command_pool, VkFramebuffer *framebuffers,
-		VkPipeline pipeline){
+		trtl_arg_unused VkPipeline pipeline){
 	VkCommandBuffer *buffers;
 
 	scd->nbuffers = scd->nimages;
@@ -1156,7 +1156,7 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
             renderPassInfo.renderArea.extent = scd->extent;
 
             VkClearValue clearValues[] = {
-		    { .color = (VkClearColorValue){0.0f, 0.0f, 0.0f, 1.0f} },
+		    { .color = (VkClearColorValue){{0.0f, 0.0f, 0.0f, 1.0f}} },
 		    { .depthStencil = (VkClearDepthStencilValue){1.0f, 0} },
 	    };
             renderPassInfo.clearValueCount = TRTL_ARRAY_SIZE(clearValues);
@@ -1213,7 +1213,7 @@ create_fences(VkDevice device) {
 
 static int swap_chain_data_destructor(struct swap_chain_data *scd) {
 	VkDevice device;
-	int i;
+	uint32_t i;
 
 	device = scd->render->device;
 
@@ -1291,7 +1291,7 @@ recreate_swap_chain(struct render_context *render) {
 			scd->framebuffers,
 			scd->pipeline);
 
-	for (int i = 0; i < scd->nimages; i++) {
+	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
@@ -1495,7 +1495,7 @@ create_image(struct render_context *render, uint32_t width, uint32_t
 }
 
 void transitionImageLayout(struct render_context *render, VkImage image,
-		VkFormat format, VkImageLayout oldLayout, VkImageLayout
+		trtl_arg_unused VkFormat format, VkImageLayout oldLayout, VkImageLayout
 		newLayout) {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
 
@@ -1649,7 +1649,7 @@ create_descriptor_sets(struct swap_chain_data *scd) {
 	VkDescriptorSetLayout *layouts = talloc_zero_array(NULL, VkDescriptorSetLayout,
 			scd->nimages);
 
-	for (int i = 0 ; i < scd->nimages; i ++) {
+	for (uint32_t i = 0 ; i < scd->nimages; i ++) {
 		layouts[i] = scd->render->descriptor_set_layout;
 	}
 
@@ -1939,7 +1939,7 @@ main(int argc, char **argv) {
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
 	// createInfo.pNext = &debug_create_info;
-	for (int i = 0; i < scd->nimages; i++) {
+	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
