@@ -56,7 +56,7 @@ enum trtl_debug {
 	TRTL_DEBUG_DEBUG = 4,
 };
 
-static int debug = TRTL_DEBUG_INFO;
+static enum trtl_debug debug = TRTL_DEBUG_INFO;
 
 static void
 verbose(enum trtl_debug msg_level, const char *fmt, ...) {
@@ -189,7 +189,8 @@ VkDebugUtilsMessengerEXT debugMessenger;
 /** Window stuff (glfw) */
 
 static void
-window_resize_cb(GLFWwindow *window, int width, int height) {
+window_resize_cb(trtl_arg_unused GLFWwindow *window,
+		trtl_arg_unused int width, trtl_arg_unused int height) {
 	frame_buffer_resized = true;
 	if (debug)
 		printf("Window resized\n");	
@@ -211,7 +212,10 @@ GLFWwindow *window_init(void) {
 
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
-debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+debugCallback(trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		trtl_arg_unused VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		trtl_arg_unused void* pUserData) {
 	LOG(VERBOSE, "Validation Layer: %s\n", pCallbackData->pMessage);
 
         return VK_FALSE;
@@ -221,15 +225,19 @@ static VkDebugUtilsMessengerCreateInfoEXT
 populate_debug_messenger_create_info(void) {
         VkDebugUtilsMessengerCreateInfoEXT createInfo = { 0 };
         createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+		VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
         createInfo.pfnUserCallback = debugCallback;
 
 	return createInfo;
 }
 
-
-VkInstance createInstance(GLFWwindow *window) {
+VkInstance
+createInstance(trtl_arg_unused GLFWwindow *window) {
 	VkInstance instance;
 
         VkApplicationInfo appInfo;

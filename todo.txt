@@ -14,6 +14,7 @@ Simple Tasks:
 		- Add a 'clean' target
 		- Add a proper list of objects in the C file
 		- add a fixme target
+		- dependancy generation
 	- Clean some fixes.
 	- vertex.h -> trtl_model?
 	- Add some tests for trtl_object_draw
