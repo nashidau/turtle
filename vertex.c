@@ -7,6 +7,7 @@
 #include <talloc.h>
 
 #include "vertex.h"
+#include "helpers.h"
 #include "blobby.h"
 #include "../../tinyobjloader-c/tinyobj_loader_c.h"
 
@@ -19,7 +20,7 @@ static int vhash_netries(struct vhash *vhash, int *lookups);
 
 // FIXME Tag as pure
 VkVertexInputBindingDescription 
-vertex_binding_description_get(const struct trtl_model *model) {
+vertex_binding_description_get(trtl_arg_unused const struct trtl_model *model) {
 	VkVertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
         bindingDescription.stride = sizeof(struct vertex);
@@ -30,7 +31,7 @@ vertex_binding_description_get(const struct trtl_model *model) {
 
 // Tag as pure
 VkVertexInputAttributeDescription *
-get_attribute_description_pair(const struct trtl_model *model, uint32_t *nentries) {
+get_attribute_description_pair(trtl_arg_unused const struct trtl_model *model, uint32_t *nentries) {
 	VkVertexInputAttributeDescription *descriptions;
 
 	descriptions = talloc_zero_array(NULL, VkVertexInputAttributeDescription, 3);
@@ -117,7 +118,7 @@ load_model(const char *basename) {
 
 	if (DEBUGTHIS) {
 		printf("We have %d Vertices\n", attrib.num_vertices);
-		for (int i = 0; i < num_shapes; i ++) {
+		for (uint32_t i = 0; i < num_shapes; i ++) {
 			printf("Shape %d %d %d %s\n", i, shapes[i].face_offset,
 					shapes[i].length, shapes[i].name);
 		}
@@ -139,7 +140,7 @@ load_model(const char *basename) {
 	texcoords = (struct pos2d *)attrib.texcoords;
 
 	struct vhash *vhash = vhash_init(attrib.num_faces);
-	for (int i = 0 ; i < attrib.num_faces ; i ++) {
+	for (uint32_t i = 0 ; i < attrib.num_faces ; i ++) {
 		bool new = true;
 		tinyobj_vertex_index_t idx = attrib.faces[i];
 		int n = vhash_find(vhash, idx.v_idx, idx.vt_idx, &new);
@@ -162,7 +163,7 @@ load_model(const char *basename) {
 	talloc_free(vhash);
 
 	if (DEBUGTHIS) {
-		for (int j = 0 ; j < model->nindices ; j ++) {
+		for (uint32_t j = 0 ; j < model->nindices ; j ++) {
 			struct vertex *v = model->vertices + model->indices[j];
 			printf("Vertex %4d: %lf %lf %lf  / %lf %lf\n",
 					j,

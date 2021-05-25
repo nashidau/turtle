@@ -2,6 +2,7 @@
 #include <talloc.h>
 
 #include "trtl_check.h"
+#include "helpers.h"
 
 Suite *blam_suite(void *ctx);
 
@@ -12,7 +13,7 @@ static test_module test_modules[] = {
 };
 #define N_MODULES ((int)(sizeof(test_modules)/sizeof(test_modules[0])))
 
-int main(int argc, char **argv) {
+int main(trtl_arg_unused int argc, trtl_arg_unused char **argv) {
 	void *ctx;
 	SRunner *sr;
 	int nfailed;
