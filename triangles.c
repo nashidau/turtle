@@ -75,6 +75,13 @@ const int MAX_FRAMES_IN_FLIGHT = 2;
 
 static const char *MODEL_PATH = "models/viking_room.obj";
 static const char *TEXTURE_PATH = "textures/viking_room.png";
+// Loads; but wrong size
+//static const char *MODEL_PATH = "models/bulborb/source/TenKochappy.obj";
+//static const char *TEXTURE_PATH = "models/bulborb/textures/kochappy_tex.png";
+
+static const char *MODEL_PATH2 = "models/StreetCouch/Day143.obj";
+static const char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
+
 
 struct UniformBufferObject {
     mat4 model;
@@ -1174,10 +1181,14 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0,
 				    VK_INDEX_TYPE_UINT32);
 
+		    uint32_t offset = 0;
 		    for (uint32_t obj = 0; obj < render->nobjects ; obj ++) {
 			    render->objects[obj]->draw(render->objects[obj], buffers[i],
 					    scd->pipeline_layout,
-					    &scd->descriptor_sets[i]);
+					    &scd->descriptor_sets[i],
+					    offset);
+			    // Super ugly hack
+			    offset += render->objects[obj]->indices(render->objects[obj], NULL);
 		    }
 		   
 	    }
@@ -1328,16 +1339,23 @@ uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMe
 }
 
 // FIXME: Trtl should take a model and create a vertex buffer for this
+// FIXME: This code and the create_index buffer are like super similar
 VkBuffer
 create_vertex_buffers(struct render_context *render) {
-	struct vertex *vertices[render->nobjects];
+	struct vertexset {
+		uint32_t nvertexes;
+		struct vertex *vertices;
+	};
+	struct vertexset vertices[render->nobjects];
 	uint32_t nvertexes;
 
 	// FIXME: Need to loop over objects here.
 	nvertexes = 0;
 	for (uint32_t i = 0 ; i < render->nobjects; i ++) {
-		nvertexes += render->objects[i]->vertices(render->objects[0], vertices + i);
+		vertices[i].nvertexes = render->objects[i]->vertices(render->objects[i], 
+				&vertices[i].vertices);
 		printf("\t%d vertices\n", nvertexes);
+		nvertexes += vertices[i].nvertexes;
 	}
 	printf("%d vertices\n", nvertexes);
 
@@ -1351,8 +1369,13 @@ create_vertex_buffers(struct render_context *render) {
 
 	void* data;
 	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+	off_t offset = 0;
+	for (uint32_t i = 0 ; i < render->nobjects ; i++){
+		memcpy(data + offset, vertices[i].vertices, 
+				vertices[i].nvertexes * sizeof(struct vertex));
+		offset += vertices[i].nvertexes * sizeof(struct vertex);
+	}
 		// FIXME: Should be a loop here.
-		memcpy(data, vertices[0], (size_t) bufferSize);
 	vkUnmapMemory(render->device, stagingBufferMemory);
 
 	VkBuffer vertex_buffer;
@@ -1398,7 +1421,13 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory) {
 
 	void* data;
 	vkMapMemory(render->device, stagingBufferMemory, 0, buffer_size, 0, &data);
-		memcpy(data, indexes[0].indexes, (size_t)buffer_size);
+	// This ugly; update teh index by the current poistion as we copy it accross
+	// Vulkna probalby supports a way to do this
+	off_t offset = 0;
+	for (uint32_t i = 0; i < render->nobjects ; i ++) {
+		memcpy(data + offset, indexes[i].indexes, sizeof(uint32_t) * indexes[i].nindexes);
+		offset += indexes[i].nindexes * sizeof(uint32_t);
+	}
 	vkUnmapMemory(render->device, stagingBufferMemory);
 
 	VkBuffer index_buffer;
@@ -1937,10 +1966,11 @@ main(int argc, char **argv) {
 	render->texture_image_view = create_texture_image_view(render, render->texture_image);
 	render->texture_sampler = create_texture_sampler(render);
 
-	render->objects = talloc_array(render, struct trtl_object *, 1);
+	render->objects = talloc_array(render, struct trtl_object *, 2);
 	// FIXME: Object is destroyed when screen chages; wrong
 	render->objects[0] = trtl_object_create(render, MODEL_PATH);
-	render->nobjects = 1;
+	render->objects[1] = trtl_object_create(render, MODEL_PATH2);
+	render->nobjects = 2;
 
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);

@@ -7,7 +7,8 @@ struct trtl_object {
 	// Interface
 	void (*draw)(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
 		VkPipelineLayout  pipeline_layout,
-		VkDescriptorSet *descriptor_set);
+		VkDescriptorSet *descriptor_set,
+		int32_t offset);
 	uint32_t (*vertices)(struct trtl_object *obj, struct vertex **vertices);
 	uint32_t (*indices)(struct trtl_object *obj, uint32_t **indices);
 

@@ -10,12 +10,13 @@
 static void
 trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
 		VkPipelineLayout  pipeline_layout,
-		VkDescriptorSet *descriptor_set) {
+		VkDescriptorSet *descriptor_set,
+		int32_t offset) {
 	vkCmdBindDescriptorSets(cmd_buffer, 
 				    VK_PIPELINE_BIND_POINT_GRAPHICS,
 				    pipeline_layout, 0, 1,
 				    descriptor_set, 0, NULL);
-	vkCmdDrawIndexed(cmd_buffer,  obj->model->nindices, 1, 0, 0, 0);
+	vkCmdDrawIndexed(cmd_buffer,  obj->model->nindices, 1, 0, offset, 0);
 }
 
 static uint32_t
