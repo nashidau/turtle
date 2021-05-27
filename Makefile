@@ -52,7 +52,7 @@ clean:
 
 .PHONY: fixme
 fixme:
-	grep -i 'fixme\|todo\|xxx' *.[ch]
+	@grep -in 'fixme\|todo\|xxx' *.[ch]
 
 .PHONY: tags
 tags:
