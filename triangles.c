@@ -261,7 +261,8 @@ createInstance(trtl_arg_unused GLFWwindow *window) {
 	memcpy(allExtensions, glfwExtensions, glfwExtensionCount * sizeof(char*));
 	allExtensions[glfwExtensionCount] = strdup("VK_KHR_get_physical_device_properties2");
 
-	VkDebugUtilsMessengerCreateInfoEXT debug_create_info = populate_debug_messenger_create_info();
+	VkDebugUtilsMessengerCreateInfoEXT debug_create_info =
+			populate_debug_messenger_create_info();
 
 	VkInstanceCreateInfo createInfo;
         createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -924,7 +925,10 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
         depth_stencil.stencilTestEnable = VK_FALSE;
 
 	VkPipelineColorBlendAttachmentState colorBlendAttachment = { 0 };
-	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
+		VK_COLOR_COMPONENT_G_BIT |
+		VK_COLOR_COMPONENT_B_BIT |
+		VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = VK_FALSE;
 	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE; // Optional
 	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
@@ -1171,7 +1175,7 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 		    vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0,
 				    VK_INDEX_TYPE_UINT32);
 
-		    for (int obj = 0; obj < render->nobjects ; obj ++) {
+		    for (uint32_t obj = 0; obj < render->nobjects ; obj ++) {
 			    render->objects[obj]->draw(render->objects[obj], buffers[i],
 					    scd->pipeline_layout,
 					    &scd->descriptor_sets[i]);
@@ -1314,7 +1318,8 @@ uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMe
 	vkGetPhysicalDeviceMemoryProperties(render->physical_device, &memProperties);
 
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-		if ((typeFilter & (1 << i)) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
+		if ((typeFilter & (1 << i)) &&
+				(memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
 			return i;
 		}
 	}
