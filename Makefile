@@ -50,6 +50,10 @@ triangles: ${OBJECTS}
 clean:
 	rm -f ${OBJECTS} triangles ${SHADERS}
 
+.PHONY: fixme
+fixme:
+	grep -i 'fixme\|todo\|xxx' *.[ch]
+
 .PHONY: tags
 tags:
 	${CTAGS} *.c *.h cglm/include/cglm/*.h
