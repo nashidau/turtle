@@ -1,24 +1,30 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 #include "vulkan/vulkan.h"
 
 #include "helpers.h"
 
 trtl_noreturn int
-error(const char *msg) {
-	fputs(msg, stderr);
+error(const char *msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	vfprintf(stderr, msg, ap);
+	va_end(ap);
 	exit(1);
 }
 
 /*
- * FIXME: Should take a printfstrings
  * FIXME: Should have (runtime) option to exit on warning
  * FIXME: Should print line number and file of the caller
  */
 int
-warning(const char *msg) {
-	fputs(msg, stderr);
+warning(const char *msg, ...) {
+	va_list ap;
+	va_start(ap, msg);
+	vfprintf(stderr, msg, ap);
+	va_end(ap);
 	return 0;
 }
 
