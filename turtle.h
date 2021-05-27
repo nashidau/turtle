@@ -3,6 +3,86 @@
  * General trtl include file
  */
 
-#include "helpers.h"
-#include "vertex.h"
-#include "trtl_object.h"
+// c++, there is a C library at https://github.com/recp/cglm
+//#include <glm/glm.hpp>
+// This is the C version of glm; so these don't work
+#define CGLM_DEFINE_PRINTS 
+#define CGLM_FORCE_RADIANS
+#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
+#include "cglm/cglm.h"   /* for inline */
+//#include <cglm/call.h>   /* for library call (this also includes cglm.h) */
+
+
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
+#include <vulkan/vulkan.h>
+
+// All data used to render a frame
+struct render_context {
+	GLFWwindow *window;
+	VkDevice device;
+	VkPhysicalDevice physical_device;
+	VkSurfaceKHR surface;
+	VkDescriptorSetLayout descriptor_set_layout;
+	
+	VkBuffer vertex_buffers;
+
+	VkBuffer index_buffer;
+	VkDeviceMemory index_buffer_memory;
+
+	VkQueue graphicsQueue;
+	VkQueue presentQueue;
+
+	struct swap_chain_data *scd;
+
+	VkFence *images_in_flight;
+
+	// Textures
+	VkSampler texture_sampler;
+
+	// Lots of FIXME here.  Just one hardcoded now
+	// DOesn't belong here = part of global state?
+	uint32_t nobjects;
+	struct trtl_object **objects;
+};
+
+struct swap_chain_data {
+	// Used in the destructor, not deleted in the destructor
+	struct render_context *render;
+
+	VkSwapchainKHR swap_chain;
+	VkImage *images;
+	uint32_t nimages;
+	VkImageView *image_views; 
+	VkFormat image_format; // Swap chain image formt
+	VkExtent2D extent; // Extent of the images
+	VkFramebuffer *framebuffers;
+	VkPipelineLayout pipeline_layout;
+	VkPipeline pipeline;
+	VkRenderPass render_pass;
+	VkDescriptorPool descriptor_pool;
+
+	uint32_t nbuffers;
+	// Used to recreate (and clean up) swap chain
+	VkCommandPool command_pool;
+	VkCommandBuffer *command_buffers;
+
+	VkBuffer *uniform_buffers;
+	VkDeviceMemory *uniform_buffers_memory;
+
+	VkImage depth_image;
+	VkDeviceMemory depth_image_memory;
+	VkImageView depth_image_view;
+};
+
+
+struct UniformBufferObject {
+    mat4 model;
+    mat4 view;
+    mat4 proj;
+};
+
+VkImage
+create_texture_image(struct render_context *render, const char *path);
+VkImageView
+create_texture_image_view(struct render_context *render, VkImage texture_image);

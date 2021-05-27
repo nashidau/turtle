@@ -5,15 +5,6 @@
 #include <vulkan/vulkan_beta.h>
 
 
-// c++, there is a C library at https://github.com/recp/cglm
-//#include <glm/glm.hpp>
-// This is the C version of glm; so these don't work
-#define CGLM_DEFINE_PRINTS 
-#define CGLM_FORCE_RADIANS
-#define CGLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "cglm/cglm.h"   /* for inline */
-//#include <cglm/call.h>   /* for library call (this also includes cglm.h) */
-
 #include "stb/stb_image.h"
 
 #include <fcntl.h>
@@ -31,6 +22,8 @@
 #include "vertex.h"
 #include "blobby.h"
 #include "helpers.h"
+
+#include "turtle.h"
 
 #include "trtl_object.h"
 
@@ -82,15 +75,6 @@ static const char *TEXTURE_PATH = "textures/viking_room.png";
 static const char *MODEL_PATH2 = "models/StreetCouch/Day143.obj";
 static const char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
 
-
-struct UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 proj;
-};
-
-#define TRTL_ARRAY_SIZE(array)  ((uint32_t)(sizeof(array)/sizeof(array[0])))
-
 static const char *required_extensions[] = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
@@ -106,68 +90,6 @@ static bool frame_buffer_resized = false;
 struct window_context {
 	
 };
-
-// All data used to render a frame
-struct render_context {
-	GLFWwindow *window;
-	VkDevice device;
-	VkPhysicalDevice physical_device;
-	VkSurfaceKHR surface;
-	VkDescriptorSetLayout descriptor_set_layout;
-	
-	VkBuffer vertex_buffers;
-
-	VkBuffer index_buffer;
-	VkDeviceMemory index_buffer_memory;
-
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
-
-	struct swap_chain_data *scd;
-
-	VkFence *images_in_flight;
-
-	// Textures
-	VkImage texture_image;
-	VkDeviceMemory texture_image_memory;
-	VkImageView texture_image_view;
-	VkSampler texture_sampler;
-
-	// Lots of FIXME here.  Just one hardcoded now
-	// DOesn't belong here = part of global state?
-	uint32_t nobjects;
-	struct trtl_object **objects;
-};
-
-struct swap_chain_data {
-	// Used in the destructor, not deleted in the destructor
-	struct render_context *render;
-
-	VkSwapchainKHR swap_chain;
-	VkImage *images;
-	uint32_t nimages;
-	VkImageView *image_views; 
-	VkFormat image_format; // Swap chain image formt
-	VkExtent2D extent; // Extent of the images
-	VkFramebuffer *framebuffers;
-	VkPipelineLayout pipeline_layout;
-	VkPipeline pipeline;
-	VkRenderPass render_pass;
-	VkDescriptorPool descriptor_pool;
-	VkDescriptorSet *descriptor_sets;
-
-	uint32_t nbuffers;
-	// Used to recreate (and clean up) swap chain
-	VkCommandPool command_pool;
-	VkCommandBuffer *command_buffers;
-
-	VkBuffer *uniform_buffers;
-	VkDeviceMemory *uniform_buffers_memory;
-
-	VkImage depth_image;
-	VkDeviceMemory depth_image_memory;
-	VkImageView depth_image_view;
-};
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
 uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
@@ -177,7 +99,6 @@ void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsa
 		VkMemoryPropertyFlags properties, VkBuffer* buffer,
 		VkDeviceMemory* bufferMemory);
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
-trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct swap_chain_data *scd);
 static struct queue_family_indices find_queue_families(VkPhysicalDevice device,
 		VkSurfaceKHR surface);
 static void create_image(struct render_context *render, uint32_t width, uint32_t
@@ -1185,7 +1106,6 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 		    for (uint32_t obj = 0; obj < render->nobjects ; obj ++) {
 			    render->objects[obj]->draw(render->objects[obj], buffers[i],
 					    scd->pipeline_layout,
-					    &scd->descriptor_sets[i],
 					    offset);
 			    // Super ugly hack
 			    offset += render->objects[obj]->indices(render->objects[obj], NULL);
@@ -1258,10 +1178,10 @@ static int swap_chain_data_destructor(struct swap_chain_data *scd) {
 }
 
 static int
-render_context_destructor(struct render_context *render) {
-
-	vkDestroyImage(render->device, render->texture_image, NULL);
-	vkFreeMemory(render->device, render->texture_image_memory, NULL);
+render_context_destructor(trtl_arg_unused struct render_context *render) {
+	// FIXME: Destructor for the objects should do this
+	//vkDestroyImage(render->device, render->texture_image, NULL);
+	//vkFreeMemory(render->device, render->texture_image_memory, NULL);
 	return 0;	
 }
 
@@ -1292,7 +1212,8 @@ recreate_swap_chain(struct render_context *render) {
 
 	create_uniform_buffers(scd);
 	scd->descriptor_pool = create_descriptor_pool(scd);
-    	scd->descriptor_sets = create_descriptor_sets(scd);
+	// FIXME: Call object to update it's descriptor sets 
+    	//scd->descriptor_sets = create_descriptor_sets(scd);
 	scd->command_pool = create_command_pool(render->device, render->physical_device,
 			render->surface);
 	create_depth_resources(scd);
@@ -1495,16 +1416,17 @@ create_descriptor_pool(struct swap_chain_data *scd) {
 	VkDescriptorPool descriptor_pool;
 	VkDescriptorPoolSize pool_sizes[2];
 	
+	// FIXME: Static allocation of '10' here.  Need to amange this correctly
         pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        pool_sizes[0].descriptorCount = scd->nimages;
+        pool_sizes[0].descriptorCount = scd->nimages * 10;
 	pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	pool_sizes[1].descriptorCount = scd->nimages;
+	pool_sizes[1].descriptorCount = scd->nimages * 10;
 
         VkDescriptorPoolCreateInfo pool_info = { 0 };
         pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-        pool_info.poolSizeCount = TRTL_ARRAY_SIZE(pool_sizes);;
+        pool_info.poolSizeCount = TRTL_ARRAY_SIZE(pool_sizes);
         pool_info.pPoolSizes = pool_sizes;
-        pool_info.maxSets = scd->nimages;
+        pool_info.maxSets = scd->nimages * 10;
 
 	if (vkCreateDescriptorPool(scd->render->device, &pool_info, NULL,
 				&descriptor_pool) != VK_SUCCESS) {
@@ -1648,13 +1570,13 @@ void copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImag
 	endSingleTimeCommands(render, commandBuffer);
 }
 
-static VkImage
-create_texture_image(struct render_context *render) {
+VkImage
+create_texture_image(struct render_context *render, const char *path) {
 	VkImage image;
 	VkDeviceMemory imageMemory;
 	int width, height, channels;
 
-	stbi_uc* pixels = stbi_load(TEXTURE_PATH, &width, &height, &channels, STBI_rgb_alpha);
+	stbi_uc* pixels = stbi_load(path, &width, &height, &channels, STBI_rgb_alpha);
 
 	if (pixels == NULL) {
 		error("failed to load texture image!");
@@ -1696,68 +1618,13 @@ create_texture_image(struct render_context *render) {
 	return image;
 }
 
-static VkImageView
+VkImageView
 create_texture_image_view(struct render_context *render, VkImage texture_image) {
 	return create_image_view(render, texture_image, VK_FORMAT_R8G8B8A8_SRGB,
 				VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-trtl_alloc static VkDescriptorSet *
-create_descriptor_sets(struct swap_chain_data *scd) {
-	VkDescriptorSet *sets = talloc_zero_array(scd, VkDescriptorSet, scd->nimages);
-	VkDescriptorSetLayout *layouts = talloc_zero_array(NULL, VkDescriptorSetLayout,
-			scd->nimages);
 
-	for (uint32_t i = 0 ; i < scd->nimages; i ++) {
-		layouts[i] = scd->render->descriptor_set_layout;
-	}
-
-        VkDescriptorSetAllocateInfo alloc_info = { 0 };
-        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-        alloc_info.descriptorPool = scd->descriptor_pool;
-        alloc_info.descriptorSetCount = scd->nimages;
-        alloc_info.pSetLayouts = layouts;
-
-        if (vkAllocateDescriptorSets(scd->render->device, &alloc_info, sets) != VK_SUCCESS) {
-		error("failed to allocate descriptor sets!");
-        }
-
-	for (size_t i = 0; i < scd->nimages ; i ++) {
-		VkDescriptorBufferInfo buffer_info = { 0 };
-		buffer_info.buffer = scd->uniform_buffers[i];
-		buffer_info.offset = 0;
-		buffer_info.range = sizeof(struct UniformBufferObject);
-
-		VkDescriptorImageInfo image_info = { 0 };
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = scd->render->texture_image_view;
-		image_info.sampler = scd->render->texture_sampler;
-
-		VkWriteDescriptorSet descriptorWrites[2] = { 0 };
-
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = sets[i];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].pBufferInfo = &buffer_info;
-
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = sets[i];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pImageInfo = &image_info;
-
-		vkUpdateDescriptorSets(scd->render->device,
-				TRTL_ARRAY_SIZE(descriptorWrites),
-				descriptorWrites, 0, NULL);
-	}
-
-	return sets;
-}
 
 void
 draw_frame(struct render_context *render, struct swap_chain_data *scd,
@@ -1962,21 +1829,23 @@ main(int argc, char **argv) {
 	create_depth_resources(scd);
 	scd->framebuffers = create_frame_buffers(render->device, scd);
 
-	render->texture_image = create_texture_image(render);
-	render->texture_image_view = create_texture_image_view(render, render->texture_image);
+	//render->texture_image = create_texture_image(render);
+	//render->texture_image_view = create_texture_image_view(render, render->texture_image);
 	render->texture_sampler = create_texture_sampler(render);
+	
+	scd->descriptor_pool = create_descriptor_pool(scd);
+	create_uniform_buffers(scd);
 
 	render->objects = talloc_array(render, struct trtl_object *, 2);
 	// FIXME: Object is destroyed when screen chages; wrong
-	render->objects[0] = trtl_object_create(render, MODEL_PATH);
-	render->objects[1] = trtl_object_create(render, MODEL_PATH2);
+	render->objects[0] = trtl_object_create(render, scd, MODEL_PATH, TEXTURE_PATH);
+	render->objects[1] = trtl_object_create(render, scd, MODEL_PATH2, TEXTURE_PATH2);
 	render->nobjects = 2;
 
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
-	create_uniform_buffers(scd);
-	scd->descriptor_pool = create_descriptor_pool(scd);
-    	scd->descriptor_sets = create_descriptor_sets(scd);
+	// FIXME: all object ot update it's descriptor sets
+    	//scd->descriptor_sets = create_descriptor_sets(scd);
 
 	scd->command_buffers = create_command_buffers(
 			render,

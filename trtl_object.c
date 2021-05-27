@@ -3,19 +3,25 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_beta.h>
 
+#include "turtle.h"
 #include "trtl_object.h"
 #include "vertex.h"  // FIXME: has trtl_model in it
 #include "helpers.h"
 
+
+
+trtl_alloc static VkDescriptorSet *
+create_descriptor_sets(struct trtl_object *obj, struct swap_chain_data *scd);
+
+
 static void
 trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
 		VkPipelineLayout  pipeline_layout,
-		VkDescriptorSet *descriptor_set,
 		int32_t offset) {
 	vkCmdBindDescriptorSets(cmd_buffer, 
 				    VK_PIPELINE_BIND_POINT_GRAPHICS,
 				    pipeline_layout, 0, 1,
-				    descriptor_set, 0, NULL);
+				    obj->descriptor_set, 0, NULL);
 	vkCmdDrawIndexed(cmd_buffer,  obj->model->nindices, 1, 0, offset, 0);
 }
 
@@ -38,7 +44,7 @@ trtl_object_destructor(trtl_arg_unused struct trtl_object *obj) {
 }
 
 struct trtl_object *
-trtl_object_create(void *ctx, const char *path) {
+trtl_object_create(void *ctx, struct swap_chain_data *scd, const char *path, const char *texture) {
 	struct trtl_object *obj;
 
 	obj = talloc_zero(ctx, struct trtl_object);
@@ -46,12 +52,80 @@ trtl_object_create(void *ctx, const char *path) {
 	obj->draw = trtl_object_draw_;
 	obj->vertices = trtl_object_vertices_get_;
 	obj->indices = trtl_object_indices_get_;
-	
+
+	obj->nframes = scd->nimages;
 	obj->model = load_model(path);		
 	if (!obj->model) {
 		talloc_free(obj);
 		return NULL;
 	}
 
+	// FIXME: So leaky
+	obj->texture_image_view = create_texture_image_view(scd->render, create_texture_image(scd->render, texture));
+
+	obj->descriptor_set = create_descriptor_sets(obj, scd);
+
+
+
 	return obj;
+}
+
+trtl_alloc static VkDescriptorSet *
+create_descriptor_sets(struct trtl_object *obj, struct swap_chain_data *scd) {
+	VkDescriptorSet *sets = talloc_zero_array(obj, VkDescriptorSet, obj->nframes);
+	VkDescriptorSetLayout *layouts = talloc_zero_array(NULL, VkDescriptorSetLayout,
+			obj->nframes);
+
+	for (uint32_t i = 0 ; i < obj->nframes; i ++) {
+		layouts[i] = scd->render->descriptor_set_layout;
+	}
+
+        VkDescriptorSetAllocateInfo alloc_info = { 0 };
+        alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        alloc_info.descriptorPool = scd->descriptor_pool;
+        alloc_info.descriptorSetCount = obj->nframes;
+        alloc_info.pSetLayouts = layouts;
+
+        if (vkAllocateDescriptorSets(scd->render->device, &alloc_info, sets) != VK_SUCCESS) {
+		error("failed to allocate descriptor sets!");
+        }
+
+	for (size_t i = 0; i < obj->nframes ; i ++) {
+		VkDescriptorBufferInfo buffer_info = { 0 };
+		buffer_info.buffer = scd->uniform_buffers[i];
+		buffer_info.offset = 0;
+		buffer_info.range = sizeof(struct UniformBufferObject);
+
+		VkDescriptorImageInfo image_info = { 0 };
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		// This hsould be from the object
+		image_info.imageView = obj->texture_image_view;
+		image_info.sampler = scd->render->texture_sampler;
+
+		VkWriteDescriptorSet descriptorWrites[2] = { 0 };
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = sets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &buffer_info;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = sets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &image_info;
+
+		vkUpdateDescriptorSets(scd->render->device,
+				TRTL_ARRAY_SIZE(descriptorWrites),
+				descriptorWrites, 0, NULL);
+	}
+
+	talloc_free(layouts);
+
+	return sets;
 }
