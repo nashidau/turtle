@@ -17,6 +17,16 @@ TESTS=	\
 	helpers.o \
 	trtl_uniform_check.o
 
+OBJECTS= \
+	triangles.o	\
+	vertex.o	\
+	images.o	\
+	helpers.o	\
+	objloader.o	\
+	blobby.o	\
+	trtl_uniform.o	\
+	trtl_object.o
+
 %.spv : %.frag
 	${SHADERCC} -o $@ $<
 
@@ -34,7 +44,7 @@ triangles.o: triangles.c vertex.h
 
 vertex.o: vertex.c vertex.h
 
-triangles: triangles.o vertex.o images.o helpers.o objloader.o blobby.o trtl_uniform.o trtl_object.o
+triangles: ${OBJECTS}
 
 .PHONY: clean
 clean:
