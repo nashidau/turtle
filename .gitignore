@@ -4,3 +4,4 @@ shaders/*spv
 *.trace
 *.dSYM
 tags
+trtl_check
