@@ -20,7 +20,7 @@ static int vhash_netries(struct vhash *vhash, int *lookups);
 
 // FIXME Tag as pure
 VkVertexInputBindingDescription 
-vertex_binding_description_get(trtl_arg_unused const struct trtl_model *model) {
+vertex_binding_description_get(void) {
 	VkVertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
         bindingDescription.stride = sizeof(struct vertex);
@@ -31,7 +31,7 @@ vertex_binding_description_get(trtl_arg_unused const struct trtl_model *model) {
 
 // Tag as pure
 VkVertexInputAttributeDescription *
-get_attribute_description_pair(trtl_arg_unused const struct trtl_model *model, uint32_t *nentries) {
+get_attribute_description_pair(uint32_t *nentries) {
 	VkVertexInputAttributeDescription *descriptions;
 
 	descriptions = talloc_zero_array(NULL, VkVertexInputAttributeDescription, 3);

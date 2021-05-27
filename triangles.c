@@ -126,12 +126,9 @@ struct render_context {
 	VkImageView texture_image_view;
 	VkSampler texture_sampler;
 
-	// What we are drawing (sadly one for now)
-	struct trtl_model *model;
-
 	// Lots of FIXME here.  Just one hardcoded now
 	// DOesn't belong here = part of global state?
-	int nobjects;
+	uint32_t nobjects;
 	struct trtl_object **objects;
 };
 
@@ -855,10 +852,12 @@ create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd) {
 	VkVertexInputBindingDescription binding_description;
 	VkVertexInputAttributeDescription *attribute_description;
 
-	uint32_t nentries;
-	binding_description = vertex_binding_description_get(scd->render->model);
+	// So this should be cleverer, built ffrom the list objects
+	// And the vertexes for multiple objects, coallesced
+	binding_description = vertex_binding_description_get();
 	// FIXME: leaky
-	attribute_description = get_attribute_description_pair(scd->render->model, &nentries);
+	uint32_t nentries;
+	attribute_description = get_attribute_description_pair(&nentries);
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = { 0 };
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -1331,8 +1330,18 @@ uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter, VkMe
 // FIXME: Trtl should take a model and create a vertex buffer for this
 VkBuffer
 create_vertex_buffers(struct render_context *render) {
-	// FIXME: trtl_model_vertex_buffer_size_get() or something to just do this
-	VkDeviceSize bufferSize = sizeof(struct vertex) * render->model->nvertices;
+	struct vertex *vertices[render->nobjects];
+	uint32_t nvertexes;
+
+	// FIXME: Need to loop over objects here.
+	nvertexes = 0;
+	for (uint32_t i = 0 ; i < render->nobjects; i ++) {
+		nvertexes += render->objects[i]->vertices(render->objects[0], vertices + i);
+		printf("\t%d vertices\n", nvertexes);
+	}
+	printf("%d vertices\n", nvertexes);
+
+	VkDeviceSize bufferSize = sizeof(struct vertex) * nvertexes;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -1342,7 +1351,8 @@ create_vertex_buffers(struct render_context *render) {
 
 	void* data;
 	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-		memcpy(data, render->model->vertices, (size_t) bufferSize);
+		// FIXME: Should be a loop here.
+		memcpy(data, vertices[0], (size_t) bufferSize);
 	vkUnmapMemory(render->device, stagingBufferMemory);
 
 	VkBuffer vertex_buffer;
@@ -1362,28 +1372,43 @@ create_vertex_buffers(struct render_context *render) {
 
 VkBuffer
 create_index_buffer(struct render_context *render, VkDeviceMemory *memory) {
-	VkDeviceSize bufferSize = sizeof(render->model->indices[0]) * render->model->nindices;
+	struct indexset {
+		uint32_t nindexes;
+		uint32_t *indexes;
+	};
+	// FIXME: Hardcoded indice size
+	uint32_t nindexes = 0; // total number of indexes
+	VkDeviceSize buffer_size;
+	struct indexset indexes[render->nobjects];
+
+	buffer_size = 0;
+	for (uint32_t i = 0 ; i < render->nobjects ; i++) {
+		indexes[i].nindexes = render->objects[i]->indices(render->objects[i],
+				&indexes[i].indexes);
+		nindexes += indexes[i].nindexes;
+	}
+	buffer_size = nindexes * sizeof(uint32_t);
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 			VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 			VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &stagingBuffer,
 			&stagingBufferMemory);
 
 	void* data;
-	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, render->model->indices, (size_t) bufferSize);
+	vkMapMemory(render->device, stagingBufferMemory, 0, buffer_size, 0, &data);
+		memcpy(data, indexes[0].indexes, (size_t)buffer_size);
 	vkUnmapMemory(render->device, stagingBufferMemory);
 
 	VkBuffer index_buffer;
-	create_buffer(render, bufferSize,
+	create_buffer(render, buffer_size,
 			VK_BUFFER_USAGE_TRANSFER_DST_BIT |
 			VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 			VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer,
 			memory);
 
-	copyBuffer(render, stagingBuffer, index_buffer, bufferSize);
+	copyBuffer(render, stagingBuffer, index_buffer, buffer_size);
 
 	vkDestroyBuffer(render->device, stagingBuffer, NULL);
 	vkFreeMemory(render->device, stagingBufferMemory, NULL);
@@ -1912,20 +1937,16 @@ main(int argc, char **argv) {
 	render->texture_image_view = create_texture_image_view(render, render->texture_image);
 	render->texture_sampler = create_texture_sampler(render);
 
-	render->model = load_model(MODEL_PATH);
+	render->objects = talloc_array(render, struct trtl_object *, 1);
+	// FIXME: Object is destroyed when screen chages; wrong
+	render->objects[0] = trtl_object_create(render, MODEL_PATH);
+	render->nobjects = 1;
 
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
 	create_uniform_buffers(scd);
 	scd->descriptor_pool = create_descriptor_pool(scd);
     	scd->descriptor_sets = create_descriptor_sets(scd);
-
-
-	render->objects = talloc_array(render, struct trtl_object *, 1);
-	// FIXME: Object is destroyed when screen chages; wrong
-	render->objects[0] = trtl_object_create(render, MODEL_PATH);
-	render->nobjects = 1;
-
 
 	scd->command_buffers = create_command_buffers(
 			render,
