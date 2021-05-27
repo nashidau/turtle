@@ -1,18 +1,15 @@
-First up is to clear the warning.  We want a clean compile. 
+There needs to be a generic buffer library to allocate vertexes and indexes.
+This should also probably handle updating the data and sending to the engine.
+	So basically when an object is created, it allocates some space in the
+	vertex and index buffers, and uses references to them
 
-Next is to make trtle object do something useful
 
-First move the model iteself into the trtl object
-	Basically at create time it should take in the params
 
 Then we need to add some code to handle multiple uniforms 
 
 
-
 Simple Tasks:
 	- Makefile
-		- Add a 'clean' target
-		- Add a proper list of objects in the C file
 		- add a fixme target
 		- dependancy generation
 	- Clean some fixes.
