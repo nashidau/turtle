@@ -101,7 +101,7 @@ trtl_uniform_init(void *ctx, uint8_t nframes, size_t size) {
  * Sends the uniform data to the GPU.
  */
 int
-trtl_uniform_render(int frame) {
+trtl_uniform_render(trtl_arg_unused int frame) {
 	return 0;
 }
 
@@ -134,12 +134,13 @@ trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size) {
 
 //should ne inline or something
 void *
-trtl_uniform_info_address(struct trtl_uniform_info *info, int frame) {
+trtl_uniform_info_address(trtl_arg_unused struct trtl_uniform_info *info,
+		trtl_arg_unused int frame) {
 	return NULL;
 }
 
 static int
-trtl_uniform_destructor(struct trtl_uniform *x) {
+trtl_uniform_destructor(trtl_arg_unused struct trtl_uniform *x) {
 	// All the children shoudl be called
 	
 	// clean 

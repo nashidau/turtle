@@ -35,7 +35,7 @@ blobby_from_file_ctx(void *ctx, const char *path) {
 	blobby->len = fileinfo.st_size;
 	blobby->data = talloc_size(blobby, blobby->len);
 
-	if (read(fd, (void*)(blobby->data), blobby->len) != blobby->len) {
+	if (read(fd, (void*)(blobby->data), blobby->len) != (ssize_t)blobby->len) {
 		perror("read");
 		close(fd);
 		talloc_free(blobby);
