@@ -1393,7 +1393,8 @@ update_uniform_buffer(struct swap_chain_data *scd, uint32_t currentImage) {
 	struct UniformBufferObject ubo = { 0 };
 	// m4, andgle, vector -> m4
 	glm_mat4_identity(ubo.model);
-	glm_rotate(ubo.model, 0, GLM_ZUP);
+	//glm_rotate(ubo.model, 0, GLM_ZUP);
+	glm_rotate(ubo.model, glm_rad(time), GLM_ZUP);
 
 	{
 		vec3 y = { 0, 0, 0 };
