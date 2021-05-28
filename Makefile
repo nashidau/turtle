@@ -17,20 +17,42 @@ TESTS=	\
 	helpers.o \
 	trtl_uniform_check.o
 
-OBJECTS= \
-	triangles.o	\
-	vertex.o	\
-	images.o	\
-	helpers.o	\
-	objloader.o	\
-	blobby.o	\
-	trtl_uniform.o	\
-	trtl_object.o
+SOURCES= \
+	triangles.c	\
+	vertex.c	\
+	images.c	\
+	helpers.c	\
+	objloader.c	\
+	blobby.c	\
+	trtl_uniform.c	\
+	trtl_object.c
+
+OBJECTS := $(SOURCES:%.c=%.o)
+
+
+ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv
+
+
+# Dependancies (from http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#tldr)
+DEPDIR := .deps
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
+
+COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
+
+%.o : %.c
+%.o : %.c $(DEPDIR)/%.d | $(DEPDIR)
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
+
+$(DEPDIR): ; @mkdir -p $@
+
+DEPFILES := $(SOURCES:%.c=$(DEPDIR)/%.d)
+$(DEPFILES):
+
+include $(wildcard $(DEPFILES))
 
 %.spv : %.frag
 	${SHADERCC} -o $@ $<
 
-ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv
 
 trtl_check: trtl_check.o ${TESTS}
 
