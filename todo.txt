@@ -3,15 +3,17 @@ This should also probably handle updating the data and sending to the engine.
 	So basically when an object is created, it allocates some space in the
 	vertex and index buffers, and uses references to them
 
+Texture loading needs to have it's own class.
+Loading a texture should go to the texture service
+	it looks up to see if it's there
+	otherwise loads and binds it to VkImageBuffer or whatever it is.
+	When the object finishes with it, it frees the usage.
 
 
 Then we need to add some code to handle multiple uniforms 
 
 
 Simple Tasks:
-	- Makefile
-		- add a fixme target
-		- dependancy generation
 	- Clean some fixes.
 	- vertex.h -> trtl_model?
 	- Add some tests for trtl_object_draw
