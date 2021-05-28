@@ -74,7 +74,7 @@ clean:
 
 .PHONY: fixme
 fixme:
-	@grep -in 'fixme\|todo\|xxx' *.[ch]
+	@grep -in 'fixme\|todo\|xxx' *.[ch] | sort -R
 
 .PHONY: tags
 tags:
