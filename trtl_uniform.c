@@ -21,8 +21,8 @@
 
 #include <talloc.h>
 
-#include "trtl_uniform.h"
 #include "helpers.h"
+#include "trtl_uniform.h"
 
 /**
  * Internal structore for trtl_uniform info
@@ -39,7 +39,6 @@ struct trtl_uniform {
 	uint8_t *buffers[0];
 };
 
-
 // Returned from an allocation
 struct trtl_uniform_info {
 	struct trtl_uniform *uniforms;
@@ -47,24 +46,22 @@ struct trtl_uniform_info {
 	off_t offset;
 };
 
-
-
 static size_t TRTL_DEFAULT_SIZE = 2 * 1024;
-
 
 static int trtl_uniform_destructor(struct trtl_uniform *x);
 
 /**
  * Initialise the trtl_uniform_manager.
  *
- * Pass the size of the uniform object.  A value of zero indicates the default size.
+ * Pass the size of the uniform object.  A value of zero indicates the default
+ * size.
  *
  * @param ctx Context pointer.
  * @param nframes Number of frames in flight at once.
  * @param size Size of the uniform pool.  Zero (0) indicates the default size.
  */
-struct trtl_uniform *
-trtl_uniform_init(void *ctx, uint8_t nframes, size_t size) {
+struct trtl_uniform *trtl_uniform_init(void *ctx, uint8_t nframes, size_t size)
+{
 	struct trtl_uniform *uniforms;
 
 	if (nframes < 1) {
@@ -84,9 +81,9 @@ trtl_uniform_init(void *ctx, uint8_t nframes, size_t size) {
 	uniforms->buffer_size = size;
 	uniforms->nbuffers = nframes;
 
-	for (int i = 0 ; i < nframes ; i++) {
+	for (int i = 0; i < nframes; i++) {
 		// FIXME: Should alloc in one slab of N times size
-		uniforms->buffers[i] = talloc_named(uniforms, size, "Uniform buffer Frame %d", i); 
+		uniforms->buffers[i] = talloc_named(uniforms, size, "Uniform buffer Frame %d", i);
 	}
 
 	// Initilise the (terrible) bump alloator
@@ -100,13 +97,13 @@ trtl_uniform_init(void *ctx, uint8_t nframes, size_t size) {
  *
  * Sends the uniform data to the GPU.
  */
-int
-trtl_uniform_render(trtl_arg_unused int frame) {
+int trtl_uniform_render(trtl_arg_unused int frame)
+{
 	return 0;
 }
 
-struct trtl_uniform_info *
-trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size) {
+struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size)
+{
 	struct trtl_uniform_info *info;
 
 	// FIXME: Check size is nicely aligned
@@ -132,20 +129,18 @@ trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size) {
 	return info;
 }
 
-//should ne inline or something
-void *
-trtl_uniform_info_address(trtl_arg_unused struct trtl_uniform_info *info,
-		trtl_arg_unused int frame) {
+// should ne inline or something
+void *trtl_uniform_info_address(trtl_arg_unused struct trtl_uniform_info *info,
+				trtl_arg_unused int frame)
+{
 	return NULL;
 }
 
-static int
-trtl_uniform_destructor(trtl_arg_unused struct trtl_uniform *x) {
+static int trtl_uniform_destructor(trtl_arg_unused struct trtl_uniform *x)
+{
 	// All the children shoudl be called
-	
-	// clean 
-	
+
+	// clean
+
 	return 0;
 }
-
-

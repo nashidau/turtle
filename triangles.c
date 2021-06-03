@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -1644,6 +1645,10 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		return;
 	} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
 		error("Failed to get swap chain image");
+	}
+
+	for (uint32_t i = 0 ; i < render->nobjects; i ++) {
+		render->objects[i]->update(render->objects[i]);
 	}
 
 	update_uniform_buffer(scd, imageIndex);
