@@ -18,6 +18,7 @@
 
 #include <assert.h>
 #include <stddef.h>
+#include <string.h>
 
 #include <talloc.h>
 
@@ -130,13 +131,38 @@ struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size
 }
 
 // should ne inline or something
-void *trtl_uniform_info_address(trtl_arg_unused struct trtl_uniform_info *info,
-				trtl_arg_unused int frame)
+void *trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
 {
-	return NULL;
+	off_t offset = info->offset;
+
+	return info->uniforms->buffers[frame] + offset;
 }
 
-static int trtl_uniform_destructor(trtl_arg_unused struct trtl_uniform *x)
+
+off_t trtl_uniform_info_offset(struct trtl_uniform_info *info)
+{
+	return info->offset;
+}
+
+/**
+ * Push the uniform array to Vulkan.
+ *
+ * @param uniforms The uniforms.
+ */
+void
+trtl_uniform_update(struct trtl_uniform *uniforms, uint32_t frame, VkDevice device,
+		VkDeviceMemory FixmeMemory) {
+	void *data;
+	vkMapMemory(device, FixmeMemory, 0,uniforms->bump.offset,
+		    0, &data);
+		memcpy(data, uniforms->buffers[frame], uniforms->bump.offset);
+	vkUnmapMemory(device, FixmeMemory);
+}
+
+
+
+static int
+trtl_uniform_destructor(trtl_arg_unused struct trtl_uniform *x)
 {
 	// All the children shoudl be called
 
