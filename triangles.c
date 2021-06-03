@@ -26,6 +26,9 @@
 #include "turtle.h"
 
 #include "trtl_object.h"
+#include "trtl_uniform.h"
+
+struct trtl_uniform *evil_global_uniform;
 
 #define MIN(x, y)                                                                                  \
 	({                                                                                         \
@@ -1377,7 +1380,7 @@ VkBuffer create_index_buffer(struct render_context *render, VkDeviceMemory *memo
 
 void create_uniform_buffers(struct swap_chain_data *scd)
 {
-	VkDeviceSize bufferSize = sizeof(struct UniformBufferObject);
+	VkDeviceSize bufferSize = sizeof(struct UniformBufferObject) * 4;
 
 	scd->uniform_buffers = talloc_array(scd, VkBuffer, scd->nimages);
 	scd->uniform_buffers_memory = talloc_array(scd, VkDeviceMemory, scd->nimages);
@@ -1390,6 +1393,7 @@ void create_uniform_buffers(struct swap_chain_data *scd)
 	}
 }
 
+trtl_arg_unused 
 static void update_uniform_buffer(struct swap_chain_data *scd, uint32_t currentImage)
 {
 	// static int startTime = 0;
@@ -1644,10 +1648,15 @@ void draw_frame(struct render_context *render, struct swap_chain_data *scd,
 	}
 
 	for (uint32_t i = 0; i < render->nobjects; i++) {
-		render->objects[i]->update(render->objects[i]);
+		render->objects[i]->update(render->objects[i], imageIndex);
 	}
 
-	update_uniform_buffer(scd, imageIndex);
+	//update_uniform_buffer(scd, imageIndex);
+	// FIXME: Device should be some sort of global context
+	// FIXME: The unform buffer memory should be managed my trtl_uniform
+	trtl_uniform_update(evil_global_uniform, imageIndex, scd->render->device,
+			scd->uniform_buffers_memory[imageIndex]);
+
 
 	// Check the system has finished with this image before we start
 	// scribbling over the top of it.
@@ -1835,6 +1844,9 @@ int main(int argc, char **argv)
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 	create_uniform_buffers(scd);
+
+	// Init the trtl Uniform buffers; We have one currently
+	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
 
 	render->objects = talloc_array(render, struct trtl_object *, 2);
 	// FIXME: Object is destroyed when screen chages; wrong

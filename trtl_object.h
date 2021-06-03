@@ -14,7 +14,7 @@ struct trtl_object {
 		int32_t offset);
 	uint32_t (*vertices)(struct trtl_object *obj, struct vertex **vertices);
 	uint32_t (*indices)(struct trtl_object *obj, uint32_t **indices);
-	bool (*update)(struct trtl_object *obj);
+	bool (*update)(struct trtl_object *obj, int frame);
 
 	/// This stuff  belongs in a concreate implementation, but we have exactly 1
 	// at the moment
@@ -28,6 +28,8 @@ struct trtl_object {
 	VkDeviceMemory texture_image_memory;
 	VkImage texture_image;
 	VkImageView texture_image_view;	
+
+	struct trtl_uniform_info *uniform_info;
 	
 	bool reverse;
 };
