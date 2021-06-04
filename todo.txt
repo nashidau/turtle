@@ -9,8 +9,11 @@ Loading a texture should go to the texture service
 	otherwise loads and binds it to VkImageBuffer or whatever it is.
 	When the object finishes with it, it frees the usage.
 
-
 Then we need to add some code to handle multiple uniforms 
+
+Others:
+	bear used to generate the compile commands.
+	Automate somehow; either with cmake or a script or something to do.
 
 
 Simple Tasks:
