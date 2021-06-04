@@ -61,7 +61,8 @@ static int trtl_uniform_destructor(struct trtl_uniform *x);
  * @param nframes Number of frames in flight at once.
  * @param size Size of the uniform pool.  Zero (0) indicates the default size.
  */
-struct trtl_uniform *trtl_uniform_init(void *ctx, uint8_t nframes, size_t size)
+struct trtl_uniform *
+trtl_uniform_init(void *ctx, uint8_t nframes, size_t size)
 {
 	struct trtl_uniform *uniforms;
 
@@ -98,12 +99,14 @@ struct trtl_uniform *trtl_uniform_init(void *ctx, uint8_t nframes, size_t size)
  *
  * Sends the uniform data to the GPU.
  */
-int trtl_uniform_render(trtl_arg_unused int frame)
+int
+trtl_uniform_render(trtl_arg_unused int frame)
 {
 	return 0;
 }
 
-struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size)
+struct trtl_uniform_info *
+trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size)
 {
 	struct trtl_uniform_info *info;
 
@@ -130,16 +133,32 @@ struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size
 	return info;
 }
 
-// should ne inline or something
-void *trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
+/**
+ * Get the address of the CPU uniform buffer for given info & frame.
+ *
+ * Gets the address of the uniform buffer.  This is specific to the frame.
+ * The uniform is valid until the next update call.
+ *
+ * @param info Info field to get data from.
+ * @param frame Which frame we are rendering.
+ * @return Address of the uniform field.
+ */
+void *
+trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
 {
 	off_t offset = info->offset;
 
 	return info->uniforms->buffers[frame] + offset;
 }
 
-
-off_t trtl_uniform_info_offset(struct trtl_uniform_info *info)
+/**
+ * Get the offset of the info field from the base of the uniform buffer.
+ *
+ * @param info Uniform info field.
+ * @return Offset of the uniform field.
+ */
+off_t
+trtl_uniform_info_offset(struct trtl_uniform_info *info)
 {
 	return info->offset;
 }
