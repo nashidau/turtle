@@ -15,6 +15,7 @@ SHADERCC=glslc
 TESTS=	\
 	trtl_uniform.o \
 	helpers.o \
+	turtle.o \
 	trtl_uniform_check.o
 
 SOURCES= \
@@ -25,7 +26,8 @@ SOURCES= \
 	objloader.c	\
 	blobby.c	\
 	trtl_uniform.c	\
-	trtl_object.c
+	trtl_object.c	\
+	turtle.c
 
 OBJECTS := $(SOURCES:%.c=%.o)
 

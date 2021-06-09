@@ -1036,40 +1036,6 @@ static void create_depth_resources(struct swap_chain_data *scd)
 	scd->depth_image_view = create_image_view(scd->render, scd->depth_image, depthFormat,
 						  VK_IMAGE_ASPECT_DEPTH_BIT);
 }
-
-/**
- * Create a generic buffer with the supplied flags.
- * Return is in VkBuffer/VkDeviceMemory,
- */
-void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
-		   VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory)
-{
-	VkBufferCreateInfo bufferInfo = {};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = size;
-	bufferInfo.usage = usage;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	if (vkCreateBuffer(render->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
-		error("failed to create buffer!");
-	}
-
-	VkMemoryRequirements memRequirements = {0};
-	vkGetBufferMemoryRequirements(render->device, *buffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo = {0};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex =
-	    findMemoryType(render, memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(render->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
-		error("failed to allocate buffer memory!");
-	}
-
-	vkBindBufferMemory(render->device, *buffer, *bufferMemory, 0);
-}
-
 VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
 					VkRenderPass render_pass, VkCommandPool command_pool,
 					VkFramebuffer *framebuffers,
@@ -1257,23 +1223,6 @@ void copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstB
 	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
 	endSingleTimeCommands(render, commandBuffer);
-}
-
-uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
-			VkMemoryPropertyFlags properties)
-{
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(render->physical_device, &memProperties);
-
-	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
-		if ((typeFilter & (1 << i)) &&
-		    (memProperties.memoryTypes[i].propertyFlags & properties) == properties) {
-			return i;
-		}
-	}
-
-	error("failed to find suitable memory type!");
-	return -1;
 }
 
 // FIXME: Trtl should take a model and create a vertex buffer for this

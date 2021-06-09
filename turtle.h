@@ -3,15 +3,17 @@
  * General trtl include file
  */
 
+#pragma once
+
+
 // c++, there is a C library at https://github.com/recp/cglm
 //#include <glm/glm.hpp>
 // This is the C version of glm; so these don't work
-#define CGLM_DEFINE_PRINTS 
+#define CGLM_DEFINE_PRINTS
 #define CGLM_FORCE_RADIANS
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "cglm/cglm.h"   /* for inline */
+#include "cglm/cglm.h" /* for inline */
 //#include <cglm/call.h>   /* for library call (this also includes cglm.h) */
-
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -24,7 +26,7 @@ struct render_context {
 	VkPhysicalDevice physical_device;
 	VkSurfaceKHR surface;
 	VkDescriptorSetLayout descriptor_set_layout;
-	
+
 	VkBuffer vertex_buffers;
 
 	VkBuffer index_buffer;
@@ -53,9 +55,9 @@ struct swap_chain_data {
 	VkSwapchainKHR swap_chain;
 	VkImage *images;
 	uint32_t nimages;
-	VkImageView *image_views; 
+	VkImageView *image_views;
 	VkFormat image_format; // Swap chain image formt
-	VkExtent2D extent; // Extent of the images
+	VkExtent2D extent;     // Extent of the images
 	VkFramebuffer *framebuffers;
 	VkPipelineLayout pipeline_layout;
 	VkPipeline pipeline;
@@ -75,14 +77,20 @@ struct swap_chain_data {
 	VkImageView depth_image_view;
 };
 
-
 struct UniformBufferObject {
-    mat4 model;
-    mat4 view;
-    mat4 proj;
+	mat4 model;
+	mat4 view;
+	mat4 proj;
 };
 
-VkImage
-create_texture_image(struct render_context *render, const char *path);
-VkImageView
-create_texture_image_view(struct render_context *render, VkImage texture_image);
+VkImage create_texture_image(struct render_context *render, const char *path);
+VkImageView create_texture_image_view(struct render_context *render, VkImage texture_image);
+
+// FIXME: Should be turtle_create() and render_context should be a struct turtle.
+void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
+		   VkMemoryPropertyFlags properties, VkBuffer *buffer,
+		   VkDeviceMemory *bufferMemory);
+
+// FIXME: This name style
+uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
+			VkMemoryPropertyFlags properties);
