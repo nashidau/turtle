@@ -95,12 +95,6 @@ struct window_context {
 };
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
-uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
-			VkMemoryPropertyFlags properties);
-void create_uniform_buffers(struct swap_chain_data *scd);
-void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
-		   VkMemoryPropertyFlags properties, VkBuffer *buffer,
-		   VkDeviceMemory *bufferMemory);
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
 static struct queue_family_indices find_queue_families(VkPhysicalDevice device,
 						       VkSurfaceKHR surface);
@@ -1154,10 +1148,6 @@ static int swap_chain_data_destructor(struct swap_chain_data *scd)
 
 	vkDestroySwapchainKHR(device, scd->swap_chain, NULL);
 
-	for (i = 0; i < scd->nimages; i++) {
-		vkDestroyBuffer(device, scd->uniform_buffers[i], NULL);
-		vkFreeMemory(device, scd->uniform_buffers_memory[i], NULL);
-	}
 
 	vkDestroyDescriptorPool(device, scd->descriptor_pool, NULL);
 
@@ -1197,7 +1187,6 @@ void recreate_swap_chain(struct render_context *render)
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 	scd->pipeline = create_graphics_pipeline(render->device, scd);
 
-	create_uniform_buffers(scd);
 	scd->descriptor_pool = create_descriptor_pool(scd);
 	// FIXME: Call object to update it's descriptor sets
 	// scd->descriptor_sets = create_descriptor_sets(scd);
@@ -1325,52 +1314,6 @@ VkBuffer create_index_buffer(struct render_context *render, VkDeviceMemory *memo
 	vkFreeMemory(render->device, stagingBufferMemory, NULL);
 
 	return index_buffer;
-}
-
-void create_uniform_buffers(struct swap_chain_data *scd)
-{
-	VkDeviceSize bufferSize = sizeof(struct UniformBufferObject) * 4;
-
-	scd->uniform_buffers = talloc_array(scd, VkBuffer, scd->nimages);
-	scd->uniform_buffers_memory = talloc_array(scd, VkDeviceMemory, scd->nimages);
-
-	for (size_t i = 0; i < scd->nimages; i++) {
-		create_buffer(scd->render, bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-				  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-			      &scd->uniform_buffers[i], &scd->uniform_buffers_memory[i]);
-	}
-}
-
-trtl_arg_unused 
-static void update_uniform_buffer(struct swap_chain_data *scd, uint32_t currentImage)
-{
-	// static int startTime = 0;
-	// int currentTime = 1;
-	static float time = 1.0f;
-	time = time + 1;
-
-	struct UniformBufferObject ubo = {0};
-	// m4, andgle, vector -> m4
-	glm_mat4_identity(ubo.model);
-	// glm_rotate(ubo.model, 0, GLM_ZUP);
-	glm_rotate(ubo.model, glm_rad(time), GLM_ZUP);
-
-	{
-		vec3 y = {0, 0, 0};
-		glm_translate(ubo.model, y);
-	}
-
-	glm_lookat((vec3){2.0f, 2.0f, 2.0f}, GLM_VEC3_ZERO, GLM_ZUP, ubo.view);
-
-	glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo.proj);
-	ubo.proj[1][1] *= -1;
-
-	void *data;
-	vkMapMemory(scd->render->device, scd->uniform_buffers_memory[currentImage], 0, sizeof(ubo),
-		    0, &data);
-	memcpy(data, &ubo, sizeof(ubo));
-	vkUnmapMemory(scd->render->device, scd->uniform_buffers_memory[currentImage]);
 }
 
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd)
@@ -1603,8 +1546,7 @@ void draw_frame(struct render_context *render, struct swap_chain_data *scd,
 	//update_uniform_buffer(scd, imageIndex);
 	// FIXME: Device should be some sort of global context
 	// FIXME: The unform buffer memory should be managed my trtl_uniform
-	trtl_uniform_update(evil_global_uniform, imageIndex, scd->render->device,
-			scd->uniform_buffers_memory[imageIndex]);
+	trtl_uniform_update(evil_global_uniform, imageIndex);
 
 
 	// Check the system has finished with this image before we start
@@ -1787,15 +1729,14 @@ int main(int argc, char **argv)
 	create_depth_resources(scd);
 	scd->framebuffers = create_frame_buffers(render->device, scd);
 
+	// Init the trtl Uniform buffers; We have one currently
+	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
 	// render->texture_image = create_texture_image(render);
 	// render->texture_image_view = create_texture_image_view(render, render->texture_image);
 	render->texture_sampler = create_texture_sampler(render);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
-	create_uniform_buffers(scd);
 
-	// Init the trtl Uniform buffers; We have one currently
-	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
 
 	render->objects = talloc_array(render, struct trtl_object *, 2);
 	// FIXME: Object is destroyed when screen chages; wrong

@@ -101,7 +101,6 @@ struct trtl_object *trtl_object_create(void *ctx, struct swap_chain_data *scd, c
 
 	if (strstr(path, "Couch"))
 		obj->reverse = 1;
-	printf("Object is %sRevered", obj->reverse ? "" : "not ");
 
 	return obj;
 }
@@ -129,8 +128,8 @@ trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object *ob
 
 	for (size_t i = 0; i < obj->nframes; i++) {
 		VkDescriptorBufferInfo buffer_info = {0};
-		buffer_info.buffer = scd->uniform_buffers[i];
-		buffer_info.offset = trtl_uniform_info_offset(obj->uniform_info);;
+		buffer_info.buffer = trtl_uniform_buffer_base_get(evil_global_uniform, i);
+		buffer_info.offset = trtl_uniform_info_offset(obj->uniform_info);
 		buffer_info.range = sizeof(struct UniformBufferObject);
 
 		VkDescriptorImageInfo image_info = {0};
