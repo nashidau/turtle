@@ -177,6 +177,25 @@ void *trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
 }
 
 /**
+ * Get the buffer info for filling out the descriptor set
+ * for the given uniform info.
+ *
+ * @parma info A trtl uniform info pointer.
+ * @param frame The frame we are getting info for.
+ * @return VkDescriptorBufferInfo with the base, offset and size of the unifrom filled.
+ */
+VkDescriptorBufferInfo
+trtl_uniform_buffer_get_descriptor(struct trtl_uniform_info *info, int frame)
+{
+	VkDescriptorBufferInfo buffer_info = {0};
+	buffer_info.buffer = info->uniforms->uniform_buffers[frame];
+	buffer_info.offset = info->offset;
+	buffer_info.range = sizeof(struct UniformBufferObject);
+
+	return buffer_info;
+}
+
+/**
  * Get the offset of the info field from the base of the uniform buffer.
  *
  * @param info Uniform info field.

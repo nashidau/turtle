@@ -1,5 +1,5 @@
-#include <talloc.h>
 #include <string.h>
+#include <talloc.h>
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_beta.h>
@@ -48,7 +48,7 @@ static bool trtl_object_update_(struct trtl_object *obj, int frame)
 	time = time + 1;
 	struct UniformBufferObject *ubo;
 
-	ubo = trtl_uniform_info_address(obj->uniform_info, frame);	
+	ubo = trtl_uniform_info_address(obj->uniform_info, frame);
 
 	glm_mat4_identity(ubo->model);
 	if (obj->reverse) {
@@ -99,8 +99,7 @@ struct trtl_object *trtl_object_create(void *ctx, struct swap_chain_data *scd, c
 
 	obj->descriptor_set = create_descriptor_sets(obj, scd);
 
-	if (strstr(path, "Couch"))
-		obj->reverse = 1;
+	if (strstr(path, "Couch")) obj->reverse = 1;
 
 	return obj;
 }
@@ -127,10 +126,8 @@ trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object *ob
 	}
 
 	for (size_t i = 0; i < obj->nframes; i++) {
-		VkDescriptorBufferInfo buffer_info = {0};
-		buffer_info.buffer = trtl_uniform_buffer_base_get(evil_global_uniform, i);
-		buffer_info.offset = trtl_uniform_info_offset(obj->uniform_info);
-		buffer_info.range = sizeof(struct UniformBufferObject);
+		VkDescriptorBufferInfo buffer_info =
+		    trtl_uniform_buffer_get_descriptor(obj->uniform_info, i);
 
 		VkDescriptorImageInfo image_info = {0};
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
