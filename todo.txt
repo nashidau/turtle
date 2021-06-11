@@ -1,3 +1,4 @@
+
 There needs to be a generic buffer library to allocate vertexes and indexes.
 This should also probably handle updating the data and sending to the engine.
 	So basically when an object is created, it allocates some space in the
@@ -11,6 +12,9 @@ Loading a texture should go to the texture service
 
 Then we need to add some code to handle multiple uniforms 
 
+Work on adding a second pass for the background texture.
+
+
 Others:
 	bear used to generate the compile commands.
 	Automate somehow; either with cmake or a script or something to do.
@@ -20,6 +24,8 @@ Simple Tasks:
 	- Clean some fixes.
 	- vertex.h -> trtl_model?
 	- Add some tests for trtl_object_draw
+	- Add typedef for the 'frame'.  trtl_frame_id or similar
+		- make it small - uint8_t probably
 		    
 
 	
