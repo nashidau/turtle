@@ -28,6 +28,12 @@
 #include "trtl_object.h"
 #include "trtl_uniform.h"
 
+struct objects_to_load {
+	struct objects_to_load *next;
+	const char *name;
+};
+struct objects_to_load *objects_to_load;
+
 struct trtl_uniform *evil_global_uniform;
 
 #define MIN(x, y)                                                                                  \
@@ -1543,11 +1549,8 @@ void draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		render->objects[i]->update(render->objects[i], imageIndex);
 	}
 
-	//update_uniform_buffer(scd, imageIndex);
 	// FIXME: Device should be some sort of global context
-	// FIXME: The unform buffer memory should be managed my trtl_uniform
 	trtl_uniform_update(evil_global_uniform, imageIndex);
-
 
 	// Check the system has finished with this image before we start
 	// scribbling over the top of it.

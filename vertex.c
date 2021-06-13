@@ -19,7 +19,7 @@ static int vhash_netries(struct vhash *vhash, int *lookups);
 #define DEBUGTHIS 0
 
 // FIXME Tag as pure
-VkVertexInputBindingDescription 
+trtl_pure VkVertexInputBindingDescription
 vertex_binding_description_get(void) {
 	VkVertexInputBindingDescription bindingDescription = {};
         bindingDescription.binding = 0;
