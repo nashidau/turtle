@@ -805,7 +805,6 @@ VkPipeline create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd
 	// So this should be cleverer, built ffrom the list objects
 	// And the vertexes for multiple objects, coallesced
 	binding_description = vertex_binding_description_get();
-	// FIXME: leaky
 	uint32_t nentries;
 	attribute_description = get_attribute_description_pair(&nentries);
 
@@ -935,6 +934,8 @@ VkPipeline create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd
 				      &graphics_pipeline) != VK_SUCCESS) {
 		error("failed to create graphics pipeline!");
 	}
+
+	talloc_free(attribute_description);
 
 	return graphics_pipeline;
 }
