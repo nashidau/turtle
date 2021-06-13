@@ -6,61 +6,60 @@
 
 #include <talloc.h>
 
-#include "vertex.h"
-#include "helpers.h"
-#include "blobby.h"
 #include "../../tinyobjloader-c/tinyobj_loader_c.h"
+#include "blobby.h"
+#include "helpers.h"
+#include "vertex.h"
 
 struct vhash;
-static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, bool *new);
-static struct vhash * vhash_init(int32_t size);
+static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index,
+			  bool *new);
+static struct vhash *vhash_init(int32_t size);
 static int vhash_netries(struct vhash *vhash, int *lookups);
 
 #define DEBUGTHIS 0
 
-// FIXME Tag as pure
-trtl_pure VkVertexInputBindingDescription
-vertex_binding_description_get(void) {
+trtl_pure VkVertexInputBindingDescription vertex_binding_description_get(void)
+{
 	VkVertexInputBindingDescription bindingDescription = {};
-        bindingDescription.binding = 0;
-        bindingDescription.stride = sizeof(struct vertex);
-        bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+	bindingDescription.binding = 0;
+	bindingDescription.stride = sizeof(struct vertex);
+	bindingDescription.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
 
-        return bindingDescription;
+	return bindingDescription;
 }
 
-// Tag as pure
-VkVertexInputAttributeDescription *
-get_attribute_description_pair(uint32_t *nentries) {
+VkVertexInputAttributeDescription *get_attribute_description_pair(uint32_t *nentries)
+{
 	VkVertexInputAttributeDescription *descriptions;
 
 	descriptions = talloc_zero_array(NULL, VkVertexInputAttributeDescription, 3);
 
-        descriptions[0].binding = 0;
-        descriptions[0].location = 0;
-        descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
-        descriptions[0].offset = offsetof(struct vertex, pos);
+	descriptions[0].binding = 0;
+	descriptions[0].location = 0;
+	descriptions[0].format = VK_FORMAT_R32G32B32_SFLOAT;
+	descriptions[0].offset = offsetof(struct vertex, pos);
 
-        descriptions[1].binding = 0;
-        descriptions[1].location = 1;
-        descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
-        descriptions[1].offset = offsetof(struct vertex, color);
+	descriptions[1].binding = 0;
+	descriptions[1].location = 1;
+	descriptions[1].format = VK_FORMAT_R32G32B32_SFLOAT;
+	descriptions[1].offset = offsetof(struct vertex, color);
 
-        descriptions[2].binding = 0;
-        descriptions[2].location = 2;
-        descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
-        descriptions[2].offset = offsetof(struct vertex, tex_coord);
+	descriptions[2].binding = 0;
+	descriptions[2].location = 2;
+	descriptions[2].format = VK_FORMAT_R32G32_SFLOAT;
+	descriptions[2].offset = offsetof(struct vertex, tex_coord);
 
 	if (nentries) {
 		*nentries = 3;
 	}
 
-        return descriptions;
+	return descriptions;
 }
 
-
-static void
-tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj_filename, char **buf, size_t *len) {
+static void tinyobj_file_reader(void *ctx, const char *filename, int is_mtl,
+				const char *obj_filename, char **buf, size_t *len)
+{
 	struct blobby *blobby;
 
 	printf("**** File Reader: %s %d %s\n", filename, is_mtl, obj_filename);
@@ -81,21 +80,22 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
 	*len = blobby->len;
 }
 
-//extern int tinyobj_parse_obj(tinyobj_attrib_t *attrib, tinyobj_shape_t **shapes,
-  //                           size_t *num_shapes, tinyobj_material_t **materials,
-    //                         size_t *num_materials, const char *file_name, file_reader_callback file_reader,
-      //                       unsigned int flags);
+// extern int tinyobj_parse_obj(tinyobj_attrib_t *attrib, tinyobj_shape_t **shapes,
+//                           size_t *num_shapes, tinyobj_material_t **materials,
+//                         size_t *num_materials, const char *file_name, file_reader_callback
+//                         file_reader,
+//                       unsigned int flags);
 
 /*
  * Loads the given model from the given path.
- * 
+ *
  * Returns a model structure, that should be freed with talloc_free.
  */
-struct trtl_model *
-load_model(const char *basename) {
+struct trtl_model *load_model(const char *basename)
+{
 	void *ctx;
 	struct trtl_model *model;
-    	tinyobj_attrib_t attrib;
+	tinyobj_attrib_t attrib;
 	tinyobj_shape_t *shapes;
 	tinyobj_material_t *materials;
 	struct pos3d *vertices;
@@ -105,26 +105,25 @@ load_model(const char *basename) {
 
 	ctx = talloc_init("Model Data buffer: %s", basename);
 
-	int ret = tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials,
-			&num_materials, basename, tinyobj_file_reader, ctx,
-			TINYOBJ_FLAG_TRIANGULATE);
+	int ret = tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials, &num_materials,
+				    basename, tinyobj_file_reader, ctx, TINYOBJ_FLAG_TRIANGULATE);
 	if (ret != 0) {
 		printf("parse object failed\n");
 		exit(1);
 	}
 
 	// Release the file buffer (blobby) allocated in the reader
-   	talloc_free(ctx);
+	talloc_free(ctx);
 
 	if (DEBUGTHIS) {
 		printf("We have %d Vertices\n", attrib.num_vertices);
-		for (uint32_t i = 0; i < num_shapes; i ++) {
-			printf("Shape %d %d %d %s\n", i, shapes[i].face_offset,
-					shapes[i].length, shapes[i].name);
+		for (uint32_t i = 0; i < num_shapes; i++) {
+			printf("Shape %d %d %d %s\n", i, shapes[i].face_offset, shapes[i].length,
+			       shapes[i].name);
 		}
 
 		printf("Model Details:\n Vertices: %d\n Faces: %d\n Face N Verts: %d\n",
-				attrib.num_vertices, attrib.num_faces, attrib.num_face_num_verts);
+		       attrib.num_vertices, attrib.num_faces, attrib.num_face_num_verts);
 	}
 
 	model = talloc_zero(NULL, struct trtl_model);
@@ -140,7 +139,7 @@ load_model(const char *basename) {
 	texcoords = (struct pos2d *)attrib.texcoords;
 
 	struct vhash *vhash = vhash_init(attrib.num_faces);
-	for (uint32_t i = 0 ; i < attrib.num_faces ; i ++) {
+	for (uint32_t i = 0; i < attrib.num_faces; i++) {
 		bool new = true;
 		tinyobj_vertex_index_t idx = attrib.faces[i];
 		int n = vhash_find(vhash, idx.v_idx, idx.vt_idx, &new);
@@ -163,12 +162,10 @@ load_model(const char *basename) {
 	talloc_free(vhash);
 
 	if (DEBUGTHIS) {
-		for (uint32_t j = 0 ; j < model->nindices ; j ++) {
+		for (uint32_t j = 0; j < model->nindices; j++) {
 			struct vertex *v = model->vertices + model->indices[j];
-			printf("Vertex %4d: %lf %lf %lf  / %lf %lf\n",
-					j,
-					v->pos.x, v->pos.y, v->pos.z,
-					v->tex_coord.x, v->tex_coord.y);
+			printf("Vertex %4d: %lf %lf %lf  / %lf %lf\n", j, v->pos.x, v->pos.y,
+			       v->pos.z, v->tex_coord.x, v->tex_coord.y);
 		}
 	}
 
@@ -178,7 +175,6 @@ load_model(const char *basename) {
 struct vhash {
 	int32_t size;
 	int32_t next;
-	// Could use a 0 length array to save an allocation here
 	struct vhash_node **nodes;
 
 	// stats:
@@ -193,18 +189,19 @@ struct vhash_node {
 	int32_t vindex;
 };
 
-static uint32_t 
-hash(uint32_t vertex_index, uint32_t texture_index, uint32_t size) {
+static uint32_t hash(uint32_t vertex_index, uint32_t texture_index, uint32_t size)
+{
 	return (vertex_index + texture_index) % size;
 }
 
 // Returns the index to use for this vertex.
-static int32_t
-vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, bool *created) {
+static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index,
+			  bool *created)
+{
 	struct vhash_node *node;
 	uint32_t key = hash(vertex_index, texture_index, vhash->size);
 
-	vhash->lookups ++;
+	vhash->lookups++;
 
 	node = vhash->nodes[key];
 	while (node) {
@@ -219,18 +216,18 @@ vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, b
 	node = talloc(vhash, struct vhash_node);
 	node->texture_index = texture_index;
 	node->vertex_index = vertex_index;
-	node->vindex = vhash->next ++;
+	node->vindex = vhash->next++;
 
 	node->next = vhash->nodes[key];
 	vhash->nodes[key] = node;
-			
+
 	if (created) *created = true;
 
 	return node->vindex;
 }
 
-static struct vhash *
-vhash_init(int32_t size) {
+static struct vhash *vhash_init(int32_t size)
+{
 	struct vhash *vhash;
 
 	vhash = talloc(NULL, struct vhash);
@@ -238,14 +235,12 @@ vhash_init(int32_t size) {
 	vhash->next = 0;
 	vhash->nodes = talloc_zero_array(NULL, struct vhash_node *, size);
 	vhash->lookups = 0;
-	
+
 	return vhash;
 }
 
-static int
-vhash_netries(struct vhash *vhash, int *lookups) {
+static int vhash_netries(struct vhash *vhash, int *lookups)
+{
 	if (lookups) *lookups = vhash->lookups;
 	return vhash->next;
 }
-
-
