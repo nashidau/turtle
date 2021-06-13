@@ -69,9 +69,6 @@ struct swap_chain_data {
 	VkCommandPool command_pool;
 	VkCommandBuffer *command_buffers;
 
-	VkBuffer *uniform_buffers;
-	VkDeviceMemory *uniform_buffers_memory;
-
 	VkImage depth_image;
 	VkDeviceMemory depth_image_memory;
 	VkImageView depth_image_view;

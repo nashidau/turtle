@@ -1736,8 +1736,6 @@ int main(int argc, char **argv)
 
 	// Init the trtl Uniform buffers; We have one currently
 	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
-	// render->texture_image = create_texture_image(render);
-	// render->texture_image_view = create_texture_image_view(render, render->texture_image);
 	render->texture_sampler = create_texture_sampler(render);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
