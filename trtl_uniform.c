@@ -211,7 +211,6 @@ off_t trtl_uniform_info_offset(struct trtl_uniform_info *info)
  *
  * @param uniforms The uniforms.
  */
-// FIXME: need a frame context: Probably; device + frame?
 void trtl_uniform_update(struct trtl_uniform *uniforms, uint32_t frame)
 {
 	void *data;
