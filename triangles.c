@@ -1668,6 +1668,7 @@ static void show_usage(const char *binary)
 	printf("%s: Simple game\n", binary);
 	puts(" --debug | -d   Set debug.  More 'd's more debug.");
 	puts(" --help | -h    Show help.");
+	puts(" --object | -o [OBJECT] Load a known object");
 }
 
 static void parse_arguments(int argc, char **argv)
