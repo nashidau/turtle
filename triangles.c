@@ -27,6 +27,7 @@
 
 #include "trtl_object.h"
 #include "trtl_uniform.h"
+#include "trtl_seer.h"
 
 struct objects_to_load {
 	struct objects_to_load *next;
@@ -75,16 +76,6 @@ static void verbose(enum trtl_debug msg_level, const char *fmt, ...)
 #define LOG(x, ...) verbose(TRTL_DEBUG_##x, __VA_ARGS__)
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
-
-static const char *MODEL_PATH = "models/viking_room.obj";
-static const char *TEXTURE_PATH = "textures/viking_room.png";
-// Loads; but wrong size
-// static const char *MODEL_PATH = "models/bulborb/source/TenKochappy.obj";
-// static const char *TEXTURE_PATH = "models/bulborb/textures/kochappy_tex.png";
-
-static const char *MODEL_PATH2 = "models/StreetCouch/Day143.obj";
-static const char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
-
 static const char *required_extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
@@ -1091,13 +1082,7 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 			vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0,
 					     VK_INDEX_TYPE_UINT32);
 
-			uint32_t offset = 0;
-			for (uint32_t obj = 0; obj < render->nobjects; obj++) {
-				render->objects[obj]->draw(render->objects[obj], buffers[i],
-							   scd->pipeline_layout, offset);
-				// Super ugly hack
-				offset += render->objects[obj]->indices(render->objects[obj], NULL);
-			}
+			trtl_seer_draw(buffers[i], scd->pipeline_layout);
 		}
 		vkCmdEndRenderPass(buffers[i]);
 
@@ -1223,23 +1208,15 @@ void copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstB
 
 // FIXME: Trtl should take a model and create a vertex buffer for this
 // FIXME: This code and the create_index buffer are like super similar
+// FIXME: This should be in trtl_seer I'm pretty sure.  It owns the objects, so it
+// should do the allocation for vertex and index buffers.
 VkBuffer create_vertex_buffers(struct render_context *render)
 {
-	struct vertexset {
-		uint32_t nvertexes;
-		struct vertex *vertices;
-	};
-	struct vertexset vertices[render->nobjects];
 	uint32_t nvertexes;
+	uint32_t nobjects;
+	struct trtl_seer_vertexset *vertices;
 
-	// FIXME: Need to loop over objects here.
-	nvertexes = 0;
-	for (uint32_t i = 0; i < render->nobjects; i++) {
-		vertices[i].nvertexes =
-		    render->objects[i]->vertices(render->objects[i], &vertices[i].vertices);
-		printf("\t%d vertices\n", nvertexes);
-		nvertexes += vertices[i].nvertexes;
-	}
+	vertices = trtl_seer_vertexes_get(&nobjects, &nvertexes);
 	printf("%d vertices\n", nvertexes);
 
 	VkDeviceSize bufferSize = sizeof(struct vertex) * nvertexes;
@@ -1252,7 +1229,7 @@ VkBuffer create_vertex_buffers(struct render_context *render)
 	void *data;
 	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
 	off_t offset = 0;
-	for (uint32_t i = 0; i < render->nobjects; i++) {
+	for (uint32_t i = 0; i < nobjects ; i++) {
 		memcpy(data + offset, vertices[i].vertices,
 		       vertices[i].nvertexes * sizeof(struct vertex));
 		offset += vertices[i].nvertexes * sizeof(struct vertex);
@@ -1276,21 +1253,14 @@ VkBuffer create_vertex_buffers(struct render_context *render)
 
 VkBuffer create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
 {
-	struct indexset {
-		uint32_t nindexes;
-		uint32_t *indexes;
-	};
 	// FIXME: Hardcoded indice size
 	uint32_t nindexes = 0; // total number of indexes
+	uint32_t nobjects;
 	VkDeviceSize buffer_size;
-	struct indexset indexes[render->nobjects];
+	struct trtl_seer_indexset *indexes;
 
-	buffer_size = 0;
-	for (uint32_t i = 0; i < render->nobjects; i++) {
-		indexes[i].nindexes =
-		    render->objects[i]->indices(render->objects[i], &indexes[i].indexes);
-		nindexes += indexes[i].nindexes;
-	}
+	indexes = trtl_seer_indexset_get(&nobjects, &nindexes);
+
 	buffer_size = nindexes * sizeof(uint32_t);
 
 	VkBuffer stagingBuffer;
@@ -1304,7 +1274,7 @@ VkBuffer create_index_buffer(struct render_context *render, VkDeviceMemory *memo
 	// This ugly; update teh index by the current poistion as we copy it accross
 	// Vulkna probalby supports a way to do this
 	off_t offset = 0;
-	for (uint32_t i = 0; i < render->nobjects; i++) {
+	for (uint32_t i = 0; i < nobjects; i++) {
 		memcpy(data + offset, indexes[i].indexes, sizeof(uint32_t) * indexes[i].nindexes);
 		offset += indexes[i].nindexes * sizeof(uint32_t);
 	}
@@ -1546,9 +1516,7 @@ void draw_frame(struct render_context *render, struct swap_chain_data *scd,
 		error("Failed to get swap chain image");
 	}
 
-	for (uint32_t i = 0; i < render->nobjects; i++) {
-		render->objects[i]->update(render->objects[i], imageIndex);
-	}
+	trtl_seer_update(imageIndex);
 
 	// FIXME: Device should be some sort of global context
 	trtl_uniform_update(evil_global_uniform, imageIndex);
@@ -1741,11 +1709,10 @@ int main(int argc, char **argv)
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
 
-	render->objects = talloc_array(render, struct trtl_object *, 2);
 	// FIXME: Object is destroyed when screen chages; wrong
-	render->objects[0] = trtl_object_create(render, scd, MODEL_PATH, TEXTURE_PATH);
-	render->objects[1] = trtl_object_create(render, scd, MODEL_PATH2, TEXTURE_PATH2);
-	render->nobjects = 2;
+	trtl_seer_init(render->device);
+	trtl_seer_object_add("room", scd);
+	trtl_seer_object_add("couch", scd);
 
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
@@ -1766,6 +1733,7 @@ int main(int argc, char **argv)
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
+
 
 	int currentFrame = 0;
 	while (!glfwWindowShouldClose(render->window)) {

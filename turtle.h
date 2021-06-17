@@ -41,11 +41,6 @@ struct render_context {
 
 	// Textures
 	VkSampler texture_sampler;
-
-	// Lots of FIXME here.  Just one hardcoded now
-	// DOesn't belong here = part of global state?
-	uint32_t nobjects;
-	struct trtl_object **objects;
 };
 
 struct swap_chain_data {

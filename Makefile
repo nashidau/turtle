@@ -27,6 +27,7 @@ SOURCES= \
 	blobby.c	\
 	trtl_uniform.c	\
 	trtl_object.c	\
+	trtl_seer.c	\
 	turtle.c
 
 OBJECTS := $(SOURCES:%.c=%.o)

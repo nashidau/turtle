@@ -15,3 +15,4 @@ trtl_noreturn int error(const char *msg, ...);
 trtl_noreturn int error_msg(VkResult result, const char *msg);
 int warning(const char *msg, ...);
 	
+#define streq(x,y) (!strcmp(x,y))
