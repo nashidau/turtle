@@ -1,3 +1,8 @@
+Start adding a new background object and render it;
+	- can have some fun with a shader
+
+
+
 
 There needs to be a generic buffer library to allocate vertexes and indexes.
 This should also probably handle updating the data and sending to the engine.
@@ -10,10 +15,9 @@ Loading a texture should go to the texture service
 	otherwise loads and binds it to VkImageBuffer or whatever it is.
 	When the object finishes with it, it frees the usage.
 
-Then we need to add some code to handle multiple uniforms 
-
 Work on adding a second pass for the background texture.
 
+Focus & a keyboard model
 
 Others:
 	bear used to generate the compile commands.
@@ -26,6 +30,7 @@ Simple Tasks:
 	- Add some tests for trtl_object_draw
 	- Add typedef for the 'frame'.  trtl_frame_id or similar
 		- make it small - uint8_t probably
-		    
+	- Loading objects should use a shared index cache for 
+		multiple of the same object.  Extra level of indirection on loading I guess
 
 	
