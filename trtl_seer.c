@@ -91,8 +91,8 @@ int trtl_seer_object_add(const char *name, struct swap_chain_data *scd)
 /**
  * Update all known objects for the current frame / time.
  *
- * Runs any update functions for each object.   Running the update function advances the object
- * one time step, whatever that may be.  An object does not need to rendered between update steps.
+ * Runs any update functions for each object.   Running the update function advances the object one
+ * time step, whatever that may be.  An object does not need to rendered between update steps.
  *
  * FIXME: update the description about the side.
  *
@@ -124,7 +124,8 @@ int trtl_seer_draw(VkCommandBuffer buffer, VkPipelineLayout pipeline_layout)
  * FIXME: Tag this as acquires memory that needs to be referenced or freed.
  * Some sort of sparse acquires tag should do the job.
  */
-struct trtl_seer_vertexset *trtl_seer_vertexes_get(uint32_t *nobjects, uint32_t *nvertexes)
+trtl_alloc struct trtl_seer_vertexset *trtl_seer_vertexes_get(uint32_t *nobjects,
+							      uint32_t *nvertexes)
 {
 	struct trtl_seer_vertexset *vertices;
 
@@ -148,7 +149,7 @@ struct trtl_seer_indexset *trtl_seer_indexset_get(uint32_t *nobjects, uint32_t *
 
 	indexes = talloc_zero_array(NULL, struct trtl_seer_indexset, seer.nobjects);
 
-	for (uint32_t i = 0; i < seer.nobjects ; i++) {
+	for (uint32_t i = 0; i < seer.nobjects; i++) {
 		indexes[i].nindexes =
 		    seer.objects[i]->indices(seer.objects[i], &indexes[i].indexes);
 		*nindexes += indexes[i].nindexes;

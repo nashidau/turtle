@@ -1,12 +1,16 @@
 
 #include "vulkan/vulkan.h"
 
-// FIXME: So you can tag the 'free' function in the allocator with this
+
+
 #define trtl_alloc  __attribute__((malloc))
+
 #define trtl_noreturn  __attribute__((noreturn))
 #define trtl_arg_unused  __attribute__((unused))
 #define trtl_pure __attribute__((pure))
 #define trtl_const __attribute__((const))
+
+
 
 #define TRTL_ARRAY_SIZE(array)  ((uint32_t)(sizeof(array)/sizeof(array[0])))
 
