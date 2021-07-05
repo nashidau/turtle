@@ -16,7 +16,7 @@
 #include "vulkan/vulkan_core.h"
 
 #include "helpers.h"
-#include "trtl_object.h"
+#include "trtl_object_mesh.h"
 #include "trtl_seer.h"
 
 // FIXME: These should be in some loaded metadata
@@ -60,9 +60,9 @@ int trtl_seer_object_add(const char *name, struct swap_chain_data *scd)
 	struct trtl_object *object;
 
 	if (streq(name, "couch")) {
-		object = trtl_object_create(seer.seer_ctx, scd, MODEL_PATH2, TEXTURE_PATH2);
+		object = trtl_object_mesh_create(seer.seer_ctx, scd, MODEL_PATH2, TEXTURE_PATH2);
 	} else if (streq(name, "room")) {
-		object = trtl_object_create(seer.seer_ctx, scd, MODEL_PATH, TEXTURE_PATH);
+		object = trtl_object_mesh_create(seer.seer_ctx, scd, MODEL_PATH, TEXTURE_PATH);
 	} else {
 		error("Unknown object %s\n", name);
 		return -1;

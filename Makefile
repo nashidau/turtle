@@ -26,7 +26,7 @@ SOURCES= \
 	objloader.c	\
 	blobby.c	\
 	trtl_uniform.c	\
-	trtl_object.c	\
+	trtl_object_mesh.c	\
 	trtl_seer.c	\
 	turtle.c
 
