@@ -6,3 +6,4 @@ AllowShortIfStatementsOnASingleLine: true
 IndentCaseLabels: false
 AllowShortFunctionsOnASingleLine: None
 ColumnLimit: 100
+AlwaysBreakAfterReturnType: AllDefinitions
