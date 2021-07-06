@@ -5,6 +5,7 @@
  *
  * There are a lot of things that can be improved about ths object.
  */
+#pragma once
 
 #include "trtl_object.h"
 

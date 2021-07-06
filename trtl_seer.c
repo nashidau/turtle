@@ -17,6 +17,7 @@
 
 #include "helpers.h"
 #include "trtl_object_mesh.h"
+#include "trtl_object_canvas.h"
 #include "trtl_seer.h"
 
 // FIXME: These should be in some loaded metadata
@@ -59,10 +60,13 @@ int trtl_seer_object_add(const char *name, struct swap_chain_data *scd)
 {
 	struct trtl_object *object;
 
+	// FIXME: This is super unscalable.  Shoudl have a DB or a way to search filesystem
 	if (streq(name, "couch")) {
 		object = trtl_object_mesh_create(seer.seer_ctx, scd, MODEL_PATH2, TEXTURE_PATH2);
 	} else if (streq(name, "room")) {
 		object = trtl_object_mesh_create(seer.seer_ctx, scd, MODEL_PATH, TEXTURE_PATH);
+	} else if (streq(name, "background")) {
+		object = trtl_canvas_create(seer.seer_ctx, scd, NULL);
 	} else {
 		error("Unknown object %s\n", name);
 		return -1;
