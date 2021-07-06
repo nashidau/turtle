@@ -54,14 +54,14 @@ static void trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffe
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }
 
-static uint32_t trtl_object_vertices_get_(struct trtl_object *obj, struct vertex **vertices)
+static uint32_t trtl_object_vertices_get_(struct trtl_object *obj, const struct vertex **vertices)
 {
         struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	if (vertices) *vertices = mesh->model->vertices;
 	return mesh->model->nvertices;
 }
 
-static uint32_t trtl_object_indices_get_(struct trtl_object *obj, uint32_t **indices)
+static uint32_t trtl_object_indices_get_(struct trtl_object *obj, const uint32_t **indices)
 {
         struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	if (indices) *indices = mesh->model->indices;
