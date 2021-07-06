@@ -19,6 +19,12 @@ struct vertex {
 	struct pos2d tex_coord;
 };
 
+struct vertex2d {
+	struct pos2d pos;
+	struct color color;
+	struct pos2d tex_coord;
+};
+
 struct matrix4 {
 	float vals[16];
 };

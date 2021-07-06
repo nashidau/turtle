@@ -28,6 +28,7 @@ SOURCES= \
 	blobby.c	\
 	trtl_uniform.c	\
 	trtl_object_mesh.c	\
+	trtl_object_canvas.c	\
 	trtl_seer.c	\
 	turtle.c
 
