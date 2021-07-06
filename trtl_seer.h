@@ -5,12 +5,12 @@ struct swap_chain_data;
 
 struct trtl_seer_vertexset {
 	uint32_t nvertexes;
-	struct vertex *vertices;
+	const struct vertex *vertices;
 };
 
 struct trtl_seer_indexset {
 	uint32_t nindexes;
-	uint32_t *indexes;
+	const uint32_t *indexes;
 };
 
 int trtl_seer_init(VkDevice device);
