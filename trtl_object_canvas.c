@@ -79,6 +79,24 @@ canvas_indices_get(trtl_arg_unused struct trtl_object *obj, const uint32_t **ind
 static bool
 canvas_update(trtl_arg_unused struct trtl_object *obj, trtl_arg_unused int frame)
 {
+	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
+	struct UniformBufferObject *ubo;
+
+	ubo = trtl_uniform_info_address(canvas->uniform_info, frame);
+
+	glm_mat4_identity(ubo->model);
+	glm_scale_uni(ubo->model, 2.0f);
+
+	glm_lookat((vec3){0.0f, 0.5f, 0.5f}, GLM_VEC3_ZERO, GLM_ZUP, ubo->view);
+
+	//glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo->proj);
+	//glm_perspective(0.1f, 800 / 640.0, 0.1f, 10.0f, ubo->proj);
+	//glm_ortho(-1, 1, -1, 1, -1, 1, ubo->proj);
+	//glm_ortho(0, 800.0/640 , 0, 1, 0.1f, 100, ubo->proj);
+	glm_ortho_default(800.0/ 640, ubo->proj);
+	ubo->proj[1][1] *= -1;
+
+	// We updated
 	return true;
 }
 
@@ -95,6 +113,8 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, trtl_arg_unused const
 	canvas->parent.vertices = canvas_vertices_get;
 	canvas->parent.indices = canvas_indices_get;
 	canvas->parent.update = canvas_update;
+
+	canvas->nframes = scd->nimages;
 
 	canvas->uniform_info =
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
