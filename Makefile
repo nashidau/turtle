@@ -22,6 +22,7 @@ SOURCES= \
 	triangles.c	\
 	vertex.c	\
 	images.c	\
+	stringlist.c	\
 	helpers.c	\
 	objloader.c	\
 	blobby.c	\

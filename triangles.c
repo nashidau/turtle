@@ -28,12 +28,9 @@
 #include "trtl_object.h"
 #include "trtl_uniform.h"
 #include "trtl_seer.h"
+#include "stringlist.h"
 
-struct objects_to_load {
-	struct objects_to_load *next;
-	const char *name;
-};
-struct objects_to_load *objects_to_load;
+struct trtl_stringlist *objs_to_load;
 
 struct trtl_uniform *evil_global_uniform;
 
@@ -1645,17 +1642,21 @@ static void parse_arguments(int argc, char **argv)
 	static struct option options[] = {
 	    {"debug", no_argument, NULL, 'd'},
 	    {"help", no_argument, NULL, 'h'},
+	    {"option", required_argument, NULL, 'o'},
 	    {NULL, 0, NULL, 0},
 	};
 	int option;
 
-	while ((option = getopt_long(argc, argv, "dh", options, NULL)) != -1) {
+	while ((option = getopt_long(argc, argv, "dho:", options, NULL)) != -1) {
 		switch (option) {
 		case 'h':
 			show_usage(argv[0]);
 			exit(0);
 		case 'd':
 			debug = 1;
+			continue;
+		case 'o':
+			objs_to_load = trtl_stringlist_add(objs_to_load, optarg);
 			continue;
 		default:
 			show_usage(argv[0]);
@@ -1711,8 +1712,17 @@ int main(int argc, char **argv)
 
 	// FIXME: Object is destroyed when screen chages; wrong
 	trtl_seer_init(render->device);
-	trtl_seer_object_add("room", scd);
-	trtl_seer_object_add("couch", scd);
+	if (objs_to_load == NULL) {
+		trtl_seer_object_add("room", scd);
+		trtl_seer_object_add("couch", scd);
+	} else {
+		struct trtl_stringlist *load = objs_to_load;
+		while (load != NULL) {
+			trtl_seer_object_add(load->string, scd);
+			load = load->next;
+		}
+		talloc_free(objs_to_load);
+	}
 
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
