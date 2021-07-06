@@ -750,7 +750,6 @@ VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
 	VkRenderPassCreateInfo renderPassInfo = {0};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
-	;
 	renderPassInfo.pAttachments = attachments;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
