@@ -13,9 +13,6 @@
 struct trtl_object_mesh {
 	struct trtl_object parent;
 
-	/// This stuff  belongs in a concreate implementation, but we have exactly 1
-	// at the moment
-
 	// What we are drawing (sadly one for now)
 	struct trtl_model *model;
 
