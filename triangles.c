@@ -923,7 +923,7 @@ VkPipeline *create_graphics_pipeline(VkDevice device, struct swap_chain_data *sc
 
 	pipelineInfo[0].layout = scd->pipeline_layout;
 	pipelineInfo[0].renderPass = scd->render_pass;
-	pipelineInfo[0].subpass = 0;
+	pipelineInfo[0].subpass = TRTL_RENDER_LAYER_BACKGROUND;
 	pipelineInfo[0].basePipelineHandle = VK_NULL_HANDLE;
 
 
@@ -940,7 +940,7 @@ VkPipeline *create_graphics_pipeline(VkDevice device, struct swap_chain_data *sc
 
 	pipelineInfo[1].layout = scd->pipeline_layout;
 	pipelineInfo[1].renderPass = scd->render_pass;
-	pipelineInfo[1].subpass = 1;
+	pipelineInfo[1].subpass = TRTL_RENDER_LAYER_MAIN;
 	pipelineInfo[1].basePipelineHandle = VK_NULL_HANDLE;
 
 	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 2, pipelineInfo, NULL,
@@ -1100,7 +1100,7 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 			vkCmdNextSubpass(buffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
 			vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-					  scd->pipelines[1]);
+					  scd->pipelines[TRTL_RENDER_LAYER_MAIN]);
 			VkBuffer vertexBuffers[] = {render->vertex_buffers};
 			VkDeviceSize offsets[] = {0};
 			vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
