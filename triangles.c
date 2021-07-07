@@ -728,11 +728,17 @@ VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
 	depthAttachmentRef.attachment = 1;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	VkSubpassDescription subpass = {0};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;
-	subpass.pDepthStencilAttachment = &depthAttachmentRef;
+	VkSubpassDescription subpass_main = {0};
+	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass_main.colorAttachmentCount = 1;
+	subpass_main.pColorAttachments = &colorAttachmentRef;
+	subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
+
+	VkSubpassDescription subpass_background = { 0 };
+	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass_main.colorAttachmentCount = 1;
+	subpass_main.pColorAttachments = &colorAttachmentRef;
+	subpass_main.pDepthStencilAttachment = NULL;
 
 	VkSubpassDependency dependency = {0};
 	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
@@ -747,12 +753,14 @@ VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
 
 	VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
 
+	VkSubpassDescription subpasses[2] = { subpass_background, subpass_main };
+
 	VkRenderPassCreateInfo renderPassInfo = {0};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
 	renderPassInfo.pAttachments = attachments;
-	renderPassInfo.subpassCount = 1;
-	renderPassInfo.pSubpasses = &subpass;
+	renderPassInfo.subpassCount = 2;
+	renderPassInfo.pSubpasses = subpasses;
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
@@ -763,9 +771,10 @@ VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
 	return render_pass;
 }
 
-VkPipeline create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd)
+VkPipeline *create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd)
 {
-	VkPipeline graphics_pipeline;
+	// FIXME: What context should they be alloced in?
+	VkPipeline *graphics_pipeline = talloc_array(NULL,VkPipeline,2);
 	struct blobby *fragcode = blobby_from_file("shaders/frag.spv");
 	struct blobby *vertcode = blobby_from_file("shaders/vert.spv");
 
@@ -900,25 +909,42 @@ VkPipeline create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd
 		error("failed to create pipeline layout!");
 	}
 
-	VkGraphicsPipelineCreateInfo pipelineInfo = {0};
-	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.stageCount = 2;
-	pipelineInfo.pStages = shaderStages;
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &inputAssembly;
-	pipelineInfo.pViewportState = &viewportState;
-	pipelineInfo.pRasterizationState = &rasterizer;
-	pipelineInfo.pMultisampleState = &multisampling;
-	pipelineInfo.pDepthStencilState = &depth_stencil;
-	pipelineInfo.pColorBlendState = &colorBlending;
+	VkGraphicsPipelineCreateInfo pipelineInfo[2] = {0};
+	pipelineInfo[0].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo[0].stageCount = 2;
+	pipelineInfo[0].pStages = shaderStages;
+	pipelineInfo[0].pVertexInputState = &vertexInputInfo;
+	pipelineInfo[0].pInputAssemblyState = &inputAssembly;
+	pipelineInfo[0].pViewportState = &viewportState;
+	pipelineInfo[0].pRasterizationState = &rasterizer;
+	pipelineInfo[0].pMultisampleState = &multisampling;
+	//pipelineInfo[0].pDepthStencilState = &depth_stencil;
+	pipelineInfo[0].pColorBlendState = &colorBlending;
 
-	pipelineInfo.layout = scd->pipeline_layout;
-	pipelineInfo.renderPass = scd->render_pass;
-	pipelineInfo.subpass = 0;
-	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+	pipelineInfo[0].layout = scd->pipeline_layout;
+	pipelineInfo[0].renderPass = scd->render_pass;
+	pipelineInfo[0].subpass = 0;
+	pipelineInfo[0].basePipelineHandle = VK_NULL_HANDLE;
 
-	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL,
-				      &graphics_pipeline) != VK_SUCCESS) {
+
+	pipelineInfo[1].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo[1].stageCount = 2;
+	pipelineInfo[1].pStages = shaderStages;
+	pipelineInfo[1].pVertexInputState = &vertexInputInfo;
+	pipelineInfo[1].pInputAssemblyState = &inputAssembly;
+	pipelineInfo[1].pViewportState = &viewportState;
+	pipelineInfo[1].pRasterizationState = &rasterizer;
+	pipelineInfo[1].pMultisampleState = &multisampling;
+	pipelineInfo[1].pDepthStencilState = &depth_stencil;
+	pipelineInfo[1].pColorBlendState = &colorBlending;
+
+	pipelineInfo[1].layout = scd->pipeline_layout;
+	pipelineInfo[1].renderPass = scd->render_pass;
+	pipelineInfo[1].subpass = 1;
+	pipelineInfo[1].basePipelineHandle = VK_NULL_HANDLE;
+
+	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 2, pipelineInfo, NULL,
+				      graphics_pipeline) != VK_SUCCESS) {
 		error("failed to create graphics pipeline!");
 	}
 
@@ -1027,7 +1053,7 @@ static void create_depth_resources(struct swap_chain_data *scd)
 VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
 					VkRenderPass render_pass, VkCommandPool command_pool,
 					VkFramebuffer *framebuffers,
-					trtl_arg_unused VkPipeline pipeline)
+					trtl_arg_unused VkPipeline *pipelines)
 {
 	VkCommandBuffer *buffers;
 
@@ -1070,8 +1096,11 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 
 		vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		{
+
+			vkCmdNextSubpass(buffers[i], VK_SUBPASS_CONTENTS_INLINE);
+
 			vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-					  scd->pipeline);
+					  scd->pipelines[1]);
 			VkBuffer vertexBuffers[] = {render->vertex_buffers};
 			VkDeviceSize offsets[] = {0};
 			vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
@@ -1126,7 +1155,8 @@ static int swap_chain_data_destructor(struct swap_chain_data *scd)
 
 	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
 
-	vkDestroyPipeline(device, scd->pipeline, NULL);
+	// FIXME: There are multiple pipelines now
+	vkDestroyPipeline(device, *scd->pipelines, NULL);
 	vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
 	vkDestroyRenderPass(device, scd->render_pass, NULL);
 
@@ -1173,7 +1203,7 @@ void recreate_swap_chain(struct render_context *render)
 	create_image_views(render->device, render->scd);
 	scd->render_pass = create_render_pass(render->device, scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
-	scd->pipeline = create_graphics_pipeline(render->device, scd);
+	scd->pipelines = create_graphics_pipeline(render->device, scd);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 	// FIXME: Call object to update it's descriptor sets
@@ -1183,7 +1213,7 @@ void recreate_swap_chain(struct render_context *render)
 	create_depth_resources(scd);
 	scd->framebuffers = create_frame_buffers(render->device, scd);
 	scd->command_buffers = create_command_buffers(
-	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers, scd->pipeline);
+	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers, scd->pipelines);
 
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
@@ -1695,7 +1725,7 @@ int main(int argc, char **argv)
 	create_image_views(render->device, render->scd);
 	scd->render_pass = create_render_pass(render->device, scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
-	scd->pipeline = create_graphics_pipeline(render->device, scd);
+	scd->pipelines = create_graphics_pipeline(render->device, scd);
 
 	scd->command_pool =
 	    create_command_pool(render->device, render->physical_device, render->surface);
@@ -1729,7 +1759,7 @@ int main(int argc, char **argv)
 	// scd->descriptor_sets = create_descriptor_sets(scd);
 
 	scd->command_buffers = create_command_buffers(
-	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers, scd->pipeline);
+	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers, scd->pipelines);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		image_ready_sem[i] = create_semaphores(render->device);

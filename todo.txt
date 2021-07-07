@@ -1,8 +1,6 @@
-Start adding a new background object and render it;
-	- can have some fun with a shader
-
-
-
+Canvas object added; really broken
+	- should be drawn at the real depth
+	- should not set the depth
 
 There needs to be a generic buffer library to allocate vertexes and indexes.
 This should also probably handle updating the data and sending to the engine.
