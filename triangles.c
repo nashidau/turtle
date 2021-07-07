@@ -31,6 +31,7 @@
 #include "stringlist.h"
 
 struct trtl_stringlist *objs_to_load;
+struct trtl_stringlist *background_objs;
 
 struct trtl_uniform *evil_global_uniform;
 
@@ -1664,6 +1665,7 @@ static void show_usage(const char *binary)
 	puts(" --debug | -d   Set debug.  More 'd's more debug.");
 	puts(" --help | -h    Show help.");
 	puts(" --object | -o [OBJECT] Load a known object");
+	puts(" --background | -b [OBJECT] Load a known object as background");
 }
 
 static void parse_arguments(int argc, char **argv)
@@ -1671,18 +1673,22 @@ static void parse_arguments(int argc, char **argv)
 	static struct option options[] = {
 	    {"debug", no_argument, NULL, 'd'},
 	    {"help", no_argument, NULL, 'h'},
-	    {"option", required_argument, NULL, 'o'},
+	    {"object", required_argument, NULL, 'o'},
+	    {"background", required_argument, NULL, 'b'},
 	    {NULL, 0, NULL, 0},
 	};
 	int option;
 
-	while ((option = getopt_long(argc, argv, "dho:", options, NULL)) != -1) {
+	while ((option = getopt_long(argc, argv, "dho:b:", options, NULL)) != -1) {
 		switch (option) {
 		case 'h':
 			show_usage(argv[0]);
 			exit(0);
 		case 'd':
 			debug = 1;
+			continue;
+		case 'b':
+			background_objs = trtl_stringlist_add(background_objs, optarg);
 			continue;
 		case 'o':
 			objs_to_load = trtl_stringlist_add(objs_to_load, optarg);
@@ -1693,6 +1699,29 @@ static void parse_arguments(int argc, char **argv)
 		}
 	}
 }
+
+static int
+load_object_default(struct swap_chain_data *scd) {
+	trtl_seer_object_add("room", scd);
+	trtl_seer_object_add("couch", scd);
+	return 2;
+}
+
+int
+load_objects(struct swap_chain_data *scd) {
+	if (objs_to_load == NULL && background_objs == NULL) {
+		return load_object_default(scd);
+	}
+
+	struct trtl_stringlist *load = objs_to_load;
+	while (load != NULL) {
+		trtl_seer_object_add(load->string, scd);
+		load = load->next;
+	}
+	talloc_free(objs_to_load);
+	return 0;
+}
+
 
 int main(int argc, char **argv)
 {
@@ -1741,17 +1770,8 @@ int main(int argc, char **argv)
 
 	// FIXME: Object is destroyed when screen chages; wrong
 	trtl_seer_init(render->device);
-	if (objs_to_load == NULL) {
-		trtl_seer_object_add("room", scd);
-		trtl_seer_object_add("couch", scd);
-	} else {
-		struct trtl_stringlist *load = objs_to_load;
-		while (load != NULL) {
-			trtl_seer_object_add(load->string, scd);
-			load = load->next;
-		}
-		talloc_free(objs_to_load);
-	}
+
+	load_objects(scd);
 
 	render->vertex_buffers = create_vertex_buffers(render);
 	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
