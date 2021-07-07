@@ -25,10 +25,10 @@
 
 #include "turtle.h"
 
-#include "trtl_object.h"
-#include "trtl_uniform.h"
-#include "trtl_seer.h"
 #include "stringlist.h"
+#include "trtl_object.h"
+#include "trtl_seer.h"
+#include "trtl_uniform.h"
 
 struct trtl_stringlist *objs_to_load;
 struct trtl_stringlist *background_objs;
@@ -61,7 +61,8 @@ enum trtl_debug {
 
 static enum trtl_debug debug = TRTL_DEBUG_INFO;
 
-static void verbose(enum trtl_debug msg_level, const char *fmt, ...)
+static void
+verbose(enum trtl_debug msg_level, const char *fmt, ...)
 {
 	if (msg_level <= debug) {
 		va_list ap;
@@ -105,14 +106,16 @@ VkDebugUtilsMessengerEXT debugMessenger;
 
 /** Window stuff (glfw) */
 
-static void window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
-			     trtl_arg_unused int height)
+static void
+window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
+		 trtl_arg_unused int height)
 {
 	frame_buffer_resized = true;
 	if (debug) printf("Window resized\n");
 }
 
-GLFWwindow *window_init(void)
+GLFWwindow *
+window_init(void)
 {
 	GLFWwindow *window;
 
@@ -127,17 +130,19 @@ GLFWwindow *window_init(void)
 	return window;
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-    trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-    trtl_arg_unused VkDebugUtilsMessageTypeFlagsEXT messageType,
-    const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData, trtl_arg_unused void *pUserData)
+static VKAPI_ATTR VkBool32 VKAPI_CALL
+debugCallback(trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	      trtl_arg_unused VkDebugUtilsMessageTypeFlagsEXT messageType,
+	      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
+	      trtl_arg_unused void *pUserData)
 {
 	LOG(VERBOSE, "Validation Layer: %s\n", pCallbackData->pMessage);
 
 	return VK_FALSE;
 }
 
-static VkDebugUtilsMessengerCreateInfoEXT populate_debug_messenger_create_info(void)
+static VkDebugUtilsMessengerCreateInfoEXT
+populate_debug_messenger_create_info(void)
 {
 	VkDebugUtilsMessengerCreateInfoEXT createInfo = {0};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
@@ -152,7 +157,8 @@ static VkDebugUtilsMessengerCreateInfoEXT populate_debug_messenger_create_info(v
 	return createInfo;
 }
 
-VkInstance createInstance(trtl_arg_unused GLFWwindow *window)
+VkInstance
+createInstance(trtl_arg_unused GLFWwindow *window)
 {
 	VkInstance instance;
 
@@ -214,7 +220,8 @@ struct swap_chain_support_details {
 	VkPresentModeKHR *presentModes;
 };
 
-static bool check_device_extension_support(VkPhysicalDevice device)
+static bool
+check_device_extension_support(VkPhysicalDevice device)
 {
 	uint32_t extensionCount;
 	VkExtensionProperties *available_extensions;
@@ -242,8 +249,8 @@ static bool check_device_extension_support(VkPhysicalDevice device)
 	return true;
 }
 
-static struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice device,
-								   VkSurfaceKHR surface)
+static struct swap_chain_support_details *
+query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
 	struct swap_chain_support_details *details;
 	details = talloc(NULL, struct swap_chain_support_details);
@@ -270,7 +277,8 @@ static struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDev
 	return details;
 }
 
-static bool is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+static bool
+is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
 {
 	struct queue_family_indices indices = find_queue_families(physical_device, surface);
 	struct swap_chain_support_details *swap_chain_support;
@@ -293,7 +301,8 @@ static bool is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR su
 	       swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-VkSurfaceKHR create_surface(VkInstance instance, GLFWwindow *window)
+VkSurfaceKHR
+create_surface(VkInstance instance, GLFWwindow *window)
 {
 	VkSurfaceKHR surface;
 	VkResult result;
@@ -306,7 +315,8 @@ VkSurfaceKHR create_surface(VkInstance instance, GLFWwindow *window)
 	return surface;
 }
 
-VkPhysicalDevice pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
+VkPhysicalDevice
+pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
 {
 	uint32_t deviceCount = 0;
 	// Urgh; leaky leaky leak
@@ -340,8 +350,8 @@ VkPhysicalDevice pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
 	return candidate;
 }
 
-static struct queue_family_indices find_queue_families(VkPhysicalDevice device,
-						       VkSurfaceKHR surface)
+static struct queue_family_indices
+find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
 	struct queue_family_indices indices = {0, 0, false, false};
 	VkQueueFamilyProperties *properties;
@@ -381,9 +391,9 @@ static struct queue_family_indices find_queue_families(VkPhysicalDevice device,
 	return indices;
 }
 
-static VkFormat find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates,
-				      VkFormat *candidates, VkImageTiling tiling,
-				      VkFormatFeatureFlags features)
+static VkFormat
+find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, VkFormat *candidates,
+		      VkImageTiling tiling, VkFormatFeatureFlags features)
 {
 	for (uint32_t i = 0; i < ncandidates; i++) {
 		VkFormat format = candidates[i];
@@ -402,7 +412,8 @@ static VkFormat find_supported_format(VkPhysicalDevice physical_device, uint32_t
 	error("Failed to find a supported format");
 }
 
-static VkFormat find_depth_format(VkPhysicalDevice physical_device)
+static VkFormat
+find_depth_format(VkPhysicalDevice physical_device)
 {
 	VkFormat formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
 			      VK_FORMAT_D24_UNORM_S8_UINT};
@@ -412,8 +423,9 @@ static VkFormat find_depth_format(VkPhysicalDevice physical_device)
 				     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-static VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
-				      VkQueue *graphicsQueue, VkQueue *presentQueue)
+static VkDevice
+create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue *graphicsQueue,
+		      VkQueue *presentQueue)
 {
 	struct queue_family_indices queue_family_indices;
 	float queue_priority = 1.0f;
@@ -462,8 +474,8 @@ static VkDevice create_logical_device(VkPhysicalDevice physicalDevice, VkSurface
 	return device;
 }
 
-const VkSurfaceFormatKHR *chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *availableFormats,
-						  uint32_t nformats)
+const VkSurfaceFormatKHR *
+chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *availableFormats, uint32_t nformats)
 {
 	for (uint32_t i = 0; i < nformats; i++) {
 		if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
@@ -475,8 +487,8 @@ const VkSurfaceFormatKHR *chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *avai
 	return availableFormats;
 }
 
-VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes,
-				       uint32_t npresentmodes)
+VkPresentModeKHR
+chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t npresentmodes)
 {
 	for (uint32_t i = 0; i < npresentmodes; i++) {
 		if (availablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
@@ -487,7 +499,8 @@ VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentM
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
+VkExtent2D
+chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
 {
 	if (capabilities->currentExtent.width != UINT32_MAX) {
 		return capabilities->currentExtent;
@@ -514,8 +527,8 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
 	}
 }
 
-struct swap_chain_data *create_swap_chain(VkDevice device, VkPhysicalDevice physical_device,
-					  VkSurfaceKHR surface)
+struct swap_chain_data *
+create_swap_chain(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
 {
 	struct swap_chain_data *scd = talloc_zero(NULL, struct swap_chain_data);
 	talloc_set_destructor(scd, swap_chain_data_destructor);
@@ -582,8 +595,9 @@ struct swap_chain_data *create_swap_chain(VkDevice device, VkPhysicalDevice phys
 	return scd;
 }
 
-static VkImageView create_image_view(struct render_context *render, VkImage image, VkFormat format,
-				     VkImageAspectFlags aspect_flags)
+static VkImageView
+create_image_view(struct render_context *render, VkImage image, VkFormat format,
+		  VkImageAspectFlags aspect_flags)
 {
 	VkImageViewCreateInfo viewInfo = {0};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -604,7 +618,8 @@ static VkImageView create_image_view(struct render_context *render, VkImage imag
 	return imageView;
 }
 
-void create_image_views(trtl_arg_unused VkDevice device, struct swap_chain_data *scd)
+void
+create_image_views(trtl_arg_unused VkDevice device, struct swap_chain_data *scd)
 {
 	scd->image_views = talloc_array(scd, VkImageView, scd->nimages);
 
@@ -614,7 +629,8 @@ void create_image_views(trtl_arg_unused VkDevice device, struct swap_chain_data 
 	}
 }
 
-static VkSampler create_texture_sampler(struct render_context *render)
+static VkSampler
+create_texture_sampler(struct render_context *render)
 {
 	VkSampler sampler;
 	VkPhysicalDeviceProperties properties = {0};
@@ -641,7 +657,8 @@ static VkSampler create_texture_sampler(struct render_context *render)
 	return sampler;
 }
 
-VkCommandBuffer beginSingleTimeCommands(struct render_context *render)
+VkCommandBuffer
+beginSingleTimeCommands(struct render_context *render)
 {
 	VkCommandBufferAllocateInfo allocInfo = {0};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -661,7 +678,8 @@ VkCommandBuffer beginSingleTimeCommands(struct render_context *render)
 	return commandBuffer;
 }
 
-void endSingleTimeCommands(struct render_context *render, VkCommandBuffer commandBuffer)
+void
+endSingleTimeCommands(struct render_context *render, VkCommandBuffer commandBuffer)
 {
 	vkEndCommandBuffer(commandBuffer);
 
@@ -676,7 +694,8 @@ void endSingleTimeCommands(struct render_context *render, VkCommandBuffer comman
 	vkFreeCommandBuffers(render->device, render->scd->command_pool, 1, &commandBuffer);
 }
 
-VkShaderModule create_shader(VkDevice device, struct blobby *blobby)
+VkShaderModule
+create_shader(VkDevice device, struct blobby *blobby)
 {
 	VkShaderModule shader_module;
 
@@ -697,7 +716,8 @@ VkShaderModule create_shader(VkDevice device, struct blobby *blobby)
 	return shader_module;
 }
 
-VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
+VkRenderPass
+create_render_pass(VkDevice device, struct swap_chain_data *scd)
 {
 	VkRenderPass render_pass;
 
@@ -735,7 +755,7 @@ VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
 	subpass_main.pColorAttachments = &colorAttachmentRef;
 	subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
 
-	VkSubpassDescription subpass_background = { 0 };
+	VkSubpassDescription subpass_background = {0};
 	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass_main.colorAttachmentCount = 1;
 	subpass_main.pColorAttachments = &colorAttachmentRef;
@@ -754,7 +774,7 @@ VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
 
 	VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
 
-	VkSubpassDescription subpasses[2] = { subpass_background, subpass_main };
+	VkSubpassDescription subpasses[2] = {subpass_background, subpass_main};
 
 	VkRenderPassCreateInfo renderPassInfo = {0};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -772,10 +792,11 @@ VkRenderPass create_render_pass(VkDevice device, struct swap_chain_data *scd)
 	return render_pass;
 }
 
-VkPipeline *create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd)
+VkPipeline *
+create_graphics_pipeline(VkDevice device, struct swap_chain_data *scd)
 {
 	// FIXME: What context should they be alloced in?
-	VkPipeline *graphics_pipeline = talloc_array(NULL,VkPipeline,2);
+	VkPipeline *graphics_pipeline = talloc_array(NULL, VkPipeline, 2);
 	struct blobby *fragcode = blobby_from_file("shaders/frag.spv");
 	struct blobby *vertcode = blobby_from_file("shaders/vert.spv");
 
@@ -919,14 +940,13 @@ VkPipeline *create_graphics_pipeline(VkDevice device, struct swap_chain_data *sc
 	pipelineInfo[0].pViewportState = &viewportState;
 	pipelineInfo[0].pRasterizationState = &rasterizer;
 	pipelineInfo[0].pMultisampleState = &multisampling;
-	//pipelineInfo[0].pDepthStencilState = &depth_stencil;
+	// pipelineInfo[0].pDepthStencilState = &depth_stencil;
 	pipelineInfo[0].pColorBlendState = &colorBlending;
 
 	pipelineInfo[0].layout = scd->pipeline_layout;
 	pipelineInfo[0].renderPass = scd->render_pass;
 	pipelineInfo[0].subpass = TRTL_RENDER_LAYER_BACKGROUND;
 	pipelineInfo[0].basePipelineHandle = VK_NULL_HANDLE;
-
 
 	pipelineInfo[1].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineInfo[1].stageCount = 2;
@@ -954,7 +974,8 @@ VkPipeline *create_graphics_pipeline(VkDevice device, struct swap_chain_data *sc
 	return graphics_pipeline;
 }
 
-VkDescriptorSetLayout create_descriptor_set_layout(struct render_context *render)
+VkDescriptorSetLayout
+create_descriptor_set_layout(struct render_context *render)
 {
 	VkDescriptorSetLayout descriptor_set_layout;
 
@@ -987,7 +1008,8 @@ VkDescriptorSetLayout create_descriptor_set_layout(struct render_context *render
 	return descriptor_set_layout;
 }
 
-static VkFramebuffer *create_frame_buffers(VkDevice device, struct swap_chain_data *scd)
+static VkFramebuffer *
+create_frame_buffers(VkDevice device, struct swap_chain_data *scd)
 {
 	VkFramebuffer *framebuffers;
 
@@ -1017,8 +1039,8 @@ static VkFramebuffer *create_frame_buffers(VkDevice device, struct swap_chain_da
 	return framebuffers;
 }
 
-VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_device,
-				  VkSurfaceKHR surface)
+VkCommandPool
+create_command_pool(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
 {
 	VkCommandPool command_pool;
 	struct queue_family_indices qfi = find_queue_families(physical_device, surface);
@@ -1040,7 +1062,8 @@ VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_dev
  * We only need one depth image view as only one render pass is running
  * at a time.
  */
-static void create_depth_resources(struct swap_chain_data *scd)
+static void
+create_depth_resources(struct swap_chain_data *scd)
 {
 	VkFormat depthFormat = find_depth_format(scd->render->physical_device);
 
@@ -1051,10 +1074,10 @@ static void create_depth_resources(struct swap_chain_data *scd)
 	scd->depth_image_view = create_image_view(scd->render, scd->depth_image, depthFormat,
 						  VK_IMAGE_ASPECT_DEPTH_BIT);
 }
-VkCommandBuffer *create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
-					VkRenderPass render_pass, VkCommandPool command_pool,
-					VkFramebuffer *framebuffers,
-					trtl_arg_unused VkPipeline *pipelines)
+VkCommandBuffer *
+create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
+		       VkRenderPass render_pass, VkCommandPool command_pool,
+		       VkFramebuffer *framebuffers, trtl_arg_unused VkPipeline *pipelines)
 {
 	VkCommandBuffer *buffers;
 
@@ -1120,7 +1143,8 @@ VkCommandBuffer *create_command_buffers(struct render_context *render, struct sw
 	return buffers;
 }
 
-VkSemaphore create_semaphores(VkDevice device)
+VkSemaphore
+create_semaphores(VkDevice device)
 {
 	VkSemaphoreCreateInfo sem_info = {0};
 	VkSemaphore sem;
@@ -1131,7 +1155,8 @@ VkSemaphore create_semaphores(VkDevice device)
 	return sem;
 }
 
-VkFence create_fences(VkDevice device)
+VkFence
+create_fences(VkDevice device)
 {
 	VkFenceCreateInfo fenceInfo = {0};
 	VkFence fence;
@@ -1143,7 +1168,8 @@ VkFence create_fences(VkDevice device)
 	return fence;
 }
 
-static int swap_chain_data_destructor(struct swap_chain_data *scd)
+static int
+swap_chain_data_destructor(struct swap_chain_data *scd)
 {
 	VkDevice device;
 	uint32_t i;
@@ -1167,13 +1193,13 @@ static int swap_chain_data_destructor(struct swap_chain_data *scd)
 
 	vkDestroySwapchainKHR(device, scd->swap_chain, NULL);
 
-
 	vkDestroyDescriptorPool(device, scd->descriptor_pool, NULL);
 
 	return 0;
 }
 
-static int render_context_destructor(trtl_arg_unused struct render_context *render)
+static int
+render_context_destructor(trtl_arg_unused struct render_context *render)
 {
 	// FIXME: Destructor for the objects should do this
 	// vkDestroyImage(render->device, render->texture_image, NULL);
@@ -1181,7 +1207,8 @@ static int render_context_destructor(trtl_arg_unused struct render_context *rend
 	return 0;
 }
 
-void recreate_swap_chain(struct render_context *render)
+void
+recreate_swap_chain(struct render_context *render)
 {
 	int width = 0, height = 0;
 	glfwGetFramebufferSize(render->window, &width, &height);
@@ -1221,8 +1248,8 @@ void recreate_swap_chain(struct render_context *render)
 	}
 }
 
-void copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer,
-		VkDeviceSize size)
+void
+copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
 
@@ -1237,7 +1264,8 @@ void copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstB
 // FIXME: This code and the create_index buffer are like super similar
 // FIXME: This should be in trtl_seer I'm pretty sure.  It owns the objects, so it
 // should do the allocation for vertex and index buffers.
-VkBuffer create_vertex_buffers(struct render_context *render)
+VkBuffer
+create_vertex_buffers(struct render_context *render)
 {
 	uint32_t nvertexes;
 	uint32_t nobjects;
@@ -1256,7 +1284,7 @@ VkBuffer create_vertex_buffers(struct render_context *render)
 	void *data;
 	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
 	off_t offset = 0;
-	for (uint32_t i = 0; i < nobjects ; i++) {
+	for (uint32_t i = 0; i < nobjects; i++) {
 		memcpy(data + offset, vertices[i].vertices,
 		       vertices[i].nvertexes * sizeof(struct vertex));
 		offset += vertices[i].nvertexes * sizeof(struct vertex);
@@ -1278,7 +1306,8 @@ VkBuffer create_vertex_buffers(struct render_context *render)
 	return vertex_buffer;
 }
 
-VkBuffer create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
+VkBuffer
+create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
 {
 	// FIXME: Hardcoded indice size
 	uint32_t nindexes = 0; // total number of indexes
@@ -1320,7 +1349,8 @@ VkBuffer create_index_buffer(struct render_context *render, VkDeviceMemory *memo
 	return index_buffer;
 }
 
-trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd)
+trtl_alloc static VkDescriptorPool
+create_descriptor_pool(struct swap_chain_data *scd)
 {
 	VkDescriptorPool descriptor_pool;
 	VkDescriptorPoolSize pool_sizes[2];
@@ -1345,10 +1375,10 @@ trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data
 	return descriptor_pool;
 }
 
-static void create_image(struct render_context *render, uint32_t width, uint32_t height,
-			 VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-			 VkMemoryPropertyFlags properties, VkImage *image,
-			 VkDeviceMemory *imageMemory)
+static void
+create_image(struct render_context *render, uint32_t width, uint32_t height, VkFormat format,
+	     VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
+	     VkImage *image, VkDeviceMemory *imageMemory)
 {
 	VkImageCreateInfo imageInfo = {0};
 	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1385,9 +1415,9 @@ static void create_image(struct render_context *render, uint32_t width, uint32_t
 	vkBindImageMemory(render->device, *image, *imageMemory, 0);
 }
 
-void transitionImageLayout(struct render_context *render, VkImage image,
-			   trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
-			   VkImageLayout newLayout)
+void
+transitionImageLayout(struct render_context *render, VkImage image, trtl_arg_unused VkFormat format,
+		      VkImageLayout oldLayout, VkImageLayout newLayout)
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
 
@@ -1431,8 +1461,9 @@ void transitionImageLayout(struct render_context *render, VkImage image,
 	endSingleTimeCommands(render, commandBuffer);
 }
 
-void copyBufferToImage(struct render_context *render, VkBuffer buffer, VkImage image,
-		       uint32_t width, uint32_t height)
+void
+copyBufferToImage(struct render_context *render, VkBuffer buffer, VkImage image, uint32_t width,
+		  uint32_t height)
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
 
@@ -1453,8 +1484,9 @@ void copyBufferToImage(struct render_context *render, VkBuffer buffer, VkImage i
 	endSingleTimeCommands(render, commandBuffer);
 }
 
-void copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImage image,
-			  uint32_t width, uint32_t height)
+void
+copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImage image, uint32_t width,
+		     uint32_t height)
 {
 	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
 
@@ -1475,7 +1507,8 @@ void copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImag
 	endSingleTimeCommands(render, commandBuffer);
 }
 
-VkImage create_texture_image(struct render_context *render, const char *path)
+VkImage
+create_texture_image(struct render_context *render, const char *path)
 {
 	VkImage image;
 	VkDeviceMemory imageMemory;
@@ -1518,14 +1551,16 @@ VkImage create_texture_image(struct render_context *render, const char *path)
 	return image;
 }
 
-VkImageView create_texture_image_view(struct render_context *render, VkImage texture_image)
+VkImageView
+create_texture_image_view(struct render_context *render, VkImage texture_image)
 {
 	return create_image_view(render, texture_image, VK_FORMAT_R8G8B8A8_SRGB,
 				 VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
-void draw_frame(struct render_context *render, struct swap_chain_data *scd,
-		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore, VkFence fence)
+void
+draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemaphore image_semaphore,
+	   VkSemaphore renderFinishedSemaphore, VkFence fence)
 {
 	VkResult result;
 	VkDevice device = render->device;
@@ -1603,7 +1638,8 @@ void draw_frame(struct render_context *render, struct swap_chain_data *scd,
 	}
 }
 
-static bool check_validation_layer_support(void)
+static bool
+check_validation_layer_support(void)
 {
 	uint32_t layer_count;
 	vkEnumerateInstanceLayerProperties(&layer_count, NULL);
@@ -1622,7 +1658,8 @@ static bool check_validation_layer_support(void)
 	return false;
 }
 
-int main_loop(GLFWwindow *window)
+int
+main_loop(GLFWwindow *window)
 {
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
@@ -1631,10 +1668,11 @@ int main_loop(GLFWwindow *window)
 	return 0;
 }
 
-VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
-				      const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-				      const VkAllocationCallbacks *pAllocator,
-				      VkDebugUtilsMessengerEXT *pDebugMessenger)
+VkResult
+CreateDebugUtilsMessengerEXT(VkInstance instance,
+			     const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
+			     const VkAllocationCallbacks *pAllocator,
+			     VkDebugUtilsMessengerEXT *pDebugMessenger)
 {
 	PFN_vkCreateDebugUtilsMessengerEXT func =
 	    (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
@@ -1646,7 +1684,8 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
 	}
 }
 
-static void setupDebugMessenger(VkInstance instance)
+static void
+setupDebugMessenger(VkInstance instance)
 {
 	VkResult err;
 	// if (!enableValidationLayers) return;
@@ -1659,7 +1698,8 @@ static void setupDebugMessenger(VkInstance instance)
 	}
 }
 
-static void show_usage(const char *binary)
+static void
+show_usage(const char *binary)
 {
 	printf("%s: Simple game\n", binary);
 	puts(" --debug | -d   Set debug.  More 'd's more debug.");
@@ -1668,7 +1708,8 @@ static void show_usage(const char *binary)
 	puts(" --background | -b [OBJECT] Load a known object as background");
 }
 
-static void parse_arguments(int argc, char **argv)
+static void
+parse_arguments(int argc, char **argv)
 {
 	static struct option options[] = {
 	    {"debug", no_argument, NULL, 'd'},
@@ -1701,14 +1742,16 @@ static void parse_arguments(int argc, char **argv)
 }
 
 static int
-load_object_default(struct swap_chain_data *scd) {
+load_object_default(struct swap_chain_data *scd)
+{
 	trtl_seer_object_add("room", scd);
 	trtl_seer_object_add("couch", scd);
 	return 2;
 }
 
 int
-load_objects(struct swap_chain_data *scd) {
+load_objects(struct swap_chain_data *scd)
+{
 	if (objs_to_load == NULL && background_objs == NULL) {
 		return load_object_default(scd);
 	}
@@ -1722,8 +1765,8 @@ load_objects(struct swap_chain_data *scd) {
 	return 0;
 }
 
-
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
 	struct render_context *render;
 	VkInstance instance;
@@ -1767,7 +1810,6 @@ int main(int argc, char **argv)
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
-
 	// FIXME: Object is destroyed when screen chages; wrong
 	trtl_seer_init(render->device);
 
@@ -1792,7 +1834,6 @@ int main(int argc, char **argv)
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
-
 
 	int currentFrame = 0;
 	while (!glfwWindowShouldClose(render->window)) {
