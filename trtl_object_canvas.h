@@ -1,5 +1,5 @@
 
-
+struct swap_chain_data;
 
 
 struct trtl_object *

@@ -1131,7 +1131,7 @@ create_command_buffers(struct render_context *render, struct swap_chain_data *sc
 			vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0,
 					     VK_INDEX_TYPE_UINT32);
 
-			trtl_seer_draw(buffers[i], scd->pipeline_layout);
+			trtl_seer_draw(buffers[i], scd->pipeline_layout, 1);
 		}
 		vkCmdEndRenderPass(buffers[i]);
 
@@ -1303,6 +1303,8 @@ create_vertex_buffers(struct render_context *render)
 	vkDestroyBuffer(render->device, stagingBuffer, NULL);
 	vkFreeMemory(render->device, stagingBufferMemory, NULL);
 
+	talloc_free(vertices);
+
 	return vertex_buffer;
 }
 
@@ -1345,6 +1347,8 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
 
 	vkDestroyBuffer(render->device, stagingBuffer, NULL);
 	vkFreeMemory(render->device, stagingBufferMemory, NULL);
+
+	talloc_free(indexes);
 
 	return index_buffer;
 }
@@ -1744,8 +1748,9 @@ parse_arguments(int argc, char **argv)
 static int
 load_object_default(struct swap_chain_data *scd)
 {
-	trtl_seer_object_add("room", scd);
-	trtl_seer_object_add("couch", scd);
+	trtl_seer_object_add("background", scd, TRTL_RENDER_LAYER_BACKGROUND);
+	trtl_seer_object_add("room", scd, TRTL_RENDER_LAYER_MAIN);
+	trtl_seer_object_add("couch", scd, TRTL_RENDER_LAYER_MAIN);
 	return 2;
 }
 
@@ -1758,7 +1763,7 @@ load_objects(struct swap_chain_data *scd)
 
 	struct trtl_stringlist *load = objs_to_load;
 	while (load != NULL) {
-		trtl_seer_object_add(load->string, scd);
+		trtl_seer_object_add(load->string, scd, TRTL_RENDER_LAYER_MAIN);
 		load = load->next;
 	}
 	talloc_free(objs_to_load);
@@ -1811,7 +1816,7 @@ main(int argc, char **argv)
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
 	// FIXME: Object is destroyed when screen chages; wrong
-	trtl_seer_init(render->device);
+	trtl_seer_init(render->device, TRTL_RENDER_LAYER_TOTAL);
 
 	load_objects(scd);
 

@@ -78,7 +78,9 @@ struct UniformBufferObject {
 typedef enum {
 	TRTL_RENDER_LAYER_BACKGROUND = 0,
 	TRTL_RENDER_LAYER_MAIN = 1,
-} trtl_render_layer;
+	// Last counter
+	TRTL_RENDER_LAYER_TOTAL
+} trtl_render_layer_t;
 
 VkImage create_texture_image(struct render_context *render, const char *path);
 VkImageView create_texture_image_view(struct render_context *render, VkImage texture_image);
