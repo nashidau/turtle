@@ -172,18 +172,22 @@ trtl_alloc struct trtl_seer_vertexset *
 trtl_seer_vertexes_get(uint32_t *nobjects, uint32_t *nvertexes)
 {
 	struct trtl_seer_vertexset *vertices;
+	uint32_t verti;
 
 	vertices = talloc_zero_array(NULL, struct trtl_seer_vertexset, seer.nobjects);
 	*nvertexes = 0;
+	*nobjects = 0;
+	verti = 0;
 	for (trtl_render_layer_t l = 0; l < seer.nlayers; l++) {
 		struct objlayer *layer = seer.layers + l;
-		for (uint32_t i = 0; i < layer->nobjects; i++) {
-			vertices[i].nvertexes =
-			    layer->objects[i]->vertices(layer->objects[i], &vertices[i].vertices);
-			*nvertexes += vertices[i].nvertexes;
+		for (uint32_t i = 0; i < layer->nobjects; i++, verti ++) {
+			vertices[verti].nvertexes =
+			    layer->objects[i]->vertices(layer->objects[i], &vertices[verti].vertices);
+			*nvertexes += vertices[verti].nvertexes;
+			printf("%s: layer %d: %d +%d = %d\n", __FUNCTION__, i, verti, vertices[verti].nvertexes, *nvertexes);
 		}
 		*nobjects += layer->nobjects;
-		printf("%d vertices\n", *nvertexes);
+		printf("%s:%d vertices %d objects\n", __FUNCTION__, *nvertexes, layer->nobjects);
 	}
 
 	return vertices;
@@ -195,6 +199,8 @@ trtl_seer_indexset_get(uint32_t *nobjects, uint32_t *nindexes)
 	struct trtl_seer_indexset *indexes;
 
 	indexes = talloc_zero_array(NULL, struct trtl_seer_indexset, seer.nobjects);
+	*nobjects = 0;
+	*nindexes = 0;
 
 	for (trtl_render_layer_t l = 0; l < seer.nlayers; l++) {
 		struct objlayer *layer = seer.layers + l;

@@ -1272,7 +1272,7 @@ create_vertex_buffers(struct render_context *render)
 	struct trtl_seer_vertexset *vertices;
 
 	vertices = trtl_seer_vertexes_get(&nobjects, &nvertexes);
-	printf("%d vertices\n", nvertexes);
+	printf("%d vertices; %d objects\n", nvertexes, nobjects);
 
 	VkDeviceSize bufferSize = sizeof(struct vertex) * nvertexes;
 	VkBuffer stagingBuffer;
