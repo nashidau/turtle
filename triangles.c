@@ -1748,6 +1748,7 @@ parse_arguments(int argc, char **argv)
 static int
 load_object_default(struct swap_chain_data *scd)
 {
+	printf("Loading default objects: Background 'background', Main: 'room', 'couch'\n");
 	trtl_seer_object_add("background", scd, TRTL_RENDER_LAYER_BACKGROUND);
 	trtl_seer_object_add("room", scd, TRTL_RENDER_LAYER_MAIN);
 	trtl_seer_object_add("couch", scd, TRTL_RENDER_LAYER_MAIN);
