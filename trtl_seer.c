@@ -169,32 +169,37 @@ trtl_seer_draw(VkCommandBuffer buffer, VkPipelineLayout pipeline_layout,
  * Some sort of sparse acquires tag should do the job.
  */
 trtl_alloc struct trtl_seer_vertexset *
-trtl_seer_vertexes_get(uint32_t *nobjects, uint32_t *nvertexes)
+trtl_seer_vertexes_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *nvertexes)
 {
 	struct trtl_seer_vertexset *vertices;
 	uint32_t verti;
+
+	assert(layer < TRTL_RENDER_LAYER_TOTAL);
+	if (layer >= TRTL_RENDER_LAYER_TOTAL) {
+		warning("Invalid layer %d", layer);
+		return NULL;
+	}
 
 	vertices = talloc_zero_array(NULL, struct trtl_seer_vertexset, seer.nobjects);
 	*nvertexes = 0;
 	*nobjects = 0;
 	verti = 0;
-	for (trtl_render_layer_t l = 0; l < seer.nlayers; l++) {
-		struct objlayer *layer = seer.layers + l;
-		for (uint32_t i = 0; i < layer->nobjects; i++, verti ++) {
-			vertices[verti].nvertexes =
-			    layer->objects[i]->vertices(layer->objects[i], &vertices[verti].vertices);
-			*nvertexes += vertices[verti].nvertexes;
-			printf("%s: layer %d: %d +%d = %d\n", __FUNCTION__, i, verti, vertices[verti].nvertexes, *nvertexes);
-		}
-		*nobjects += layer->nobjects;
-		printf("%s:%d vertices %d objects\n", __FUNCTION__, *nvertexes, layer->nobjects);
+	struct objlayer *lp = seer.layers + layer;
+	for (uint32_t i = 0; i < lp->nobjects; i++, verti++) {
+		vertices[verti].nvertexes =
+		    lp->objects[i]->vertices(lp->objects[i], &vertices[verti].vertices);
+		*nvertexes += vertices[verti].nvertexes;
+		printf("%s: layer %d: %d +%d = %d\n", __FUNCTION__, i, verti,
+		       vertices[verti].nvertexes, *nvertexes);
 	}
+	*nobjects += lp->nobjects;
+	printf("%s:%d vertices %d objects\n", __FUNCTION__, *nvertexes, lp->nobjects);
 
 	return vertices;
 }
 
 struct trtl_seer_indexset *
-trtl_seer_indexset_get(uint32_t *nobjects, uint32_t *nindexes)
+trtl_seer_indexset_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *nindexes)
 {
 	struct trtl_seer_indexset *indexes;
 
@@ -202,15 +207,12 @@ trtl_seer_indexset_get(uint32_t *nobjects, uint32_t *nindexes)
 	*nobjects = 0;
 	*nindexes = 0;
 
-	for (trtl_render_layer_t l = 0; l < seer.nlayers; l++) {
-		struct objlayer *layer = seer.layers + l;
-		for (uint32_t i = 0; i < layer->nobjects; i++) {
-			indexes[i].nindexes =
-			    layer->objects[i]->indices(layer->objects[i], &indexes[i].indexes);
-			*nindexes += indexes[i].nindexes;
-		}
-		*nobjects += layer->nobjects;
+	struct objlayer *lp = seer.layers + layer;
+	for (uint32_t i = 0; i < lp->nobjects; i++) {
+		indexes[i].nindexes = lp->objects[i]->indices(lp->objects[i], &indexes[i].indexes);
+		*nindexes += indexes[i].nindexes;
 	}
+	*nobjects += lp->nobjects;
 
 	return indexes;
 }

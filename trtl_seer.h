@@ -22,5 +22,5 @@ int trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_ren
 int trtl_seer_draw(VkCommandBuffer buffer, VkPipelineLayout pipeline_layout,
 		   trtl_render_layer_t layerid);
 int trtl_seer_update(uint32_t image_index);
-struct trtl_seer_vertexset *trtl_seer_vertexes_get(uint32_t *nobjects, uint32_t *nvertexes);
-struct trtl_seer_indexset *trtl_seer_indexset_get(uint32_t *nobjects, uint32_t *nindexes);
+struct trtl_seer_vertexset *trtl_seer_vertexes_get(trtl_render_layer_t, uint32_t *nobjects, uint32_t *nvertexes);
+struct trtl_seer_indexset *trtl_seer_indexset_get(trtl_render_layer_t,uint32_t *nobjects, uint32_t *nindexes);
