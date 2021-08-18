@@ -30,8 +30,7 @@
 #include "trtl_seer.h"
 #include "trtl_uniform.h"
 
-struct trtl_stringlist *objs_to_load;
-struct trtl_stringlist *background_objs;
+struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = { NULL };
 
 struct trtl_uniform *evil_global_uniform;
 
@@ -1733,10 +1732,12 @@ parse_arguments(int argc, char **argv)
 			debug = 1;
 			continue;
 		case 'b':
-			background_objs = trtl_stringlist_add(background_objs, optarg);
+			objs_to_load[TRTL_RENDER_LAYER_BACKGROUND] =
+			    trtl_stringlist_add(objs_to_load[TRTL_RENDER_LAYER_BACKGROUND], optarg);
 			continue;
 		case 'o':
-			objs_to_load = trtl_stringlist_add(objs_to_load, optarg);
+			objs_to_load[TRTL_RENDER_LAYER_MAIN] =
+			    trtl_stringlist_add(objs_to_load[TRTL_RENDER_LAYER_MAIN], optarg);
 			continue;
 		default:
 			show_usage(argv[0]);
@@ -1758,16 +1759,28 @@ load_object_default(struct swap_chain_data *scd)
 int
 load_objects(struct swap_chain_data *scd)
 {
-	if (objs_to_load == NULL && background_objs == NULL) {
+	int i;
+
+	// Do we have a least one object
+	for (i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+		if (objs_to_load[i] != NULL) {
+			// Found something;
+			break;
+		}
+	}
+	if (i == TRTL_RENDER_LAYER_TOTAL) {
 		return load_object_default(scd);
 	}
 
-	struct trtl_stringlist *load = objs_to_load;
-	while (load != NULL) {
-		trtl_seer_object_add(load->string, scd, TRTL_RENDER_LAYER_MAIN);
-		load = load->next;
+	// For each layer, load it
+	for (i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+		struct trtl_stringlist *load = objs_to_load[i];
+		while (load != NULL) {
+			trtl_seer_object_add(load->string, scd, i);
+			load = load->next;
+		}
+		talloc_free(objs_to_load[i]);
 	}
-	talloc_free(objs_to_load);
 	return 0;
 }
 
