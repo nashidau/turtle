@@ -30,7 +30,7 @@
 #include "trtl_seer.h"
 #include "trtl_uniform.h"
 
-struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = { NULL };
+struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
 struct trtl_uniform *evil_global_uniform;
 
@@ -1307,6 +1307,28 @@ create_vertex_buffers(struct render_context *render)
 	return vertex_buffer;
 }
 
+/**
+ * Copy indexes from base -> dest, adjusting each by adjust.
+ *
+ * Used to concat a number of index arrays together.
+ *
+ * Buffers may not overlap.
+ *
+ * @param dest Destination pointer
+ * @param base Where to copy from
+ * @param count How many uint32_ts to copy
+ */
+static void
+copy_indexes(uint32_t *restrict dest, const uint32_t *restrict base, uint32_t count)
+{
+	// FIXME: This is glorifed memcpy
+	for (uint32_t i = 0; i < count; i++) {
+		*dest = *base;
+		dest++;
+		base++;
+	}
+}
+
 VkBuffer
 create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
 {
@@ -1327,15 +1349,21 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
 		      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		      &stagingBuffer, &stagingBufferMemory);
 
-	void *data;
-	vkMapMemory(render->device, stagingBufferMemory, 0, buffer_size, 0, &data);
-	// This ugly; update teh index by the current poistion as we copy it accross
-	// Vulkna probalby supports a way to do this
-	off_t offset = 0;
-	for (uint32_t i = 0; i < nobjects; i++) {
-		memcpy(data + offset, indexes[i].indexes, sizeof(uint32_t) * indexes[i].nindexes);
-		offset += indexes[i].nindexes * sizeof(uint32_t);
+	uint32_t *dest;
+	{
+		void *data;
+		vkMapMemory(render->device, stagingBufferMemory, 0, buffer_size, 0, &data);
+		dest = data;
 	}
+	// This ugly; update the index by the current poistion as we copy it accross
+	// Vulkan probalby supports a way to do this
+	uint32_t offset = 0;
+	for (uint32_t i = 0; i < nobjects; i++) {
+		copy_indexes(dest, indexes[i].indexes, indexes[i].nindexes);
+		dest += indexes[i].nindexes;
+		offset += indexes[i].indexrange;
+	}
+
 	vkUnmapMemory(render->device, stagingBufferMemory);
 
 	VkBuffer index_buffer;
