@@ -66,13 +66,14 @@ static uint32_t
 canvas_vertices_get(trtl_arg_unused struct trtl_object *obj, const struct vertex **vertices)
 {
 	if (vertices) *vertices = canvas_vertices;
-	return 4;
+	return 4; // XXX: Magic
 }
 
 static uint32_t
-canvas_indices_get(trtl_arg_unused struct trtl_object *obj, const uint32_t **indices)
+canvas_indices_get(trtl_arg_unused struct trtl_object *obj, const uint32_t **indices, uint32_t *restrict offsetsize)
 {
 	if (indices) *indices = canvas_indices;
+	if (offsetsize) *offsetsize = 4; // XXX: magic
 	return CANVAS_OBJECT_NINDEXES;
 }
 

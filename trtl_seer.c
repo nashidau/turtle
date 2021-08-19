@@ -150,6 +150,7 @@ trtl_seer_draw(VkCommandBuffer buffer, VkPipelineLayout pipeline_layout,
 	       trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
+	uint32_t last;
 
 	assert(layerid < seer.nlayers);
 
@@ -157,8 +158,10 @@ trtl_seer_draw(VkCommandBuffer buffer, VkPipelineLayout pipeline_layout,
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 		layer->objects[obj]->draw(layer->objects[obj], buffer, pipeline_layout, offset);
-		// Super ugly hack
-		offset += layer->objects[obj]->indices(layer->objects[obj], NULL);
+		// How much is the thing offset by
+		// FIXME: this should be part of the layer info
+		layer->objects[obj]->indices(layer->objects[obj], NULL, &last);
+		offset += last;
 	}
 
 	return 0;
@@ -209,7 +212,8 @@ trtl_seer_indexset_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *
 
 	struct objlayer *lp = seer.layers + layer;
 	for (uint32_t i = 0; i < lp->nobjects; i++) {
-		indexes[i].nindexes = lp->objects[i]->indices(lp->objects[i], &indexes[i].indexes);
+		indexes[i].nindexes = lp->objects[i]->indices(lp->objects[i], &indexes[i].indexes,
+				&indexes[i].indexrange);
 		*nindexes += indexes[i].nindexes;
 	}
 	*nobjects += lp->nobjects;

@@ -58,10 +58,11 @@ static uint32_t trtl_object_vertices_get_(struct trtl_object *obj, const struct 
 	return mesh->model->nvertices;
 }
 
-static uint32_t trtl_object_indices_get_(struct trtl_object *obj, const uint32_t **indices)
+static uint32_t trtl_object_indices_get_(struct trtl_object *obj, const uint32_t **indices, uint32_t *indexrange)
 {
         struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	if (indices) *indices = mesh->model->indices;
+	if (indexrange) *indexrange = mesh->model->nvertices;
 	return mesh->model->nindices;
 }
 

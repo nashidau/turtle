@@ -12,6 +12,7 @@ struct trtl_seer_vertexset {
 
 struct trtl_seer_indexset {
 	uint32_t nindexes;
+	uint32_t indexrange;
 	const uint32_t *indexes;
 };
 
