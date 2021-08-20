@@ -1088,7 +1088,7 @@ create_depth_resources(struct swap_chain_data *scd)
 VkCommandBuffer *
 create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
 		       VkRenderPass render_pass, VkCommandPool command_pool,
-		       VkFramebuffer *framebuffers, trtl_arg_unused VkPipeline *pipelines)
+		       VkFramebuffer *framebuffers)
 {
 	VkCommandBuffer *buffers;
 
@@ -1263,7 +1263,7 @@ recreate_swap_chain(struct render_context *render)
 	create_depth_resources(scd);
 	scd->framebuffers = create_frame_buffers(render->device, scd);
 	scd->command_buffers = create_command_buffers(
-	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers, scd->pipelines);
+	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers);
 
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
@@ -1899,7 +1899,7 @@ main(int argc, char **argv)
 	// scd->descriptor_sets = create_descriptor_sets(scd);
 
 	scd->command_buffers = create_command_buffers(
-	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers, scd->pipelines);
+	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers);
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		image_ready_sem[i] = create_semaphores(render->device);
