@@ -17,9 +17,12 @@ Work on adding a second pass for the background texture.
 
 Focus & a keyboard model
 
+Subpass data should be in trtl_seer or something like that.
+
 Others:
 	bear used to generate the compile commands.
 	Automate somehow; either with cmake or a script or something to do.
+
 
 
 Simple Tasks:
@@ -31,4 +34,7 @@ Simple Tasks:
 	- Loading objects should use a shared index cache for 
 		multiple of the same object.  Extra level of indirection on loading I guess
 
-	
+Maybe simple tasks:
+	- allow empty layers
+
+

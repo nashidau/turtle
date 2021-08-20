@@ -715,11 +715,13 @@ create_shader(VkDevice device, struct blobby *blobby)
 	return shader_module;
 }
 
+// FIXME: This so all belongs on trtl seer
 VkRenderPass
 create_render_pass(VkDevice device, struct swap_chain_data *scd)
 {
 	VkRenderPass render_pass;
 
+	// Background color:
 	VkAttachmentDescription colorAttachment = {0};
 	colorAttachment.format = scd->image_format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -748,32 +750,42 @@ create_render_pass(VkDevice device, struct swap_chain_data *scd)
 	depthAttachmentRef.attachment = 1;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+	VkSubpassDescription subpass_background = {0};
+	subpass_background.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass_background.colorAttachmentCount = 1;
+	subpass_background.pColorAttachments = &colorAttachmentRef;
+	subpass_background.pDepthStencilAttachment = NULL;
+
 	VkSubpassDescription subpass_main = {0};
 	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass_main.colorAttachmentCount = 1;
 	subpass_main.pColorAttachments = &colorAttachmentRef;
 	subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
 
-	VkSubpassDescription subpass_background = {0};
-	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass_main.colorAttachmentCount = 1;
-	subpass_main.pColorAttachments = &colorAttachmentRef;
-	subpass_main.pDepthStencilAttachment = NULL;
+	VkSubpassDependency dependencies[2] = {0};
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[0].srcAccessMask = 0;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[0].dstAccessMask =
+	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-	VkSubpassDependency dependency = {0};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependency.dstSubpass = 0;
-	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = 1;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
 				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependency.srcAccessMask = 0;
-	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+	dependencies[1].srcAccessMask = 0;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
 				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependency.dstAccessMask =
+	dependencies[1].dstAccessMask =
 	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 	VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
 
-	VkSubpassDescription subpasses[2] = {subpass_background, subpass_main};
+	VkSubpassDescription subpasses[] = {subpass_background, subpass_main};
 
 	VkRenderPassCreateInfo renderPassInfo = {0};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -781,8 +793,8 @@ create_render_pass(VkDevice device, struct swap_chain_data *scd)
 	renderPassInfo.pAttachments = attachments;
 	renderPassInfo.subpassCount = 2;
 	renderPassInfo.pSubpasses = subpasses;
-	renderPassInfo.dependencyCount = 1;
-	renderPassInfo.pDependencies = &dependency;
+	renderPassInfo.dependencyCount = 2;
+	renderPassInfo.pDependencies = dependencies;
 
 	if (vkCreateRenderPass(device, &renderPassInfo, NULL, &render_pass) != VK_SUCCESS) {
 		error("failed to create render pass!");
@@ -1120,17 +1132,28 @@ create_command_buffers(struct render_context *render, struct swap_chain_data *sc
 		vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		{
 
+
+			vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
+					  scd->pipelines[TRTL_RENDER_LAYER_BACKGROUND]);
+			VkDeviceSize offsets[2] = {0, 1};
+
+			vkCmdBindVertexBuffers(buffers[i], 0, 1, render->vertex_buffers, offsets);
+			vkCmdBindIndexBuffer(buffers[i], render->index_buffers[0], 0,
+					     VK_INDEX_TYPE_UINT32);
+			trtl_seer_draw(buffers[i], scd->pipeline_layout, 0);
+
 			vkCmdNextSubpass(buffers[i], VK_SUBPASS_CONTENTS_INLINE);
+
 
 			vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
 					  scd->pipelines[TRTL_RENDER_LAYER_MAIN]);
-			VkBuffer vertexBuffers[] = {render->vertex_buffers};
-			VkDeviceSize offsets[] = {0};
-			vkCmdBindVertexBuffers(buffers[i], 0, 1, vertexBuffers, offsets);
-			vkCmdBindIndexBuffer(buffers[i], render->index_buffer, 0,
-					     VK_INDEX_TYPE_UINT32);
+			
+			vkCmdBindVertexBuffers(buffers[i], 0, 1, render->vertex_buffers + 1, offsets);
 
+			vkCmdBindIndexBuffer(buffers[i], render->index_buffers[1], 0,
+					     VK_INDEX_TYPE_UINT32);
 			trtl_seer_draw(buffers[i], scd->pipeline_layout, 1);
+
 		}
 		vkCmdEndRenderPass(buffers[i]);
 
@@ -1264,13 +1287,14 @@ copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer
 // FIXME: This should be in trtl_seer I'm pretty sure.  It owns the objects, so it
 // should do the allocation for vertex and index buffers.
 VkBuffer
-create_vertex_buffers(struct render_context *render)
+create_vertex_buffers(struct render_context *render, trtl_render_layer_t layer
+		)
 {
 	uint32_t nvertexes;
 	uint32_t nobjects;
 	struct trtl_seer_vertexset *vertices;
 
-	vertices = trtl_seer_vertexes_get(1, &nobjects, &nvertexes);
+	vertices = trtl_seer_vertexes_get(layer, &nobjects, &nvertexes);
 	printf("%d vertices; %d objects\n", nvertexes, nobjects);
 
 	VkDeviceSize bufferSize = sizeof(struct vertex) * nvertexes;
@@ -1330,7 +1354,7 @@ copy_indexes(uint32_t *restrict dest, const uint32_t *restrict base, uint32_t co
 }
 
 VkBuffer
-create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
+create_index_buffer(struct render_context *render, VkDeviceMemory *memory, uint32_t layer)
 {
 	// FIXME: Hardcoded indice size
 	uint32_t nindexes = 0; // total number of indexes
@@ -1339,7 +1363,7 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory)
 	struct trtl_seer_indexset *indexes;
 
 	// fixme; this shoul be a loop
-	indexes = trtl_seer_indexset_get(1, &nobjects, &nindexes);
+	indexes = trtl_seer_indexset_get(layer, &nobjects, &nindexes);
 
 	buffer_size = nindexes * sizeof(uint32_t);
 
@@ -1862,9 +1886,15 @@ main(int argc, char **argv)
 	trtl_seer_init(render->device, TRTL_RENDER_LAYER_TOTAL);
 
 	load_objects(scd);
+	
+	render->vertex_buffers = talloc_zero_array(render, VkBuffer, TRTL_RENDER_LAYER_TOTAL);
+	render->index_buffers = talloc_zero_array(render, VkBuffer, TRTL_RENDER_LAYER_TOTAL);
 
-	render->vertex_buffers = create_vertex_buffers(render);
-	render->index_buffer = create_index_buffer(render, &render->index_buffer_memory);
+	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++){
+		render->vertex_buffers[i] = create_vertex_buffers(render, i);
+		render->index_buffers[i] =
+		    create_index_buffer(render, &render->index_buffer_memory, i);
+	}
 	// FIXME: all object ot update it's descriptor sets
 	// scd->descriptor_sets = create_descriptor_sets(scd);
 

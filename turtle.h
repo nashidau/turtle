@@ -27,9 +27,11 @@ struct render_context {
 	VkSurfaceKHR surface;
 	VkDescriptorSetLayout descriptor_set_layout;
 
-	VkBuffer vertex_buffers;
+	// Array; one per layer
+	VkBuffer *vertex_buffers;
 
-	VkBuffer index_buffer;
+	// Array; one per layer
+	VkBuffer *index_buffers;
 	VkDeviceMemory index_buffer_memory;
 
 	VkQueue graphicsQueue;
