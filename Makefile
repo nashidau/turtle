@@ -29,13 +29,14 @@ SOURCES= \
 	trtl_uniform.c	\
 	trtl_object_mesh.c	\
 	trtl_object_canvas.c	\
+	trtl_pipeline.c	\
 	trtl_seer.c	\
 	turtle.c
 
 OBJECTS := $(SOURCES:%.c=%.o)
 
 
-ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv
+ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv shaders/canvas/test-color-fill.spv
 
 
 # Dependancies (from http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#tldr)
