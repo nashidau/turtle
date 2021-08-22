@@ -56,8 +56,6 @@ struct swap_chain_data {
 	VkFormat image_format; // Swap chain image formt
 	VkExtent2D extent;     // Extent of the images
 	VkFramebuffer *framebuffers;
-	VkPipelineLayout pipeline_layout;
-	VkPipeline *pipelines;
 	VkRenderPass render_pass;
 	VkDescriptorPool descriptor_pool;
 

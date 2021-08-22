@@ -19,6 +19,7 @@
 #include "helpers.h"
 #include "trtl_object_canvas.h"
 #include "trtl_object_mesh.h"
+#include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "turtle.h"
 
@@ -146,18 +147,31 @@ trtl_seer_update(uint32_t image_index)
 }
 
 int
-trtl_seer_draw(VkCommandBuffer buffer, VkPipelineLayout pipeline_layout,
-	       trtl_render_layer_t layerid)
+trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd, trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
 	uint32_t last;
+	struct trtl_pipeline_info *info;
 
 	assert(layerid < seer.nlayers);
 
 	struct objlayer *layer = seer.layers + layerid;
+	assert(layer);
+	assert(layer->objects[0]);
+	assert(layer->objects[0]->pipeline);
+	info = layer->objects[0]->pipeline(layer->objects[0]);
+	assert(info);
+	assert(info->pipeline);
+	assert(info->pipeline_layout);
+
+	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline);
+	VkDeviceSize offsets[2] = {0, 1};
+
+	vkCmdBindVertexBuffers(buffer, 0, 1, scd->render->vertex_buffers, offsets);
+	vkCmdBindIndexBuffer(buffer, scd->render->index_buffers[0], 0, VK_INDEX_TYPE_UINT32);
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
-		layer->objects[obj]->draw(layer->objects[obj], buffer, pipeline_layout, offset);
+		layer->objects[obj]->draw(layer->objects[obj], buffer, info->pipeline_layout, offset);
 		// How much is the thing offset by
 		// FIXME: this should be part of the layer info
 		layer->objects[obj]->indices(layer->objects[obj], NULL, &last);
@@ -213,7 +227,7 @@ trtl_seer_indexset_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *
 	struct objlayer *lp = seer.layers + layer;
 	for (uint32_t i = 0; i < lp->nobjects; i++) {
 		indexes[i].nindexes = lp->objects[i]->indices(lp->objects[i], &indexes[i].indexes,
-				&indexes[i].indexrange);
+							      &indexes[i].indexrange);
 		*nindexes += indexes[i].nindexes;
 	}
 	*nobjects += lp->nobjects;

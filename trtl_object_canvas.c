@@ -13,6 +13,7 @@
 #include "helpers.h"
 #include "trtl_object.h"
 #include "trtl_object_canvas.h"
+#include "trtl_pipeline.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
@@ -23,6 +24,8 @@ struct trtl_object_canvas {
 	uint32_t nframes;
 	VkDescriptorSet *descriptor_set;
 	struct trtl_uniform_info *uniform_info;
+
+	struct trtl_pipeline_info pipeline_info;
 };
 
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_canvas *canvas,
@@ -78,7 +81,7 @@ canvas_indices_get(trtl_arg_unused struct trtl_object *obj, const uint32_t **ind
 }
 
 static bool
-canvas_update(trtl_arg_unused struct trtl_object *obj, trtl_arg_unused int frame)
+canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
 	struct UniformBufferObject *ubo;
@@ -101,6 +104,12 @@ canvas_update(trtl_arg_unused struct trtl_object *obj, trtl_arg_unused int frame
 	return true;
 }
 
+static struct trtl_pipeline_info *
+canvas_pipeline(struct trtl_object *obj) {
+	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
+	return &canvas->pipeline_info;
+}
+
 struct trtl_object *
 trtl_canvas_create(void *ctx, struct swap_chain_data *scd, trtl_arg_unused const char *shaderpath)
 {
@@ -114,6 +123,7 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, trtl_arg_unused const
 	canvas->parent.vertices = canvas_vertices_get;
 	canvas->parent.indices = canvas_indices_get;
 	canvas->parent.update = canvas_update;
+	canvas->parent.pipeline = canvas_pipeline;
 
 	canvas->nframes = scd->nimages;
 
@@ -121,6 +131,9 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, trtl_arg_unused const
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
 	canvas->descriptor_set = create_descriptor_sets(canvas, scd);
+
+	canvas->pipeline_info = trtl_pipeline_create(scd->render->device, scd, 
+			"shaders/vert.spv", "shaders/canvas/test-color-fill.spv");
 
 	return (struct trtl_object *)canvas;
 }

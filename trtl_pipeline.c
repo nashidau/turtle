@@ -44,22 +44,19 @@ create_shader(VkDevice device, struct blobby *blobby)
 	return shader_module;
 }
 
-struct trtl_pipeline_info *
-trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd)
+struct trtl_pipeline_info
+trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd,
+		const char *vertex_shader,
+		const char *fragment_shader)
+
 {
-	struct trtl_pipeline_info *info;
+	struct trtl_pipeline_info info;
 
-	info = talloc_zero(NULL, struct trtl_pipeline_info);
-
-	// FIXME: What context should they be alloced in?
-	info->pipelines = talloc_array(NULL, VkPipeline, 2);
-	struct blobby *vertcode = blobby_from_file("shaders/vert.spv");
-	struct blobby *fragcode = blobby_from_file("shaders/frag.spv");
+	struct blobby *vertcode = blobby_from_file(vertex_shader);
+	struct blobby *fragcode = blobby_from_file(fragment_shader);
 
 	VkShaderModule vert = create_shader(device, vertcode);
 	VkShaderModule frag = create_shader(device, fragcode);
-	VkShaderModule frag2 =
-	    create_shader(device, blobby_from_file("shaders/canvas/test-color-fill.spv"));
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {0};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -73,15 +70,7 @@ trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd)
 	fragShaderStageInfo.module = frag;
 	fragShaderStageInfo.pName = "main";
 
-	VkPipelineShaderStageCreateInfo fragShaderStageInfo_canvas = {};
-	fragShaderStageInfo_canvas.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	fragShaderStageInfo_canvas.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo_canvas.module = frag2;
-	fragShaderStageInfo_canvas.pName = "main";
-
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
-	VkPipelineShaderStageCreateInfo shaderStages_canvas[] = {vertShaderStageInfo,
-								 fragShaderStageInfo_canvas};
 
 	VkVertexInputBindingDescription binding_description;
 	VkVertexInputAttributeDescription *attribute_description;
@@ -192,46 +181,32 @@ trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd)
 	pipeline_layout_info.pushConstantRangeCount = 0; // Optional
 	pipeline_layout_info.pPushConstantRanges = NULL; // Optional
 
-	if (vkCreatePipelineLayout(device, &pipeline_layout_info, NULL, &info->pipeline_layout) !=
+	if (vkCreatePipelineLayout(device, &pipeline_layout_info, NULL, &info.pipeline_layout) !=
 	    VK_SUCCESS) {
 		error("failed to create pipeline layout!");
 	}
 
-	VkGraphicsPipelineCreateInfo pipelineInfo[2] = {0};
-	pipelineInfo[0].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo[0].stageCount = 2;
-	pipelineInfo[0].pStages = shaderStages_canvas;
-	pipelineInfo[0].pVertexInputState = &vertexInputInfo;
-	pipelineInfo[0].pInputAssemblyState = &inputAssembly;
-	pipelineInfo[0].pViewportState = &viewportState;
-	pipelineInfo[0].pRasterizationState = &rasterizer;
-	pipelineInfo[0].pMultisampleState = &multisampling;
-	// pipelineInfo[0].pDepthStencilState = &depth_stencil;
-	pipelineInfo[0].pColorBlendState = &colorBlending;
+	VkGraphicsPipelineCreateInfo pipelineInfo = {0};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.stageCount = 2;
+	pipelineInfo.pStages = shaderStages;
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	// FIXME: First behidn a flag
+	pipelineInfo.pDepthStencilState = &depth_stencil;
+	pipelineInfo.pColorBlendState = &colorBlending;
 
-	pipelineInfo[0].layout = info->pipeline_layout;
-	pipelineInfo[0].renderPass = scd->render_pass;
-	pipelineInfo[0].subpass = TRTL_RENDER_LAYER_BACKGROUND;
-	pipelineInfo[0].basePipelineHandle = VK_NULL_HANDLE;
+	pipelineInfo.layout = info.pipeline_layout;
+	pipelineInfo.renderPass = scd->render_pass;
+	pipelineInfo.subpass = TRTL_RENDER_LAYER_BACKGROUND;
+	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-	pipelineInfo[1].sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo[1].stageCount = 2;
-	pipelineInfo[1].pStages = shaderStages;
-	pipelineInfo[1].pVertexInputState = &vertexInputInfo;
-	pipelineInfo[1].pInputAssemblyState = &inputAssembly;
-	pipelineInfo[1].pViewportState = &viewportState;
-	pipelineInfo[1].pRasterizationState = &rasterizer;
-	pipelineInfo[1].pMultisampleState = &multisampling;
-	pipelineInfo[1].pDepthStencilState = &depth_stencil;
-	pipelineInfo[1].pColorBlendState = &colorBlending;
 
-	pipelineInfo[1].layout = info->pipeline_layout;
-	pipelineInfo[1].renderPass = scd->render_pass;
-	pipelineInfo[1].subpass = TRTL_RENDER_LAYER_MAIN;
-	pipelineInfo[1].basePipelineHandle = VK_NULL_HANDLE;
-
-	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 2, pipelineInfo, NULL,
-				      info->pipelines) != VK_SUCCESS) {
+	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL,
+				      &info.pipeline) != VK_SUCCESS) {
 		error("failed to create graphics pipeline!");
 	}
 

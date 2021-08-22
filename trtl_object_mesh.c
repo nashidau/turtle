@@ -6,6 +6,7 @@
 
 #include "helpers.h"
 #include "trtl_object_mesh.h"
+#include "trtl_pipeline.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h" // FIXME: has trtl_model in it
@@ -24,6 +25,8 @@ struct trtl_object_mesh {
 	VkImageView texture_image_view;
 
 	struct trtl_uniform_info *uniform_info;
+
+	struct trtl_pipeline_info pipeline_info;
 
 	bool reverse;
 };
@@ -68,6 +71,13 @@ trtl_object_indices_get_(struct trtl_object *obj, const uint32_t **indices, uint
 	if (indices) *indices = mesh->model->indices;
 	if (indexrange) *indexrange = mesh->model->nvertices;
 	return mesh->model->nindices;
+}
+
+static struct trtl_pipeline_info *
+trtl_object_pipeline_(struct trtl_object *obj)
+{
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	return &mesh->pipeline_info;
 }
 
 static int
@@ -124,6 +134,7 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, const char *path
 	mesh->parent.vertices = trtl_object_vertices_get_;
 	mesh->parent.indices = trtl_object_indices_get_;
 	mesh->parent.update = trtl_object_update_;
+	mesh->parent.pipeline = trtl_object_pipeline_;
 
 	mesh->nframes = scd->nimages;
 	mesh->model = load_model(path);
@@ -140,6 +151,8 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, const char *path
 	    create_texture_image_view(scd->render, create_texture_image(scd->render, texture));
 
 	mesh->descriptor_set = create_descriptor_sets(mesh, scd);
+	mesh->pipeline_info = trtl_pipeline_create(scd->render->device, scd,
+			"shaders/vert.spv", "shaders/frag.spv");
 
 	if (strstr(path, "Couch")) mesh->reverse = 1;
 

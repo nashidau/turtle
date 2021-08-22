@@ -928,28 +928,11 @@ create_command_buffers(struct render_context *render, struct swap_chain_data *sc
 
 		vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		{
-
-
-			vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-					  scd->pipelines[TRTL_RENDER_LAYER_BACKGROUND]);
-			VkDeviceSize offsets[2] = {0, 1};
-
-			vkCmdBindVertexBuffers(buffers[i], 0, 1, render->vertex_buffers, offsets);
-			vkCmdBindIndexBuffer(buffers[i], render->index_buffers[0], 0,
-					     VK_INDEX_TYPE_UINT32);
-			trtl_seer_draw(buffers[i], scd->pipeline_layout, 0);
+			trtl_seer_draw(buffers[i], scd, 0);
 
 			vkCmdNextSubpass(buffers[i], VK_SUBPASS_CONTENTS_INLINE);
 
-
-			vkCmdBindPipeline(buffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS,
-					  scd->pipelines[TRTL_RENDER_LAYER_MAIN]);
-			
-			vkCmdBindVertexBuffers(buffers[i], 0, 1, render->vertex_buffers + 1, offsets);
-
-			vkCmdBindIndexBuffer(buffers[i], render->index_buffers[1], 0,
-					     VK_INDEX_TYPE_UINT32);
-			trtl_seer_draw(buffers[i], scd->pipeline_layout, 1);
+			trtl_seer_draw(buffers[i], scd, 1);
 
 		}
 		vkCmdEndRenderPass(buffers[i]);
@@ -1002,8 +985,8 @@ swap_chain_data_destructor(struct swap_chain_data *scd)
 	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
 
 	// FIXME: There are multiple pipelines now
-	vkDestroyPipeline(device, *scd->pipelines, NULL);
-	vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
+	//vkDestroyPipeline(device, *scd->pipelines, NULL);
+	//vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
 	vkDestroyRenderPass(device, scd->render_pass, NULL);
 
 	for (i = 0; i < scd->nimages; i++) {
@@ -1030,7 +1013,6 @@ void
 recreate_swap_chain(struct render_context *render)
 {
 	int width = 0, height = 0;
-	struct trtl_pipeline_info *info;
 
 	glfwGetFramebufferSize(render->window, &width, &height);
 
@@ -1052,10 +1034,10 @@ recreate_swap_chain(struct render_context *render)
 	create_image_views(render->device, render->scd);
 	scd->render_pass = create_render_pass(render->device, scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
-	info =trtl_pipeline_create(render->device, scd);
+	//info =trtl_pipeline_create(render->device, scd);
 	
-	scd->pipelines = info->pipelines;
-	scd->pipeline_layout = info->pipeline_layout;
+	//scd->pipelines = info->pipelines;
+	//scd->pipeline_layout = info->pipeline_layout;
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 	// FIXME: Call object to update it's descriptor sets
@@ -1647,7 +1629,6 @@ main(int argc, char **argv)
 	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
 	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
-	struct trtl_pipeline_info *info;
 
 	parse_arguments(argc, argv);
 
@@ -1672,10 +1653,10 @@ main(int argc, char **argv)
 	create_image_views(render->device, render->scd);
 	scd->render_pass = create_render_pass(render->device, scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
-	info =trtl_pipeline_create(render->device, scd);
+	//info =trtl_pipeline_create(render->device, scd);
 	
-	scd->pipelines = info->pipelines;
-	scd->pipeline_layout = info->pipeline_layout;
+	//scd->pipelines = info->pipelines;
+	//scd->pipeline_layout = info->pipeline_layout;
 
 	scd->command_pool =
 	    create_command_pool(render->device, render->physical_device, render->surface);
