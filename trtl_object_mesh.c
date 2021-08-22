@@ -31,51 +31,57 @@ struct trtl_object_mesh {
 // Inline function to cast from abstract to concrete type.
 // FIXME: Make Debug and non-debug do different things
 static inline struct trtl_object_mesh *
-trtl_object_mesh(struct trtl_object *obj) {
+trtl_object_mesh(struct trtl_object *obj)
+{
 	struct trtl_object_mesh *mesh;
 	mesh = talloc_get_type(obj, struct trtl_object_mesh);
 	assert(mesh != NULL);
 	return mesh;
 }
 
-trtl_alloc static VkDescriptorSet *
-create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *scd);
+trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mesh *mesh,
+							  struct swap_chain_data *scd);
 
-static void trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
-			      VkPipelineLayout pipeline_layout, int32_t offset)
+static void
+trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
+		  VkPipelineLayout pipeline_layout, int32_t offset)
 {
-        struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1,
 				mesh->descriptor_set, 0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }
 
-static uint32_t trtl_object_vertices_get_(struct trtl_object *obj, const struct vertex **vertices)
+static uint32_t
+trtl_object_vertices_get_(struct trtl_object *obj, const struct vertex **vertices)
 {
-        struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	if (vertices) *vertices = mesh->model->vertices;
 	return mesh->model->nvertices;
 }
 
-static uint32_t trtl_object_indices_get_(struct trtl_object *obj, const uint32_t **indices, uint32_t *indexrange)
+static uint32_t
+trtl_object_indices_get_(struct trtl_object *obj, const uint32_t **indices, uint32_t *indexrange)
 {
-        struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	if (indices) *indices = mesh->model->indices;
 	if (indexrange) *indexrange = mesh->model->nvertices;
 	return mesh->model->nindices;
 }
 
-static int trtl_object_mesh_destructor(trtl_arg_unused struct trtl_object_mesh *obj)
+static int
+trtl_object_mesh_destructor(trtl_arg_unused struct trtl_object_mesh *obj)
 {
 	// FIXME: Free model
 	return 0;
 }
 
-static bool trtl_object_update_(struct trtl_object *obj, int frame)
+static bool
+trtl_object_update_(struct trtl_object *obj, int frame)
 {
 
-        struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	// static int startTime = 0;
 	// int currentTime = 1;
 	static float time = 1.0f;
@@ -105,8 +111,9 @@ static bool trtl_object_update_(struct trtl_object *obj, int frame)
 	return true;
 }
 
-struct trtl_object *trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd,
-					    const char *path, const char *texture)
+struct trtl_object *
+trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, const char *path,
+			const char *texture)
 {
 	struct trtl_object_mesh *mesh;
 
@@ -139,8 +146,8 @@ struct trtl_object *trtl_object_mesh_create(void *ctx, struct swap_chain_data *s
 	return (struct trtl_object *)mesh;
 }
 
-trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mesh *mesh,
-							  struct swap_chain_data *scd)
+trtl_alloc static VkDescriptorSet *
+create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *scd)
 {
 	VkDescriptorSet *sets = talloc_zero_array(mesh, VkDescriptorSet, mesh->nframes);
 	VkDescriptorSetLayout *layouts =
