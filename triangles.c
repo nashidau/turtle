@@ -114,6 +114,13 @@ window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
 	if (debug) printf("Window resized\n");
 }
 
+void
+key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
+	     trtl_arg_unused int mods)
+{
+	if (key == GLFW_KEY_O && action == GLFW_PRESS) printf("Got message");
+}
+
 GLFWwindow *
 window_init(void)
 {
@@ -126,6 +133,8 @@ window_init(void)
 
 	window = glfwCreateWindow(800, 600, "Vulkan", NULL, NULL);
 	glfwSetFramebufferSizeCallback(window, window_resize_cb);
+
+	glfwSetKeyCallback(window, key_callback);
 
 	return window;
 }
@@ -1486,7 +1495,7 @@ main(int argc, char **argv)
 	scd->command_pool = create_command_pool(
 	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
 	create_depth_resources(scd);
-	//scd->framebuffers = create_frame_buffers(render->turtle->device, scd);
+	// scd->framebuffers = create_frame_buffers(render->turtle->device, scd);
 
 	// Init the trtl Uniform buffers; We have one currently
 	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
@@ -1497,7 +1506,7 @@ main(int argc, char **argv)
 	// FIXME: Object is destroyed when screen chages; wrong
 	trtl_seer_init(render->turtle, scd->extent, scd->render->descriptor_set_layout);
 
-	    load_objects(scd);
+	load_objects(scd);
 
 	render->vertex_buffers = talloc_zero_array(render, VkBuffer, TRTL_RENDER_LAYER_TOTAL);
 	render->index_buffers = talloc_zero_array(render, VkBuffer, TRTL_RENDER_LAYER_TOTAL);
@@ -1509,7 +1518,7 @@ main(int argc, char **argv)
 	}
 	// FIXME: all object ot update it's descriptor sets
 	// scd->descriptor_sets = create_descriptor_sets(scd);
-	
+
 	// FIXME: This is a hack, this shoudl be managed by seer,
 	// and shoukd be done dynamically as the state of the worlld changes.
 	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);

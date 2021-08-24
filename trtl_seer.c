@@ -88,10 +88,13 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
 
 	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		seer.layers[i].render_pass = create_render_pass(turtle);
+		// FIXME: So so wrong
+		const char *shader =
+		    i != 0 ? "shaders/frag.spv" : "shaders/canvas/test-color-fill.spv";
 
 		seer.layers[i].pipeline_info = trtl_pipeline_create(
 		    turtle->device, seer.layers[i].render_pass, extent, descriptor_set_layout,
-		    "shaders/vert.spv", "shaders/canvas/test-color-fill.spv");
+		    "shaders/vert.spv", shader);
 	}
 
 	return 0;
@@ -195,8 +198,8 @@ trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd, trtl_render_
 	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layer->pipeline_info.pipeline);
 	VkDeviceSize offsets[2] = {0, 1};
 
-	vkCmdBindVertexBuffers(buffer, 0, 1, scd->render->vertex_buffers, offsets);
-	vkCmdBindIndexBuffer(buffer, scd->render->index_buffers[0], 0, VK_INDEX_TYPE_UINT32);
+	vkCmdBindVertexBuffers(buffer, 0, 1, &scd->render->vertex_buffers[layerid], offsets);
+	vkCmdBindIndexBuffer(buffer, scd->render->index_buffers[layerid], 0, VK_INDEX_TYPE_UINT32);
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 		layer->objects[obj]->draw(layer->objects[obj], buffer,
@@ -301,18 +304,20 @@ create_render_pass(struct turtle *turtle)
 	depthAttachmentRef.attachment = 1;
 	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
+	/*
 	VkSubpassDescription subpass_background = {0};
 	subpass_background.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass_background.colorAttachmentCount = 1;
 	subpass_background.pColorAttachments = &colorAttachmentRef;
 	subpass_background.pDepthStencilAttachment = NULL;
-
+*/
 	VkSubpassDescription subpass_main = {0};
 	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass_main.colorAttachmentCount = 1;
 	subpass_main.pColorAttachments = &colorAttachmentRef;
 	subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
 
+	/*
 	VkSubpassDependency dependencies[2] = {0};
 	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
 	dependencies[0].dstSubpass = 0;
@@ -333,19 +338,19 @@ create_render_pass(struct turtle *turtle)
 				       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	dependencies[1].dstAccessMask =
 	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
+*/
 	VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
 
-	VkSubpassDescription subpasses[] = {subpass_background, subpass_main};
+	VkSubpassDescription subpasses[] = {subpass_main};
 
 	VkRenderPassCreateInfo renderPassInfo = {0};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
 	renderPassInfo.pAttachments = attachments;
-	renderPassInfo.subpassCount = 2;
+	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = subpasses;
-	renderPassInfo.dependencyCount = 2;
-	renderPassInfo.pDependencies = dependencies;
+	renderPassInfo.dependencyCount = 0;
+	renderPassInfo.pDependencies = NULL; // dependencies;
 
 	if (vkCreateRenderPass(turtle->device, &renderPassInfo, NULL, &render_pass) != VK_SUCCESS) {
 		error("failed to create render pass!");
@@ -401,13 +406,25 @@ create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
 
 		vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 		{
-			// trtl_seer_draw(buffers[i], scd, 0);
-
-			// vkCmdNextSubpass(buffers[i], VK_SUBPASS_CONTENTS_INLINE);
-
 			trtl_seer_draw(buffers[i], scd, 1);
 		}
 		vkCmdEndRenderPass(buffers[i]);
+		/*
+				renderPassInfo = (VkRenderPassBeginInfo){0};
+				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+				renderPassInfo.renderPass = seer.layers[1].render_pass;
+				renderPassInfo.framebuffer = framebuffers[i];
+				renderPassInfo.renderArea.offset.x = 0;
+				renderPassInfo.renderArea.offset.y = 0;
+				renderPassInfo.renderArea.extent = scd->extent;
+				vkCmdBeginRenderPass(buffers[i], &renderPassInfo,
+		   VK_SUBPASS_CONTENTS_INLINE);
+				{
+					trtl_seer_draw(buffers[i], scd, 0);
+				}
+				vkCmdEndRenderPass(buffers[i]);
+
+		*/
 
 		if (vkEndCommandBuffer(buffers[i]) != VK_SUCCESS) {
 			error("failed to record command buffer!");
