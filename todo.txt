@@ -1,3 +1,7 @@
+Finish moving VkPipeline{Layout} out of trtl.
+Make the class work better.
+Maybe add pushconstant support through trtl_uniform
+
 Canvas object added; really broken
 	- should be drawn at the real depth
 	- should not set the depth
@@ -24,7 +28,6 @@ Others:
 	Automate somehow; either with cmake or a script or something to do.
 
 
-
 Simple Tasks:
 	- Clean some fixes.
 	- vertex.h -> trtl_model?
@@ -36,5 +39,6 @@ Simple Tasks:
 
 Maybe simple tasks:
 	- allow empty layers
+	- Create a VkPipelineCache
 
 

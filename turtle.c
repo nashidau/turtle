@@ -17,12 +17,12 @@ void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsa
 	bufferInfo.usage = usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (vkCreateBuffer(render->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+	if (vkCreateBuffer(render->turtle->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
 		error("failed to create buffer!");
 	}
 
 	VkMemoryRequirements memRequirements = {0};
-	vkGetBufferMemoryRequirements(render->device, *buffer, &memRequirements);
+	vkGetBufferMemoryRequirements(render->turtle->device, *buffer, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo = {0};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -30,18 +30,18 @@ void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsa
 	allocInfo.memoryTypeIndex =
 	    findMemoryType(render, memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(render->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
+	if (vkAllocateMemory(render->turtle->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
 		error("failed to allocate buffer memory!");
 	}
 
-	vkBindBufferMemory(render->device, *buffer, *bufferMemory, 0);
+	vkBindBufferMemory(render->turtle->device, *buffer, *bufferMemory, 0);
 }
 
 uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
 			VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(render->physical_device, &memProperties);
+	vkGetPhysicalDeviceMemoryProperties(render->turtle->physical_device, &memProperties);
 
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
 		if ((typeFilter & (1 << i)) &&

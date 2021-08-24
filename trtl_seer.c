@@ -36,7 +36,7 @@ static const char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
 struct {
 	void *seer_ctx;
 
-	VkDevice device;
+	struct turtle *turtle;
 
 	// Number of objects across all layers
 	uint32_t nobjects;
@@ -44,18 +44,33 @@ struct {
 	trtl_render_layer_t nlayers;
 	struct objlayer *layers;
 
+	VkFramebuffer *framebuffers;
+
 } seer = {0};
 
 struct objlayer {
 	uint32_t nobjects;
 	uint32_t nalloced;
 	struct trtl_object **objects;
+
+	struct trtl_pipeline_info pipeline_info;
+
+	VkRenderPass render_pass;
 };
 
+static VkRenderPass create_render_pass(struct turtle *turtle);
+VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
+					VkCommandPool command_pool, VkFramebuffer *framebuffers);
+static VkFramebuffer *create_frame_buffers(VkDevice device, struct swap_chain_data *scd,
+					   VkRenderPass render_pass, VkExtent2D extent);
+
 int
-trtl_seer_init(VkDevice device, uint32_t nlayers)
+trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
+	       VkDescriptorSetLayout descriptor_set_layout)
 {
-	if (seer.device) {
+	int nlayers = TRTL_RENDER_LAYER_TOTAL;
+
+	if (seer.turtle) {
 		warning("Multiple init of trtl_seer");
 		return 0;
 	}
@@ -69,7 +84,15 @@ trtl_seer_init(VkDevice device, uint32_t nlayers)
 	seer.layers = talloc_zero_array(seer.seer_ctx, struct objlayer, nlayers);
 	seer.nlayers = nlayers;
 
-	seer.device = device;
+	seer.turtle = turtle;
+
+	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+		seer.layers[i].render_pass = create_render_pass(turtle);
+
+		seer.layers[i].pipeline_info = trtl_pipeline_create(
+		    turtle->device, seer.layers[i].render_pass, extent, descriptor_set_layout,
+		    "shaders/vert.spv", "shaders/canvas/test-color-fill.spv");
+	}
 
 	return 0;
 }
@@ -146,32 +169,38 @@ trtl_seer_update(uint32_t image_index)
 	return count;
 }
 
+VkCommandBuffer *
+trtl_seer_create_command_buffers(struct swap_chain_data *scd, VkCommandPool command_pool)
+{
+	seer.framebuffers =
+	    create_frame_buffers(seer.turtle->device, scd, seer.layers[1].render_pass, scd->extent);
+	return create_command_buffers(seer.turtle, scd, command_pool, seer.framebuffers);
+}
+
 int
 trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd, trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
 	uint32_t last;
-	struct trtl_pipeline_info *info;
 
 	assert(layerid < seer.nlayers);
 
-	struct objlayer *layer = seer.layers + layerid;
-	assert(layer);
-	assert(layer->objects[0]);
-	assert(layer->objects[0]->pipeline);
-	info = layer->objects[0]->pipeline(layer->objects[0]);
-	assert(info);
-	assert(info->pipeline);
-	assert(info->pipeline_layout);
+	/*
+	seer.command_buffers = create_command_buffers(render, scd, scd->render_pass,
+						      scd->command_pool, scd->framebuffers);
+*/
 
-	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, info->pipeline);
+	struct objlayer *layer = seer.layers + layerid;
+
+	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layer->pipeline_info.pipeline);
 	VkDeviceSize offsets[2] = {0, 1};
 
 	vkCmdBindVertexBuffers(buffer, 0, 1, scd->render->vertex_buffers, offsets);
 	vkCmdBindIndexBuffer(buffer, scd->render->index_buffers[0], 0, VK_INDEX_TYPE_UINT32);
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
-		layer->objects[obj]->draw(layer->objects[obj], buffer, info->pipeline_layout, offset);
+		layer->objects[obj]->draw(layer->objects[obj], buffer,
+					  layer->pipeline_info.pipeline_layout, offset);
 		// How much is the thing offset by
 		// FIXME: this should be part of the layer info
 		layer->objects[obj]->indices(layer->objects[obj], NULL, &last);
@@ -233,4 +262,189 @@ trtl_seer_indexset_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *
 	*nobjects += lp->nobjects;
 
 	return indexes;
+}
+
+// FIXME: Urgh; put this somewhere sane
+VkFormat find_depth_format(VkPhysicalDevice physical_device);
+
+static VkRenderPass
+create_render_pass(struct turtle *turtle)
+{
+	VkRenderPass render_pass;
+
+	// Background color:
+	VkAttachmentDescription colorAttachment = {0};
+	colorAttachment.format = turtle->image_format;
+	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+	VkAttachmentDescription depthAttachment = {0};
+	depthAttachment.format = find_depth_format(turtle->physical_device);
+	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference colorAttachmentRef = {0};
+	colorAttachmentRef.attachment = 0;
+	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+	VkAttachmentReference depthAttachmentRef = {0};
+	depthAttachmentRef.attachment = 1;
+	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+	VkSubpassDescription subpass_background = {0};
+	subpass_background.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass_background.colorAttachmentCount = 1;
+	subpass_background.pColorAttachments = &colorAttachmentRef;
+	subpass_background.pDepthStencilAttachment = NULL;
+
+	VkSubpassDescription subpass_main = {0};
+	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass_main.colorAttachmentCount = 1;
+	subpass_main.pColorAttachments = &colorAttachmentRef;
+	subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
+
+	VkSubpassDependency dependencies[2] = {0};
+	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass = 0;
+	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+				       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[0].srcAccessMask = 0;
+	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+				       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[0].dstAccessMask =
+	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+	dependencies[1].srcSubpass = 0;
+	dependencies[1].dstSubpass = 1;
+	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+				       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[1].srcAccessMask = 0;
+	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+				       VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+	dependencies[1].dstAccessMask =
+	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+	VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
+
+	VkSubpassDescription subpasses[] = {subpass_background, subpass_main};
+
+	VkRenderPassCreateInfo renderPassInfo = {0};
+	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	renderPassInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
+	renderPassInfo.pAttachments = attachments;
+	renderPassInfo.subpassCount = 2;
+	renderPassInfo.pSubpasses = subpasses;
+	renderPassInfo.dependencyCount = 2;
+	renderPassInfo.pDependencies = dependencies;
+
+	if (vkCreateRenderPass(turtle->device, &renderPassInfo, NULL, &render_pass) != VK_SUCCESS) {
+		error("failed to create render pass!");
+	}
+
+	return render_pass;
+}
+
+VkCommandBuffer *
+create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
+		       VkCommandPool command_pool, VkFramebuffer *framebuffers)
+{
+	VkCommandBuffer *buffers;
+
+	scd->nbuffers = scd->nimages;
+
+	buffers = talloc_array(scd, VkCommandBuffer, scd->nbuffers);
+
+	VkCommandBufferAllocateInfo allocInfo = {0};
+	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	allocInfo.commandPool = command_pool;
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	allocInfo.commandBufferCount = scd->nimages;
+
+	if (vkAllocateCommandBuffers(turtle->device, &allocInfo, buffers) != VK_SUCCESS) {
+		error("failed to allocate command buffers!");
+	}
+
+	for (size_t i = 0; i < scd->nimages; i++) {
+		VkCommandBufferBeginInfo beginInfo = {0};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+		if (vkBeginCommandBuffer(buffers[i], &beginInfo) != VK_SUCCESS) {
+			error("failed to begin recording command buffer!");
+		}
+
+		// FIXME: Should get render pass for each layer here
+
+		VkRenderPassBeginInfo renderPassInfo = {0};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = seer.layers[1].render_pass;
+		renderPassInfo.framebuffer = framebuffers[i];
+		renderPassInfo.renderArea.offset.x = 0;
+		renderPassInfo.renderArea.offset.y = 0;
+		renderPassInfo.renderArea.extent = scd->extent;
+
+		VkClearValue clearValues[] = {
+		    {.color = (VkClearColorValue){{0.0f, 0.0f, 0.0f, 1.0f}}},
+		    {.depthStencil = (VkClearDepthStencilValue){1.0f, 0}},
+		};
+		renderPassInfo.clearValueCount = TRTL_ARRAY_SIZE(clearValues);
+		renderPassInfo.pClearValues = clearValues;
+
+		vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		{
+			// trtl_seer_draw(buffers[i], scd, 0);
+
+			// vkCmdNextSubpass(buffers[i], VK_SUBPASS_CONTENTS_INLINE);
+
+			trtl_seer_draw(buffers[i], scd, 1);
+		}
+		vkCmdEndRenderPass(buffers[i]);
+
+		if (vkEndCommandBuffer(buffers[i]) != VK_SUCCESS) {
+			error("failed to record command buffer!");
+		}
+	}
+
+	return buffers;
+}
+
+static VkFramebuffer *
+create_frame_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass,
+		     VkExtent2D extent)
+{
+	VkFramebuffer *framebuffers;
+
+	framebuffers = talloc_array(scd, VkFramebuffer, scd->nimages);
+
+	for (uint32_t i = 0; i < scd->nimages; i++) {
+		VkImageView attachments[] = {
+		    scd->image_views[i],
+		    scd->depth_image_view,
+		};
+
+		VkFramebufferCreateInfo framebufferInfo = {0};
+		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+		framebufferInfo.renderPass = render_pass;
+		framebufferInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
+		framebufferInfo.pAttachments = attachments;
+		framebufferInfo.width = extent.width;
+		framebufferInfo.height = extent.height;
+		framebufferInfo.layers = 1;
+
+		if (vkCreateFramebuffer(device, &framebufferInfo, NULL, &framebuffers[i]) !=
+		    VK_SUCCESS) {
+			error("failed to create framebuffer!");
+		}
+	}
+
+	return framebuffers;
 }

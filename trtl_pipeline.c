@@ -45,10 +45,12 @@ create_shader(VkDevice device, struct blobby *blobby)
 }
 
 struct trtl_pipeline_info
-trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd,
+trtl_pipeline_create(VkDevice device,
+		VkRenderPass render_pass,
+		VkExtent2D extent,
+		VkDescriptorSetLayout descriptor_set_layout,
 		const char *vertex_shader,
 		const char *fragment_shader)
-
 {
 	struct trtl_pipeline_info info;
 
@@ -73,6 +75,7 @@ trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd,
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
 	VkVertexInputBindingDescription binding_description;
+
 	VkVertexInputAttributeDescription *attribute_description;
 
 	// So this should be cleverer, built ffrom the list objects
@@ -96,15 +99,15 @@ trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd,
 	VkViewport viewport = {0};
 	viewport.x = 0.0f;
 	viewport.y = 0.0f;
-	viewport.width = (float)scd->extent.width;
-	viewport.height = (float)scd->extent.height;
+	viewport.width = (float)extent.width;
+	viewport.height = (float)extent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor = {0};
 	scissor.offset.x = 0;
 	scissor.offset.y = 0;
-	scissor.extent = scd->extent;
+	scissor.extent = extent;
 
 	VkPipelineViewportStateCreateInfo viewportState = {0};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -177,7 +180,7 @@ trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd,
 	VkPipelineLayoutCreateInfo pipeline_layout_info = {0};
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipeline_layout_info.setLayoutCount = 1;
-	pipeline_layout_info.pSetLayouts = &scd->render->descriptor_set_layout;
+	pipeline_layout_info.pSetLayouts = &descriptor_set_layout;
 	pipeline_layout_info.pushConstantRangeCount = 0; // Optional
 	pipeline_layout_info.pPushConstantRanges = NULL; // Optional
 
@@ -200,7 +203,7 @@ trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd,
 	pipelineInfo.pColorBlendState = &colorBlending;
 
 	pipelineInfo.layout = info.pipeline_layout;
-	pipelineInfo.renderPass = scd->render_pass;
+	pipelineInfo.renderPass = render_pass;
 	pipelineInfo.subpass = TRTL_RENDER_LAYER_BACKGROUND;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 

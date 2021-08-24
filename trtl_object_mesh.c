@@ -151,8 +151,6 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, const char *path
 	    create_texture_image_view(scd->render, create_texture_image(scd->render, texture));
 
 	mesh->descriptor_set = create_descriptor_sets(mesh, scd);
-	mesh->pipeline_info = trtl_pipeline_create(scd->render->device, scd,
-			"shaders/vert.spv", "shaders/frag.spv");
 
 	if (strstr(path, "Couch")) mesh->reverse = 1;
 
@@ -176,7 +174,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *sc
 	alloc_info.descriptorSetCount = mesh->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->render->device, &alloc_info, sets) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
@@ -208,7 +206,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *sc
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &image_info;
 
-		vkUpdateDescriptorSets(scd->render->device, TRTL_ARRAY_SIZE(descriptorWrites),
+		vkUpdateDescriptorSets(scd->render->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
 				       descriptorWrites, 0, NULL);
 	}
 

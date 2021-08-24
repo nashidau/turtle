@@ -93,7 +93,7 @@ struct trtl_uniform *trtl_uniform_init(struct render_context *render, uint8_t nf
 	}
 
 	// We use the device all over
-	uniforms->device = render->device;
+	uniforms->device = render->turtle->device;
 	uniforms->uniform_buffers = talloc_array(uniforms, VkBuffer, nframes);
 	uniforms->uniform_buffers_memory = talloc_array(uniforms, VkDeviceMemory, nframes);
 

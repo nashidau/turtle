@@ -27,8 +27,8 @@
 
 #include "stringlist.h"
 #include "trtl_object.h"
-#include "trtl_seer.h"
 #include "trtl_pipeline.h"
+#include "trtl_seer.h"
 #include "trtl_uniform.h"
 
 struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
@@ -412,7 +412,7 @@ find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, Vk
 	error("Failed to find a supported format");
 }
 
-static VkFormat
+VkFormat
 find_depth_format(VkPhysicalDevice physical_device)
 {
 	VkFormat formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
@@ -528,7 +528,7 @@ chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
 }
 
 struct swap_chain_data *
-create_swap_chain(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
 {
 	struct swap_chain_data *scd = talloc_zero(NULL, struct swap_chain_data);
 	talloc_set_destructor(scd, swap_chain_data_destructor);
@@ -581,15 +581,16 @@ create_swap_chain(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKH
 
 	createInfo.oldSwapchain = VK_NULL_HANDLE;
 
-	if (vkCreateSwapchainKHR(device, &createInfo, NULL, &scd->swap_chain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(turtle->device, &createInfo, NULL, &scd->swap_chain) !=
+	    VK_SUCCESS) {
 		error("failed to create swap chain!");
 	}
 
-	vkGetSwapchainImagesKHR(device, scd->swap_chain, &scd->nimages, NULL);
+	vkGetSwapchainImagesKHR(turtle->device, scd->swap_chain, &scd->nimages, NULL);
 	scd->images = talloc_array(scd, VkImage, scd->nimages);
-	vkGetSwapchainImagesKHR(device, scd->swap_chain, &scd->nimages, scd->images);
+	vkGetSwapchainImagesKHR(turtle->device, scd->swap_chain, &scd->nimages, scd->images);
 
-	scd->image_format = surfaceFormat->format;
+	turtle->image_format = surfaceFormat->format;
 	scd->extent = extent;
 
 	return scd;
@@ -611,7 +612,7 @@ create_image_view(struct render_context *render, VkImage image, VkFormat format,
 	viewInfo.subresourceRange.layerCount = 1;
 
 	VkImageView imageView;
-	if (vkCreateImageView(render->device, &viewInfo, NULL, &imageView) != VK_SUCCESS) {
+	if (vkCreateImageView(render->turtle->device, &viewInfo, NULL, &imageView) != VK_SUCCESS) {
 		error("failed to create texture image view!");
 	}
 
@@ -624,8 +625,9 @@ create_image_views(trtl_arg_unused VkDevice device, struct swap_chain_data *scd)
 	scd->image_views = talloc_array(scd, VkImageView, scd->nimages);
 
 	for (uint32_t i = 0; i < scd->nimages; i++) {
-		scd->image_views[i] = create_image_view(
-		    scd->render, scd->images[i], scd->image_format, VK_IMAGE_ASPECT_COLOR_BIT);
+		scd->image_views[i] =
+		    create_image_view(scd->render, scd->images[i],
+				      scd->render->turtle->image_format, VK_IMAGE_ASPECT_COLOR_BIT);
 	}
 }
 
@@ -634,7 +636,7 @@ create_texture_sampler(struct render_context *render)
 {
 	VkSampler sampler;
 	VkPhysicalDeviceProperties properties = {0};
-	vkGetPhysicalDeviceProperties(render->physical_device, &properties);
+	vkGetPhysicalDeviceProperties(render->turtle->physical_device, &properties);
 
 	VkSamplerCreateInfo sampler_info = {0};
 	sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -651,7 +653,7 @@ create_texture_sampler(struct render_context *render)
 	sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
 	sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 
-	if (vkCreateSampler(render->device, &sampler_info, NULL, &sampler) != VK_SUCCESS) {
+	if (vkCreateSampler(render->turtle->device, &sampler_info, NULL, &sampler) != VK_SUCCESS) {
 		error("failed to create texture sampler!");
 	}
 	return sampler;
@@ -667,7 +669,7 @@ beginSingleTimeCommands(struct render_context *render)
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(render->device, &allocInfo, &commandBuffer);
+	vkAllocateCommandBuffers(render->turtle->device, &allocInfo, &commandBuffer);
 
 	VkCommandBufferBeginInfo beginInfo = {0};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -691,95 +693,7 @@ endSingleTimeCommands(struct render_context *render, VkCommandBuffer commandBuff
 	vkQueueSubmit(render->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
 	vkQueueWaitIdle(render->graphicsQueue);
 
-	vkFreeCommandBuffers(render->device, render->scd->command_pool, 1, &commandBuffer);
-}
-
-// FIXME: This so all belongs on trtl seer
-VkRenderPass
-create_render_pass(VkDevice device, struct swap_chain_data *scd)
-{
-	VkRenderPass render_pass;
-
-	// Background color:
-	VkAttachmentDescription colorAttachment = {0};
-	colorAttachment.format = scd->image_format;
-	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentDescription depthAttachment = {0};
-	depthAttachment.format = find_depth_format(scd->render->physical_device);
-	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference colorAttachmentRef = {0};
-	colorAttachmentRef.attachment = 0;
-	colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkAttachmentReference depthAttachmentRef = {0};
-	depthAttachmentRef.attachment = 1;
-	depthAttachmentRef.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass_background = {0};
-	subpass_background.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass_background.colorAttachmentCount = 1;
-	subpass_background.pColorAttachments = &colorAttachmentRef;
-	subpass_background.pDepthStencilAttachment = NULL;
-
-	VkSubpassDescription subpass_main = {0};
-	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass_main.colorAttachmentCount = 1;
-	subpass_main.pColorAttachments = &colorAttachmentRef;
-	subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
-
-	VkSubpassDependency dependencies[2] = {0};
-	dependencies[0].srcSubpass = VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass = 0;
-	dependencies[0].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependencies[0].srcAccessMask = 0;
-	dependencies[0].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependencies[0].dstAccessMask =
-	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-	dependencies[1].srcSubpass = 0;
-	dependencies[1].dstSubpass = 1;
-	dependencies[1].srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependencies[1].srcAccessMask = 0;
-	dependencies[1].dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-				  VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-	dependencies[1].dstAccessMask =
-	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-	VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
-
-	VkSubpassDescription subpasses[] = {subpass_background, subpass_main};
-
-	VkRenderPassCreateInfo renderPassInfo = {0};
-	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
-	renderPassInfo.pAttachments = attachments;
-	renderPassInfo.subpassCount = 2;
-	renderPassInfo.pSubpasses = subpasses;
-	renderPassInfo.dependencyCount = 2;
-	renderPassInfo.pDependencies = dependencies;
-
-	if (vkCreateRenderPass(device, &renderPassInfo, NULL, &render_pass) != VK_SUCCESS) {
-		error("failed to create render pass!");
-	}
-
-	return render_pass;
+	vkFreeCommandBuffers(render->turtle->device, render->scd->command_pool, 1, &commandBuffer);
 }
 
 VkDescriptorSetLayout
@@ -809,42 +723,11 @@ create_descriptor_set_layout(struct render_context *render)
 	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
 	layoutInfo.pBindings = bindings;
 
-	if (vkCreateDescriptorSetLayout(render->device, &layoutInfo, NULL,
+	if (vkCreateDescriptorSetLayout(render->turtle->device, &layoutInfo, NULL,
 					&descriptor_set_layout) != VK_SUCCESS) {
 		error("failed to create descriptor set layout!");
 	}
 	return descriptor_set_layout;
-}
-
-static VkFramebuffer *
-create_frame_buffers(VkDevice device, struct swap_chain_data *scd)
-{
-	VkFramebuffer *framebuffers;
-
-	framebuffers = talloc_array(scd, VkFramebuffer, scd->nimages);
-
-	for (uint32_t i = 0; i < scd->nimages; i++) {
-		VkImageView attachments[] = {
-		    scd->image_views[i],
-		    scd->depth_image_view,
-		};
-
-		VkFramebufferCreateInfo framebufferInfo = {0};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = scd->render_pass;
-		framebufferInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
-		framebufferInfo.pAttachments = attachments;
-		framebufferInfo.width = scd->extent.width;
-		framebufferInfo.height = scd->extent.height;
-		framebufferInfo.layers = 1;
-
-		if (vkCreateFramebuffer(device, &framebufferInfo, NULL, &framebuffers[i]) !=
-		    VK_SUCCESS) {
-			error("failed to create framebuffer!");
-		}
-	}
-
-	return framebuffers;
 }
 
 VkCommandPool
@@ -873,7 +756,7 @@ create_command_pool(VkDevice device, VkPhysicalDevice physical_device, VkSurface
 static void
 create_depth_resources(struct swap_chain_data *scd)
 {
-	VkFormat depthFormat = find_depth_format(scd->render->physical_device);
+	VkFormat depthFormat = find_depth_format(scd->render->turtle->physical_device);
 
 	create_image(scd->render, scd->extent.width, scd->extent.height, depthFormat,
 		     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
@@ -881,68 +764,6 @@ create_depth_resources(struct swap_chain_data *scd)
 		     &scd->depth_image_memory);
 	scd->depth_image_view = create_image_view(scd->render, scd->depth_image, depthFormat,
 						  VK_IMAGE_ASPECT_DEPTH_BIT);
-}
-VkCommandBuffer *
-create_command_buffers(struct render_context *render, struct swap_chain_data *scd,
-		       VkRenderPass render_pass, VkCommandPool command_pool,
-		       VkFramebuffer *framebuffers)
-{
-	VkCommandBuffer *buffers;
-
-	scd->nbuffers = scd->nimages;
-
-	buffers = talloc_array(scd, VkCommandBuffer, scd->nbuffers);
-
-	VkCommandBufferAllocateInfo allocInfo = {0};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = command_pool;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandBufferCount = scd->nimages;
-
-	if (vkAllocateCommandBuffers(render->device, &allocInfo, buffers) != VK_SUCCESS) {
-		error("failed to allocate command buffers!");
-	}
-
-	for (size_t i = 0; i < scd->nimages; i++) {
-		VkCommandBufferBeginInfo beginInfo = {0};
-		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-
-		if (vkBeginCommandBuffer(buffers[i], &beginInfo) != VK_SUCCESS) {
-			error("failed to begin recording command buffer!");
-		}
-
-		VkRenderPassBeginInfo renderPassInfo = {0};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = render_pass;
-		renderPassInfo.framebuffer = framebuffers[i];
-		renderPassInfo.renderArea.offset.x = 0;
-		renderPassInfo.renderArea.offset.y = 0;
-		renderPassInfo.renderArea.extent = scd->extent;
-
-		VkClearValue clearValues[] = {
-		    {.color = (VkClearColorValue){{0.0f, 0.0f, 0.0f, 1.0f}}},
-		    {.depthStencil = (VkClearDepthStencilValue){1.0f, 0}},
-		};
-		renderPassInfo.clearValueCount = TRTL_ARRAY_SIZE(clearValues);
-		renderPassInfo.pClearValues = clearValues;
-
-		vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		{
-			trtl_seer_draw(buffers[i], scd, 0);
-
-			vkCmdNextSubpass(buffers[i], VK_SUBPASS_CONTENTS_INLINE);
-
-			trtl_seer_draw(buffers[i], scd, 1);
-
-		}
-		vkCmdEndRenderPass(buffers[i]);
-
-		if (vkEndCommandBuffer(buffers[i]) != VK_SUCCESS) {
-			error("failed to record command buffer!");
-		}
-	}
-
-	return buffers;
 }
 
 VkSemaphore
@@ -976,7 +797,7 @@ swap_chain_data_destructor(struct swap_chain_data *scd)
 	VkDevice device;
 	uint32_t i;
 
-	device = scd->render->device;
+	device = scd->render->turtle->device;
 
 	for (i = 0; i < scd->nimages; i++) {
 		vkDestroyFramebuffer(device, scd->framebuffers[i], NULL);
@@ -985,9 +806,9 @@ swap_chain_data_destructor(struct swap_chain_data *scd)
 	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
 
 	// FIXME: There are multiple pipelines now
-	//vkDestroyPipeline(device, *scd->pipelines, NULL);
-	//vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
-	vkDestroyRenderPass(device, scd->render_pass, NULL);
+	// vkDestroyPipeline(device, *scd->pipelines, NULL);
+	// vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
+	// vkDestroyRenderPass(device, scd->render_pass, NULL);
 
 	for (i = 0; i < scd->nimages; i++) {
 		vkDestroyImageView(device, scd->image_views[i], NULL);
@@ -1004,8 +825,8 @@ static int
 render_context_destructor(trtl_arg_unused struct render_context *render)
 {
 	// FIXME: Destructor for the objects should do this
-	// vkDestroyImage(render->device, render->texture_image, NULL);
-	// vkFreeMemory(render->device, render->texture_image_memory, NULL);
+	// vkDestroyImage(render->turtle->device, render->texture_image, NULL);
+	// vkFreeMemory(render->turtle->device, render->texture_image_memory, NULL);
 	return 0;
 }
 
@@ -1014,40 +835,39 @@ recreate_swap_chain(struct render_context *render)
 {
 	int width = 0, height = 0;
 
-	glfwGetFramebufferSize(render->window, &width, &height);
+	glfwGetFramebufferSize(render->turtle->window, &width, &height);
 
 	// a width/height of 0 is minimised, just wait for
 	// events to recover (for now);
 	while (width == 0 || height == 0) {
 		printf("Size 0, wait\n");
 		glfwWaitEvents();
-		glfwGetFramebufferSize(render->window, &width, &height);
+		glfwGetFramebufferSize(render->turtle->window, &width, &height);
 	}
 
-	vkDeviceWaitIdle(render->device);
+	vkDeviceWaitIdle(render->turtle->device);
 
 	talloc_free(render->scd);
 
-	render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
+	render->scd = create_swap_chain(render->turtle, render->turtle->physical_device,
+					render->turtle->surface);
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
-	create_image_views(render->device, render->scd);
-	scd->render_pass = create_render_pass(render->device, scd);
+	create_image_views(render->turtle->device, render->scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
-	//info =trtl_pipeline_create(render->device, scd);
-	
-	//scd->pipelines = info->pipelines;
-	//scd->pipeline_layout = info->pipeline_layout;
+	// info =trtl_pipeline_create(render->turtle->device, scd);
+
+	// scd->pipelines = info->pipelines;
+	// scd->pipeline_layout = info->pipeline_layout;
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 	// FIXME: Call object to update it's descriptor sets
 	// scd->descriptor_sets = create_descriptor_sets(scd);
-	scd->command_pool =
-	    create_command_pool(render->device, render->physical_device, render->surface);
+	scd->command_pool = create_command_pool(
+	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
 	create_depth_resources(scd);
-	scd->framebuffers = create_frame_buffers(render->device, scd);
-	scd->command_buffers = create_command_buffers(
-	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers);
+	//	scd->framebuffers = create_frame_buffers(render->turtle->device, scd,
+	//			);
 
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
@@ -1071,8 +891,7 @@ copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer
 // FIXME: This should be in trtl_seer I'm pretty sure.  It owns the objects, so it
 // should do the allocation for vertex and index buffers.
 VkBuffer
-create_vertex_buffers(struct render_context *render, trtl_render_layer_t layer
-		)
+create_vertex_buffers(struct render_context *render, trtl_render_layer_t layer)
 {
 	uint32_t nvertexes;
 	uint32_t nobjects;
@@ -1089,7 +908,7 @@ create_vertex_buffers(struct render_context *render, trtl_render_layer_t layer
 		      &stagingBuffer, &stagingBufferMemory);
 
 	void *data;
-	vkMapMemory(render->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+	vkMapMemory(render->turtle->device, stagingBufferMemory, 0, bufferSize, 0, &data);
 	off_t offset = 0;
 	for (uint32_t i = 0; i < nobjects; i++) {
 		memcpy(data + offset, vertices[i].vertices,
@@ -1097,7 +916,7 @@ create_vertex_buffers(struct render_context *render, trtl_render_layer_t layer
 		offset += vertices[i].nvertexes * sizeof(struct vertex);
 	}
 	// FIXME: Should be a loop here.
-	vkUnmapMemory(render->device, stagingBufferMemory);
+	vkUnmapMemory(render->turtle->device, stagingBufferMemory);
 
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
@@ -1107,8 +926,8 @@ create_vertex_buffers(struct render_context *render, trtl_render_layer_t layer
 
 	copyBuffer(render, stagingBuffer, vertex_buffer, bufferSize);
 
-	vkDestroyBuffer(render->device, stagingBuffer, NULL);
-	vkFreeMemory(render->device, stagingBufferMemory, NULL);
+	vkDestroyBuffer(render->turtle->device, stagingBuffer, NULL);
+	vkFreeMemory(render->turtle->device, stagingBufferMemory, NULL);
 
 	talloc_free(vertices);
 
@@ -1160,7 +979,7 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory, uint3
 	uint32_t *dest;
 	{
 		void *data;
-		vkMapMemory(render->device, stagingBufferMemory, 0, buffer_size, 0, &data);
+		vkMapMemory(render->turtle->device, stagingBufferMemory, 0, buffer_size, 0, &data);
 		dest = data;
 	}
 	// This ugly; update the index by the current poistion as we copy it accross
@@ -1172,7 +991,7 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory, uint3
 		offset += indexes[i].indexrange;
 	}
 
-	vkUnmapMemory(render->device, stagingBufferMemory);
+	vkUnmapMemory(render->turtle->device, stagingBufferMemory);
 
 	VkBuffer index_buffer;
 	create_buffer(render, buffer_size,
@@ -1181,8 +1000,8 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory, uint3
 
 	copyBuffer(render, stagingBuffer, index_buffer, buffer_size);
 
-	vkDestroyBuffer(render->device, stagingBuffer, NULL);
-	vkFreeMemory(render->device, stagingBufferMemory, NULL);
+	vkDestroyBuffer(render->turtle->device, stagingBuffer, NULL);
+	vkFreeMemory(render->turtle->device, stagingBufferMemory, NULL);
 
 	talloc_free(indexes);
 
@@ -1207,8 +1026,8 @@ create_descriptor_pool(struct swap_chain_data *scd)
 	pool_info.pPoolSizes = pool_sizes;
 	pool_info.maxSets = scd->nimages * 10;
 
-	if (vkCreateDescriptorPool(scd->render->device, &pool_info, NULL, &descriptor_pool) !=
-	    VK_SUCCESS) {
+	if (vkCreateDescriptorPool(scd->render->turtle->device, &pool_info, NULL,
+				   &descriptor_pool) != VK_SUCCESS) {
 		error("failed to create descriptor pool!");
 	}
 
@@ -1235,12 +1054,12 @@ create_image(struct render_context *render, uint32_t width, uint32_t height, VkF
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (vkCreateImage(render->device, &imageInfo, NULL, image) != VK_SUCCESS) {
+	if (vkCreateImage(render->turtle->device, &imageInfo, NULL, image) != VK_SUCCESS) {
 		error("failed to create image");
 	}
 
 	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(render->device, *image, &memRequirements);
+	vkGetImageMemoryRequirements(render->turtle->device, *image, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo = {0};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -1248,11 +1067,11 @@ create_image(struct render_context *render, uint32_t width, uint32_t height, VkF
 	allocInfo.memoryTypeIndex =
 	    findMemoryType(render, memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(render->device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {
+	if (vkAllocateMemory(render->turtle->device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {
 		error("failed to allocate image memory!");
 	}
 
-	vkBindImageMemory(render->device, *image, *imageMemory, 0);
+	vkBindImageMemory(render->turtle->device, *image, *imageMemory, 0);
 }
 
 void
@@ -1368,9 +1187,9 @@ create_texture_image(struct render_context *render, const char *path)
 		      &staging_buffer, &staging_buffer_memory);
 
 	void *data;
-	vkMapMemory(render->device, staging_buffer_memory, 0, imageSize, 0, &data);
+	vkMapMemory(render->turtle->device, staging_buffer_memory, 0, imageSize, 0, &data);
 	memcpy(data, pixels, imageSize);
-	vkUnmapMemory(render->device, staging_buffer_memory);
+	vkUnmapMemory(render->turtle->device, staging_buffer_memory);
 
 	stbi_image_free(pixels);
 
@@ -1385,8 +1204,8 @@ create_texture_image(struct render_context *render, const char *path)
 			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
-	vkDestroyBuffer(render->device, staging_buffer, NULL);
-	vkFreeMemory(render->device, staging_buffer_memory, NULL);
+	vkDestroyBuffer(render->turtle->device, staging_buffer, NULL);
+	vkFreeMemory(render->turtle->device, staging_buffer_memory, NULL);
 
 	return image;
 }
@@ -1403,10 +1222,10 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemapho
 	   VkSemaphore renderFinishedSemaphore, VkFence fence)
 {
 	VkResult result;
-	VkDevice device = render->device;
+	VkDevice device = render->turtle->device;
 
 	// Make sure this frame was completed
-	vkWaitForFences(render->device, 1, &fence, VK_TRUE, UINT64_MAX);
+	vkWaitForFences(render->turtle->device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
 	result = vkAcquireNextImageKHR(device, scd->swap_chain, UINT64_MAX, image_semaphore,
@@ -1625,6 +1444,7 @@ int
 main(int argc, char **argv)
 {
 	struct render_context *render;
+	struct turtle *turtle;
 	VkInstance instance;
 	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
 	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
@@ -1634,34 +1454,39 @@ main(int argc, char **argv)
 
 	printf("Validation Layer Support: %s\n", check_validation_layer_support() ? "Yes" : "No");
 
+	turtle = talloc(NULL, struct turtle);
+
 	render = talloc(NULL, struct render_context);
 	talloc_set_destructor(render, render_context_destructor);
+	render->turtle = turtle;
 
-	render->window = window_init();
-	instance = createInstance(render->window);
+	render->turtle->window = window_init();
+	instance = createInstance(render->turtle->window);
 
 	setupDebugMessenger(instance);
 
-	render->surface = create_surface(instance, render->window);
-	render->physical_device = pickPhysicalDevice(instance, render->surface);
-	render->device = create_logical_device(render->physical_device, render->surface,
-					       &render->graphicsQueue, &render->presentQueue);
+	render->turtle->surface = create_surface(instance, render->turtle->window);
+	render->turtle->physical_device = pickPhysicalDevice(instance, render->turtle->surface);
+	render->turtle->device =
+	    create_logical_device(render->turtle->physical_device, render->turtle->surface,
+				  &render->graphicsQueue, &render->presentQueue);
 
-	render->scd = create_swap_chain(render->device, render->physical_device, render->surface);
+	render->scd = create_swap_chain(render->turtle, render->turtle->physical_device,
+					render->turtle->surface);
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
-	create_image_views(render->device, render->scd);
-	scd->render_pass = create_render_pass(render->device, scd);
+	create_image_views(render->turtle->device, render->scd);
+	// scd->render_pass = create_render_pass(turtle);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
-	//info =trtl_pipeline_create(render->device, scd);
-	
-	//scd->pipelines = info->pipelines;
-	//scd->pipeline_layout = info->pipeline_layout;
+	// info =trtl_pipeline_create(render->turtle->device, scd);
 
-	scd->command_pool =
-	    create_command_pool(render->device, render->physical_device, render->surface);
+	// scd->pipelines = info->pipelines;
+	// scd->pipeline_layout = info->pipeline_layout;
+
+	scd->command_pool = create_command_pool(
+	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
 	create_depth_resources(scd);
-	scd->framebuffers = create_frame_buffers(render->device, scd);
+	//scd->framebuffers = create_frame_buffers(render->turtle->device, scd);
 
 	// Init the trtl Uniform buffers; We have one currently
 	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
@@ -1670,28 +1495,32 @@ main(int argc, char **argv)
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
 	// FIXME: Object is destroyed when screen chages; wrong
-	trtl_seer_init(render->device, TRTL_RENDER_LAYER_TOTAL);
+	trtl_seer_init(render->turtle, scd->extent, scd->render->descriptor_set_layout);
 
-	load_objects(scd);
-	
+	    load_objects(scd);
+
 	render->vertex_buffers = talloc_zero_array(render, VkBuffer, TRTL_RENDER_LAYER_TOTAL);
 	render->index_buffers = talloc_zero_array(render, VkBuffer, TRTL_RENDER_LAYER_TOTAL);
 
-	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++){
+	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		render->vertex_buffers[i] = create_vertex_buffers(render, i);
 		render->index_buffers[i] =
 		    create_index_buffer(render, &render->index_buffer_memory, i);
 	}
 	// FIXME: all object ot update it's descriptor sets
 	// scd->descriptor_sets = create_descriptor_sets(scd);
-
-	scd->command_buffers = create_command_buffers(
-	    render, scd, scd->render_pass, scd->command_pool, scd->framebuffers);
-
+	
+	// FIXME: This is a hack, this shoudl be managed by seer,
+	// and shoukd be done dynamically as the state of the worlld changes.
+	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
+	/*
+		scd->command_buffers = create_command_buffers(render, scd, scd->render_pass,
+							      scd->command_pool, scd->framebuffers);
+	*/
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		image_ready_sem[i] = create_semaphores(render->device);
-		render_done_sem[i] = create_semaphores(render->device);
-		in_flight_fences[i] = create_fences(render->device);
+		image_ready_sem[i] = create_semaphores(render->turtle->device);
+		render_done_sem[i] = create_semaphores(render->turtle->device);
+		in_flight_fences[i] = create_fences(render->turtle->device);
 	}
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
@@ -1701,14 +1530,14 @@ main(int argc, char **argv)
 	}
 
 	int currentFrame = 0;
-	while (!glfwWindowShouldClose(render->window)) {
+	while (!glfwWindowShouldClose(render->turtle->window)) {
 		glfwPollEvents();
 		draw_frame(render, render->scd, image_ready_sem[currentFrame],
 			   render_done_sem[currentFrame], in_flight_fences[currentFrame]);
 		currentFrame++;
 		currentFrame %= MAX_FRAMES_IN_FLIGHT;
 	}
-	vkDeviceWaitIdle(render->device);
+	vkDeviceWaitIdle(render->turtle->device);
 
 	//	main_loop(window);
 

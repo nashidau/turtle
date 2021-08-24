@@ -10,8 +10,13 @@ struct trtl_pipeline_info {
 
 
 struct trtl_pipeline_info
-trtl_pipeline_create(VkDevice device, struct swap_chain_data *scd,
+trtl_pipeline_create(VkDevice device,
+		VkRenderPass render_pass,
+		VkExtent2D extent,
+		VkDescriptorSetLayout descriptor_set_layout,
 		const char *vertex_shader,
 		const char *fragment_shader);
+
+
 
 

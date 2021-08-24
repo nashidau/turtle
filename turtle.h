@@ -19,12 +19,22 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
-// All data used to render a frame
-struct render_context {
+// Global structure for frequently used global state.
+// Everything here should not change frequently
+struct turtle {
 	GLFWwindow *window;
+	VkSurfaceKHR surface;
 	VkDevice device;
 	VkPhysicalDevice physical_device;
-	VkSurfaceKHR surface;
+	
+	// XXX: Does this belong here?
+	VkFormat image_format; // Swap chain image formt
+};
+
+// All data used to render a frame
+struct render_context {
+	struct turtle *turtle;
+
 	VkDescriptorSetLayout descriptor_set_layout;
 
 	// Array; one per layer
@@ -53,10 +63,8 @@ struct swap_chain_data {
 	VkImage *images;
 	uint32_t nimages;
 	VkImageView *image_views;
-	VkFormat image_format; // Swap chain image formt
 	VkExtent2D extent;     // Extent of the images
 	VkFramebuffer *framebuffers;
-	VkRenderPass render_pass;
 	VkDescriptorPool descriptor_pool;
 
 	uint32_t nbuffers;

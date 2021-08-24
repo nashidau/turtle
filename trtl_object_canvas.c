@@ -131,10 +131,6 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, trtl_arg_unused const
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
 	canvas->descriptor_set = create_descriptor_sets(canvas, scd);
-
-	canvas->pipeline_info = trtl_pipeline_create(scd->render->device, scd, 
-			"shaders/vert.spv", "shaders/canvas/test-color-fill.spv");
-
 	return (struct trtl_object *)canvas;
 }
 
@@ -155,7 +151,7 @@ create_descriptor_sets(struct trtl_object_canvas *canvas, struct swap_chain_data
 	alloc_info.descriptorSetCount = canvas->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->render->device, &alloc_info, sets) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
@@ -193,7 +189,7 @@ create_descriptor_sets(struct trtl_object_canvas *canvas, struct swap_chain_data
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &image_info;
 
-		vkUpdateDescriptorSets(scd->render->device, TRTL_ARRAY_SIZE(descriptorWrites),
+		vkUpdateDescriptorSets(scd->render->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
 				       descriptorWrites, 0, NULL);
 	}
 
