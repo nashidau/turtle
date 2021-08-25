@@ -58,7 +58,20 @@ struct objlayer {
 	VkRenderPass render_pass;
 };
 
-static VkRenderPass create_render_pass(struct turtle *turtle);
+// This belongs outside and should be passed in
+struct layer_info {
+	bool has_depth;
+	bool clear_on_load;
+};
+
+static struct layer_info layer_info[] = {
+    // Background:  No depth, clear on load
+    {.has_depth = true, .clear_on_load = true},
+    // Next layer; has depth, but dont' clear it
+    {.has_depth = true, .clear_on_load = false},
+};
+
+static VkRenderPass create_render_pass(struct turtle *turtle, struct layer_info *info);
 VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
 					VkCommandPool command_pool, VkFramebuffer *framebuffers);
 static VkFramebuffer *create_frame_buffers(VkDevice device, struct swap_chain_data *scd,
@@ -87,14 +100,15 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
 	seer.turtle = turtle;
 
 	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
-		seer.layers[i].render_pass = create_render_pass(turtle);
+		seer.layers[i].render_pass = create_render_pass(turtle, layer_info + i);
 		// FIXME: So so wrong
 		const char *shader =
-		    i != 0 ? "shaders/frag.spv" : "shaders/canvas/test-color-fill.spv";
+		    // i != 0 ? "shaders/frag.spv" : "shaders/canvas/test-color-fill.spv";
+		    i != 0 ? "shaders/frag.spv" : "shaders/canvas/stars-1.spv";
 
-		seer.layers[i].pipeline_info = trtl_pipeline_create(
-		    turtle->device, seer.layers[i].render_pass, extent, descriptor_set_layout,
-		    "shaders/vert.spv", shader);
+		seer.layers[i].pipeline_info =
+		    trtl_pipeline_create(turtle->device, seer.layers[i].render_pass, extent,
+					 descriptor_set_layout, "shaders/vert.spv", shader);
 	}
 
 	return 0;
@@ -271,7 +285,7 @@ trtl_seer_indexset_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *
 VkFormat find_depth_format(VkPhysicalDevice physical_device);
 
 static VkRenderPass
-create_render_pass(struct turtle *turtle)
+create_render_pass(struct turtle *turtle, struct layer_info *layerinfo)
 {
 	VkRenderPass render_pass;
 
@@ -279,7 +293,11 @@ create_render_pass(struct turtle *turtle)
 	VkAttachmentDescription colorAttachment = {0};
 	colorAttachment.format = turtle->image_format;
 	colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	if (layerinfo->clear_on_load) {
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+	} else {
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+	}
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
@@ -287,14 +305,21 @@ create_render_pass(struct turtle *turtle)
 	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 
 	VkAttachmentDescription depthAttachment = {0};
-	depthAttachment.format = find_depth_format(turtle->physical_device);
-	depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-	depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	if (layerinfo->has_depth) {
+		depthAttachment.format = find_depth_format(turtle->physical_device);
+		depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		//	if (layerinfo->clear_on_load) {
+		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		//	} else {
+		///		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		///	}
+		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		depthAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	}
 
 	VkAttachmentReference colorAttachmentRef = {0};
 	colorAttachmentRef.attachment = 0;
@@ -315,7 +340,9 @@ create_render_pass(struct turtle *turtle)
 	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass_main.colorAttachmentCount = 1;
 	subpass_main.pColorAttachments = &colorAttachmentRef;
-	subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
+	if (layer_info->has_depth) {
+		subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
+	}
 
 	/*
 	VkSubpassDependency dependencies[2] = {0};
@@ -339,13 +366,15 @@ create_render_pass(struct turtle *turtle)
 	dependencies[1].dstAccessMask =
 	    VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 */
+
 	VkAttachmentDescription attachments[2] = {colorAttachment, depthAttachment};
 
 	VkSubpassDescription subpasses[] = {subpass_main};
 
 	VkRenderPassCreateInfo renderPassInfo = {0};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	renderPassInfo.attachmentCount = TRTL_ARRAY_SIZE(attachments);
+	// FIXME: Uhh.. so ugly
+	renderPassInfo.attachmentCount = layer_info->has_depth ? 2 : 1;
 	renderPassInfo.pAttachments = attachments;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = subpasses;
@@ -387,11 +416,8 @@ create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
 			error("failed to begin recording command buffer!");
 		}
 
-		// FIXME: Should get render pass for each layer here
-
 		VkRenderPassBeginInfo renderPassInfo = {0};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = seer.layers[1].render_pass;
 		renderPassInfo.framebuffer = framebuffers[i];
 		renderPassInfo.renderArea.offset.x = 0;
 		renderPassInfo.renderArea.offset.y = 0;
@@ -404,27 +430,19 @@ create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
 		renderPassInfo.clearValueCount = TRTL_ARRAY_SIZE(clearValues);
 		renderPassInfo.pClearValues = clearValues;
 
-		vkCmdBeginRenderPass(buffers[i], &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		{
-			trtl_seer_draw(buffers[i], scd, 1);
-		}
-		vkCmdEndRenderPass(buffers[i]);
-		/*
-				renderPassInfo = (VkRenderPassBeginInfo){0};
-				renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-				renderPassInfo.renderPass = seer.layers[1].render_pass;
-				renderPassInfo.framebuffer = framebuffers[i];
-				renderPassInfo.renderArea.offset.x = 0;
-				renderPassInfo.renderArea.offset.y = 0;
-				renderPassInfo.renderArea.extent = scd->extent;
-				vkCmdBeginRenderPass(buffers[i], &renderPassInfo,
-		   VK_SUBPASS_CONTENTS_INLINE);
-				{
-					trtl_seer_draw(buffers[i], scd, 0);
-				}
-				vkCmdEndRenderPass(buffers[i]);
+		// FIXME: Should get render pass for each layer here
+		for (trtl_render_layer_t li = 0; li < TRTL_RENDER_LAYER_TOTAL; li++) {
+			if (seer.layers[li].nobjects == 0) continue;
 
-		*/
+			renderPassInfo.renderPass = seer.layers[li].render_pass;
+
+			vkCmdBeginRenderPass(buffers[i], &renderPassInfo,
+					     VK_SUBPASS_CONTENTS_INLINE);
+			{
+				trtl_seer_draw(buffers[i], scd, li);
+			}
+			vkCmdEndRenderPass(buffers[i]);
+		}
 
 		if (vkEndCommandBuffer(buffers[i]) != VK_SUCCESS) {
 			error("failed to record command buffer!");
