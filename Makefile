@@ -36,7 +36,8 @@ SOURCES= \
 OBJECTS := $(SOURCES:%.c=%.o)
 
 
-ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv shaders/canvas/test-color-fill.spv
+ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv shaders/canvas/test-color-fill.spv \
+	shaders/canvas/stars-1.spv
 
 
 # Dependancies (from http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#tldr)
