@@ -909,6 +909,10 @@ create_vertex_buffers(struct render_context *render, trtl_render_layer_t layer)
 	vertices = trtl_seer_vertexes_get(layer, &nobjects, &nvertexes);
 	printf("%d vertices; %d objects\n", nvertexes, nobjects);
 
+	if (nvertexes == 0) {
+		return VK_NULL_HANDLE;
+	}
+
 	VkDeviceSize bufferSize = sizeof(struct vertex) * nvertexes;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
@@ -976,6 +980,10 @@ create_index_buffer(struct render_context *render, VkDeviceMemory *memory, uint3
 
 	// fixme; this shoul be a loop
 	indexes = trtl_seer_indexset_get(layer, &nobjects, &nindexes);
+
+	if (nindexes == 0) {
+		return VK_NULL_HANDLE;
+	}
 
 	buffer_size = nindexes * sizeof(uint32_t);
 
