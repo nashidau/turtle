@@ -56,6 +56,8 @@ trtl_pipeline_create(VkDevice device,
 
 	struct blobby *vertcode = blobby_from_file(vertex_shader);
 	struct blobby *fragcode = blobby_from_file(fragment_shader);
+	assert(vertcode);
+	assert(fragcode);
 
 	VkShaderModule vert = create_shader(device, vertcode);
 	VkShaderModule frag = create_shader(device, fragcode);

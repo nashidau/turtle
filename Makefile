@@ -37,7 +37,7 @@ OBJECTS := $(SOURCES:%.c=%.o)
 
 
 ALL: triangles trtl_check shaders/frag.spv shaders/vert.spv shaders/canvas/test-color-fill.spv \
-	shaders/canvas/stars-1.spv
+	shaders/canvas/stars-1.spv shaders/canvas/canvas-vertex.spv
 
 
 # Dependancies (from http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#tldr)
@@ -60,14 +60,17 @@ include $(wildcard $(DEPFILES))
 %.spv : %.frag
 	${SHADERCC} -o $@ $<
 
+%.spv : %.vert
+	${SHADERCC} -o $@ $<
 
-trtl_check: trtl_check.o ${TESTS}
-
+# FIXME: Fix this dependancy
 shaders/frag.spv: shaders/shader.frag
 	${SHADERCC} -o $@ $<
 	
 shaders/vert.spv: shaders/shader.vert
 	${SHADERCC} -o $@ $<
+
+trtl_check: trtl_check.o ${TESTS}
 
 triangles.o: triangles.c vertex.h
 

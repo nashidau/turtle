@@ -34,13 +34,13 @@ trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_can
 // allow 2d objects to be return from indices get.
 // static const struct vertex2d vertices[] = {
 static const struct vertex canvas_vertices[] = {
-    {{-1.0f, -0.5f, 0}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{0.5f, -0.5f, 0}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
-    {{0.5f, 0.5f, 0}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
-    {{-1.0f, 0.5f, 0}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
+    {{-1.0f, -1.0f, 0}, {1.0f, 0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{1.0f, -1.0f, 0}, {0.0f, 1.0f, 0.0f}, {1.0f, 0.0f}},
+    {{1.0f, 1.0f, 0}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
+    {{-1.0f, 1.0f, 0}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
 };
 
-static const uint32_t canvas_indices[] = {0, 1, 2, 2, 3, 0};
+static const uint32_t canvas_indices[] = {0, 1, 2};//, 3,2,0};
 static const uint32_t CANVAS_OBJECT_NINDEXES = TRTL_ARRAY_SIZE(canvas_indices);
 
 // Inline function to cast from abstract to concrete type.
@@ -69,7 +69,7 @@ static uint32_t
 canvas_vertices_get(trtl_arg_unused struct trtl_object *obj, const struct vertex **vertices)
 {
 	if (vertices) *vertices = canvas_vertices;
-	return 4; // XXX: Magic
+	return TRTL_ARRAY_SIZE(canvas_vertices);
 }
 
 static uint32_t
@@ -89,7 +89,7 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	ubo = trtl_uniform_info_address(canvas->uniform_info, frame);
 
 	glm_mat4_identity(ubo->model);
-	glm_scale_uni(ubo->model, 2.0f);
+	//glm_scale_uni(ubo->model, 2.0f);
 
 	glm_lookat((vec3){0.0f, 0.5f, 0.5f}, GLM_VEC3_ZERO, GLM_ZUP, ubo->view);
 

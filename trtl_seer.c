@@ -106,9 +106,12 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
 		    // i != 0 ? "shaders/frag.spv" : "shaders/canvas/test-color-fill.spv";
 		    i != 0 ? "shaders/frag.spv" : "shaders/canvas/stars-1.spv";
 
+		const char *vshader = i == 0 ? "shaders/canvas/canvas-vertex.spv" :
+			"shaders/vert.spv";
+
 		seer.layers[i].pipeline_info =
 		    trtl_pipeline_create(turtle->device, seer.layers[i].render_pass, extent,
-					 descriptor_set_layout, "shaders/vert.spv", shader);
+					 descriptor_set_layout, vshader, shader);
 	}
 
 	return 0;
