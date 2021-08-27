@@ -1,10 +1,9 @@
 Finish moving VkPipeline{Layout} out of trtl.
-Make the class work better.
+	- need a pipeline cache
 Maybe add pushconstant support through trtl_uniform
 
-Canvas object added; really broken
-	- should be drawn at the real depth
-	- should not set the depth
+Buffers should be managed by objects.  Once again. if we are clever
+we can use a cache to prevent rebinding.  
 
 There needs to be a generic buffer library to allocate vertexes and indexes.
 This should also probably handle updating the data and sending to the engine.
@@ -17,16 +16,11 @@ Loading a texture should go to the texture service
 	otherwise loads and binds it to VkImageBuffer or whatever it is.
 	When the object finishes with it, it frees the usage.
 
-Work on adding a second pass for the background texture.
-
 Focus & a keyboard model
-
-Subpass data should be in trtl_seer or something like that.
 
 Others:
 	bear used to generate the compile commands.
 	Automate somehow; either with cmake or a script or something to do.
-
 
 Simple Tasks:
 	- Clean some fixes.
