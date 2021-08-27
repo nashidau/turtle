@@ -45,7 +45,6 @@ struct {
 	struct objlayer *layers;
 
 	VkFramebuffer *framebuffers;
-
 } seer = {0};
 
 struct objlayer {
@@ -78,8 +77,8 @@ static VkFramebuffer *create_frame_buffers(VkDevice device, struct swap_chain_da
 					   VkRenderPass render_pass, VkExtent2D extent);
 
 int
-trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
-	       VkDescriptorSetLayout descriptor_set_layout)
+trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent,
+	       trtl_arg_unused VkDescriptorSetLayout descriptor_set_layout)
 {
 	int nlayers = TRTL_RENDER_LAYER_TOTAL;
 
@@ -101,17 +100,6 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
 
 	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		seer.layers[i].render_pass = create_render_pass(turtle, layer_info + i);
-		// FIXME: So so wrong
-		const char *shader =
-		    // i != 0 ? "shaders/frag.spv" : "shaders/canvas/test-color-fill.spv";
-		    i != 0 ? "shaders/frag.spv" : "shaders/canvas/stars-1.spv";
-
-		const char *vshader = i == 0 ? "shaders/canvas/canvas-vertex.spv" :
-			"shaders/vert.spv";
-
-		seer.layers[i].pipeline_info =
-		    trtl_pipeline_create(turtle->device, seer.layers[i].render_pass, extent,
-					 descriptor_set_layout, vshader, shader);
 	}
 
 	return 0;
@@ -129,11 +117,16 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 
 	// FIXME: This is super unscalable.  Shoudl have a DB or a way to search filesystem
 	if (streq(name, "couch")) {
-		object = trtl_object_mesh_create(seer.seer_ctx, scd, MODEL_PATH2, TEXTURE_PATH2);
+		object = trtl_object_mesh_create(
+		    seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		    scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
 	} else if (streq(name, "room")) {
-		object = trtl_object_mesh_create(seer.seer_ctx, scd, MODEL_PATH, TEXTURE_PATH);
+		object = trtl_object_mesh_create(
+		    seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		    scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "background")) {
-		object = trtl_canvas_create(seer.seer_ctx, scd, NULL);
+		object = trtl_canvas_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+					    scd->extent, scd->render->descriptor_set_layout);
 	} else {
 		error("Unknown object %s\n", name);
 		return -1;
@@ -212,15 +205,15 @@ trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd, trtl_render_
 
 	struct objlayer *layer = seer.layers + layerid;
 
-	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, layer->pipeline_info.pipeline);
+	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			  layer->objects[layerid]->pipeline(layer->objects[layerid])->pipeline);
 	VkDeviceSize offsets[2] = {0, 1};
 
 	vkCmdBindVertexBuffers(buffer, 0, 1, &scd->render->vertex_buffers[layerid], offsets);
 	vkCmdBindIndexBuffer(buffer, scd->render->index_buffers[layerid], 0, VK_INDEX_TYPE_UINT32);
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
-		layer->objects[obj]->draw(layer->objects[obj], buffer,
-					  layer->pipeline_info.pipeline_layout, offset);
+		layer->objects[obj]->draw(layer->objects[obj], buffer, offset);
 		// How much is the thing offset by
 		// FIXME: this should be part of the layer info
 		layer->objects[obj]->indices(layer->objects[obj], NULL, &last);

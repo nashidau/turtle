@@ -10,5 +10,7 @@
 #include "trtl_object.h"
 
 struct trtl_object *
-trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, const char *path,
-				       const char *texture);
+trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, 
+		VkRenderPass render_pass, VkExtent2D extent,
+		VkDescriptorSetLayout descriptor_set_layout,
+		const char *path, const char *texture);

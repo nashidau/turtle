@@ -46,13 +46,12 @@ trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mes
 							  struct swap_chain_data *scd);
 
 static void
-trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
-		  VkPipelineLayout pipeline_layout, int32_t offset)
+trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 {
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 
-	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1,
-				mesh->descriptor_set, 0, NULL);
+	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				mesh->pipeline_info.pipeline_layout, 0, 1, mesh->descriptor_set, 0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }
 
@@ -122,8 +121,9 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 }
 
 struct trtl_object *
-trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, const char *path,
-			const char *texture)
+trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
+			VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout,
+			const char *path, const char *texture)
 {
 	struct trtl_object_mesh *mesh;
 
@@ -152,6 +152,10 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, const char *path
 
 	mesh->descriptor_set = create_descriptor_sets(mesh, scd);
 
+	mesh->pipeline_info =
+	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
+				 descriptor_set_layout, "shaders/vert.spv", "shaders/frag.spv");
+
 	if (strstr(path, "Couch")) mesh->reverse = 1;
 
 	return (struct trtl_object *)mesh;
@@ -174,7 +178,8 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *sc
 	alloc_info.descriptorSetCount = mesh->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) !=
+	    VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
@@ -206,8 +211,9 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *sc
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &image_info;
 
-		vkUpdateDescriptorSets(scd->render->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
-				       descriptorWrites, 0, NULL);
+		vkUpdateDescriptorSets(scd->render->turtle->device,
+				       TRTL_ARRAY_SIZE(descriptorWrites), descriptorWrites, 0,
+				       NULL);
 	}
 
 	talloc_free(layouts);

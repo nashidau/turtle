@@ -40,7 +40,7 @@ static const struct vertex canvas_vertices[] = {
     {{-1.0f, 1.0f, 0}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
 };
 
-static const uint32_t canvas_indices[] = {0, 1, 2};//, 3,2,0};
+static const uint32_t canvas_indices[] = {0, 1, 2}; //, 3,2,0};
 static const uint32_t CANVAS_OBJECT_NINDEXES = TRTL_ARRAY_SIZE(canvas_indices);
 
 // Inline function to cast from abstract to concrete type.
@@ -55,13 +55,13 @@ trtl_object_canvas(struct trtl_object *obj)
 }
 
 static void
-canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, VkPipelineLayout pipeline_layout,
-	    int32_t offset)
+canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
 
-	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline_layout, 0, 1,
-				canvas->descriptor_set, 0, NULL);
+	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				canvas->pipeline_info.pipeline_layout, 0, 1, canvas->descriptor_set,
+				0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }
 
@@ -73,7 +73,8 @@ canvas_vertices_get(trtl_arg_unused struct trtl_object *obj, const struct vertex
 }
 
 static uint32_t
-canvas_indices_get(trtl_arg_unused struct trtl_object *obj, const uint32_t **indices, uint32_t *restrict offsetsize)
+canvas_indices_get(trtl_arg_unused struct trtl_object *obj, const uint32_t **indices,
+		   uint32_t *restrict offsetsize)
 {
 	if (indices) *indices = canvas_indices;
 	if (offsetsize) *offsetsize = 4; // XXX: magic
@@ -89,15 +90,15 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	ubo = trtl_uniform_info_address(canvas->uniform_info, frame);
 
 	glm_mat4_identity(ubo->model);
-	//glm_scale_uni(ubo->model, 2.0f);
+	// glm_scale_uni(ubo->model, 2.0f);
 
 	glm_lookat((vec3){0.0f, 0.5f, 0.5f}, GLM_VEC3_ZERO, GLM_ZUP, ubo->view);
 
-	//glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo->proj);
-	//glm_perspective(0.1f, 800 / 640.0, 0.1f, 10.0f, ubo->proj);
-	//glm_ortho(-1, 1, -1, 1, -1, 1, ubo->proj);
-	//glm_ortho(0, 800.0/640 , 0, 1, 0.1f, 100, ubo->proj);
-	glm_ortho_default(800.0/ 640, ubo->proj);
+	// glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo->proj);
+	// glm_perspective(0.1f, 800 / 640.0, 0.1f, 10.0f, ubo->proj);
+	// glm_ortho(-1, 1, -1, 1, -1, 1, ubo->proj);
+	// glm_ortho(0, 800.0/640 , 0, 1, 0.1f, 100, ubo->proj);
+	glm_ortho_default(800.0 / 640, ubo->proj);
 	ubo->proj[1][1] *= -1;
 
 	// We updated
@@ -105,13 +106,15 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 }
 
 static struct trtl_pipeline_info *
-canvas_pipeline(struct trtl_object *obj) {
+canvas_pipeline(struct trtl_object *obj)
+{
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
 	return &canvas->pipeline_info;
 }
 
 struct trtl_object *
-trtl_canvas_create(void *ctx, struct swap_chain_data *scd, trtl_arg_unused const char *shaderpath)
+trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
+		   VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout)
 {
 	struct trtl_object_canvas *canvas;
 
@@ -131,6 +134,11 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, trtl_arg_unused const
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
 	canvas->descriptor_set = create_descriptor_sets(canvas, scd);
+
+	canvas->pipeline_info = trtl_pipeline_create(
+	    scd->render->turtle->device, render_pass, extent, descriptor_set_layout,
+	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv");
+
 	return (struct trtl_object *)canvas;
 }
 
@@ -151,7 +159,8 @@ create_descriptor_sets(struct trtl_object_canvas *canvas, struct swap_chain_data
 	alloc_info.descriptorSetCount = canvas->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) !=
+	    VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
@@ -189,8 +198,9 @@ create_descriptor_sets(struct trtl_object_canvas *canvas, struct swap_chain_data
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &image_info;
 
-		vkUpdateDescriptorSets(scd->render->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
-				       descriptorWrites, 0, NULL);
+		vkUpdateDescriptorSets(scd->render->turtle->device,
+				       TRTL_ARRAY_SIZE(descriptorWrites), descriptorWrites, 0,
+				       NULL);
 	}
 
 	talloc_free(layouts);

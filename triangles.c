@@ -1530,10 +1530,6 @@ main(int argc, char **argv)
 	// FIXME: This is a hack, this shoudl be managed by seer,
 	// and shoukd be done dynamically as the state of the worlld changes.
 	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
-	/*
-		scd->command_buffers = create_command_buffers(render, scd, scd->render_pass,
-							      scd->command_pool, scd->framebuffers);
-	*/
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
 		image_ready_sem[i] = create_semaphores(render->turtle->device);
 		render_done_sem[i] = create_semaphores(render->turtle->device);
