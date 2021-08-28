@@ -2,6 +2,10 @@ Finish moving VkPipeline{Layout} out of trtl.
 	- need a pipeline cache
 Maybe add pushconstant support through trtl_uniform
 
+Fix resize.
+
+Make it possible to add and remove objects at run time.
+
 Buffers should be managed by objects.  Once again. if we are clever
 we can use a cache to prevent rebinding.  
 
