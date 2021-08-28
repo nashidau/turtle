@@ -52,8 +52,6 @@ struct objlayer {
 	uint32_t nalloced;
 	struct trtl_object **objects;
 
-	struct trtl_pipeline_info pipeline_info;
-
 	VkRenderPass render_pass;
 };
 
