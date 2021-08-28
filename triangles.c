@@ -27,7 +27,6 @@
 
 #include "stringlist.h"
 #include "trtl_object.h"
-#include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "trtl_uniform.h"
 
