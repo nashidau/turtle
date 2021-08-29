@@ -37,13 +37,6 @@ struct render_context {
 
 	VkDescriptorSetLayout descriptor_set_layout;
 
-	// Array; one per layer
-	VkBuffer *vertex_buffers;
-
-	// Array; one per layer
-	VkBuffer *index_buffers;
-	VkDeviceMemory index_buffer_memory;
-
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 

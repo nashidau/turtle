@@ -7,6 +7,8 @@
 #include "helpers.h"
 #include "trtl_object_mesh.h"
 #include "trtl_pipeline.h"
+#include "trtl_seer.h"
+#include "trtl_shell.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h" // FIXME: has trtl_model in it
@@ -28,6 +30,9 @@ struct trtl_object_mesh {
 
 	struct trtl_pipeline_info pipeline_info;
 
+	VkBuffer index_buffer;
+	VkBuffer vertex_buffer;
+
 	bool reverse;
 };
 
@@ -48,10 +53,17 @@ trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mes
 static void
 trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 {
+	VkDeviceSize offsets = 0;
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 
+	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipeline_info.pipeline);
+
+	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh->vertex_buffer, &offsets);
+	vkCmdBindIndexBuffer(cmd_buffer, mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
+
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				mesh->pipeline_info.pipeline_layout, 0, 1, mesh->descriptor_set, 0, NULL);
+				mesh->pipeline_info.pipeline_layout, 0, 1, mesh->descriptor_set, 0,
+				NULL);
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }
 
@@ -155,6 +167,21 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass ren
 	mesh->pipeline_info =
 	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
 				 descriptor_set_layout, "shaders/vert.spv", "shaders/frag.spv");
+
+	{
+		struct trtl_seer_vertexset vertices;
+		vertices.nvertexes = mesh->model->nvertices;
+		vertices.vertices = mesh->model->vertices;
+
+		mesh->vertex_buffer = create_vertex_buffers(scd->render, &vertices);
+	}
+	{
+		struct trtl_seer_indexset indexes;
+
+		indexes.nindexes = mesh->model->nindices;
+		indexes.indexes = mesh->model->indices;
+		mesh->index_buffer = create_index_buffer(scd->render, &indexes);
+	}
 
 	if (strstr(path, "Couch")) mesh->reverse = 1;
 

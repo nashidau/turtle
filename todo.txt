@@ -6,6 +6,7 @@ Fix resize.
 
 Make it possible to add and remove objects at run time.
 
+
 Buffers should be managed by objects.  Once again. if we are clever
 we can use a cache to prevent rebinding.  
 
@@ -27,6 +28,7 @@ Others:
 	Automate somehow; either with cmake or a script or something to do.
 
 Simple Tasks:
+	- create_vertex_buffers verte set api is kinda dumb for it's current use
 	- Clean some fixes.
 	- vertex.h -> trtl_model?
 	- Add some tests for trtl_object_draw

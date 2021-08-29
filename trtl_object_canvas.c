@@ -14,6 +14,8 @@
 #include "trtl_object.h"
 #include "trtl_object_canvas.h"
 #include "trtl_pipeline.h"
+#include "trtl_shell.h"
+#include "trtl_seer.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
@@ -26,6 +28,9 @@ struct trtl_object_canvas {
 	struct trtl_uniform_info *uniform_info;
 
 	struct trtl_pipeline_info pipeline_info;
+
+	VkBuffer index_buffer;
+	VkBuffer vertex_buffer;
 };
 
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_canvas *canvas,
@@ -58,6 +63,18 @@ static void
 canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
+	VkDeviceSize offsets = 0;
+
+	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			  canvas->pipeline_info.pipeline);
+
+	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &canvas->vertex_buffer, &offsets);
+	vkCmdBindIndexBuffer(cmd_buffer, canvas->index_buffer, 0, VK_INDEX_TYPE_UINT32);
+
+	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				canvas->pipeline_info.pipeline_layout, 0, 1, canvas->descriptor_set,
+				0, NULL);
+	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				canvas->pipeline_info.pipeline_layout, 0, 1, canvas->descriptor_set,
@@ -138,6 +155,21 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_p
 	canvas->pipeline_info = trtl_pipeline_create(
 	    scd->render->turtle->device, render_pass, extent, descriptor_set_layout,
 	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv");
+
+	{
+		struct trtl_seer_vertexset vertices;
+		vertices.nvertexes = TRTL_ARRAY_SIZE(canvas_vertices);
+		vertices.vertices = canvas_vertices;
+
+		canvas->vertex_buffer = create_vertex_buffers(scd->render, &vertices);
+	}
+	{
+		struct trtl_seer_indexset indexes;
+
+		indexes.nindexes = CANVAS_OBJECT_NINDEXES;
+		indexes.indexes = canvas_indices;
+		canvas->index_buffer = create_index_buffer(scd->render, &indexes);
+	}
 
 	return (struct trtl_object *)canvas;
 }

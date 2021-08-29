@@ -30,6 +30,7 @@ SOURCES= \
 	trtl_object_mesh.c	\
 	trtl_object_canvas.c	\
 	trtl_pipeline.c	\
+	trtl_shell.c    \
 	trtl_seer.c	\
 	turtle.c
 

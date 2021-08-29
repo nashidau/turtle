@@ -189,7 +189,7 @@ trtl_seer_create_command_buffers(struct swap_chain_data *scd, VkCommandPool comm
 }
 
 int
-trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd, trtl_render_layer_t layerid)
+trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct swap_chain_data *scd, trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
 	uint32_t last;
@@ -203,12 +203,6 @@ trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd, trtl_render_
 
 	struct objlayer *layer = seer.layers + layerid;
 
-	vkCmdBindPipeline(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			  layer->objects[layerid]->pipeline(layer->objects[layerid])->pipeline);
-	VkDeviceSize offsets[2] = {0, 1};
-
-	vkCmdBindVertexBuffers(buffer, 0, 1, &scd->render->vertex_buffers[layerid], offsets);
-	vkCmdBindIndexBuffer(buffer, scd->render->index_buffers[layerid], 0, VK_INDEX_TYPE_UINT32);
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 		layer->objects[obj]->draw(layer->objects[obj], buffer, offset);
@@ -219,60 +213,6 @@ trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd, trtl_render_
 	}
 
 	return 0;
-}
-
-/**
- * FIXME: Tag this as acquires memory that needs to be referenced or freed.
- * Some sort of sparse acquires tag should do the job.
- */
-trtl_alloc struct trtl_seer_vertexset *
-trtl_seer_vertexes_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *nvertexes)
-{
-	struct trtl_seer_vertexset *vertices;
-	uint32_t verti;
-
-	assert(layer < TRTL_RENDER_LAYER_TOTAL);
-	if (layer >= TRTL_RENDER_LAYER_TOTAL) {
-		warning("Invalid layer %d", layer);
-		return NULL;
-	}
-
-	vertices = talloc_zero_array(NULL, struct trtl_seer_vertexset, seer.nobjects);
-	*nvertexes = 0;
-	*nobjects = 0;
-	verti = 0;
-	struct objlayer *lp = seer.layers + layer;
-	for (uint32_t i = 0; i < lp->nobjects; i++, verti++) {
-		vertices[verti].nvertexes =
-		    lp->objects[i]->vertices(lp->objects[i], &vertices[verti].vertices);
-		*nvertexes += vertices[verti].nvertexes;
-		printf("%s: layer %d: %d +%d = %d\n", __FUNCTION__, i, verti,
-		       vertices[verti].nvertexes, *nvertexes);
-	}
-	*nobjects += lp->nobjects;
-	printf("%s:%d vertices %d objects\n", __FUNCTION__, *nvertexes, lp->nobjects);
-
-	return vertices;
-}
-
-struct trtl_seer_indexset *
-trtl_seer_indexset_get(trtl_render_layer_t layer, uint32_t *nobjects, uint32_t *nindexes)
-{
-	struct trtl_seer_indexset *indexes;
-
-	indexes = talloc_zero_array(NULL, struct trtl_seer_indexset, seer.nobjects);
-	*nobjects = 0;
-	*nindexes = 0;
-
-	struct objlayer *lp = seer.layers + layer;
-	for (uint32_t i = 0; i < lp->nobjects; i++) {
-		indexes[i].nindexes = lp->objects[i]->indices(lp->objects[i], &indexes[i].indexes,
-							      &indexes[i].indexrange);
-		*nindexes += indexes[i].nindexes;
-	}
-	*nobjects += lp->nobjects;
-
-	return indexes;
 }
 
 // FIXME: Urgh; put this somewhere sane
