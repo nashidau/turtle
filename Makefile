@@ -43,6 +43,7 @@ SHADERS= \
 	shaders/canvas/canvas-vertex.spv \
 	shaders/grid/lines.spv \
 	shaders/grid/grid-vertex.spv \
+	shaders/grid/browns.spv \
 	shaders/grid/red.spv
 
 OBJECTS := $(SOURCES:%.c=%.o)
