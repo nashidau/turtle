@@ -1,5 +1,5 @@
 triangles
-shaders/*spv
+*.spv
 *.o
 *.trace
 *.dSYM
