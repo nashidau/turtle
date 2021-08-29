@@ -22,6 +22,13 @@ layout(location = 1) out vec2 fragTexCoord;
 
 #define TILE_SIZE 128.0
 
+const float pi = 3.141592653589793;
+const float degree45 = pi / 4.0;
+
+mat2 rotate2d(float angle) {
+	return mat2(cos(angle), -sin(angle),
+		    sin(angle),  cos(angle));
+}
 
 void main() {
     vec2 screenSize = vec2(800, 600) / 2.0;
@@ -29,6 +36,13 @@ void main() {
 
     // Center on the top left tile
     pos -= vec2(0.5, 0.5);
+
+    // rotate
+    pos = rotate2d(degree45) * pos;
+
+    // Flattern to isometric
+    pos.y = pos.y / 2.0;
+
 
     // Expand out by the tile size
     pos *= TILE_SIZE;
