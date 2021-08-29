@@ -18,6 +18,7 @@
 
 #include "helpers.h"
 #include "trtl_object_canvas.h"
+#include "trtl_object_grid.h"
 #include "trtl_object_mesh.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
@@ -125,6 +126,14 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
 					    scd->extent, scd->render->descriptor_set_layout);
+	} else if (streq(name, "grid")) {
+		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+					    scd->extent, scd->render->descriptor_set_layout,
+					    3, 3);
+	} else if (streq(name, "grid1")) {
+		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+					    scd->extent, scd->render->descriptor_set_layout,
+					    1, 1);
 	} else {
 		error("Unknown object %s\n", name);
 		return -1;
@@ -192,7 +201,6 @@ int
 trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct swap_chain_data *scd, trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
-	uint32_t last;
 
 	assert(layerid < seer.nlayers);
 
@@ -206,10 +214,6 @@ trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct swap_chain_data *s
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 		layer->objects[obj]->draw(layer->objects[obj], buffer, offset);
-		// How much is the thing offset by
-		// FIXME: this should be part of the layer info
-		layer->objects[obj]->indices(layer->objects[obj], NULL, &last);
-		offset += last;
 	}
 
 	return 0;
