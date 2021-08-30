@@ -134,6 +134,11 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
 					    scd->extent, scd->render->descriptor_set_layout,
 					    1, 1);
+	} else if (streq(name, "grid9")) {
+		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+					    scd->extent, scd->render->descriptor_set_layout,
+					    9, 9);
+		
 	} else {
 		error("Unknown object %s\n", name);
 		return -1;
