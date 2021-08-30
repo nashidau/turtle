@@ -113,11 +113,31 @@ window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
 	if (debug) printf("Window resized\n");
 }
 
+int posX = 0;
+int posY = 0;
+
 void
 key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
 	     trtl_arg_unused int mods)
 {
 	if (key == GLFW_KEY_O && action == GLFW_PRESS) printf("Got message");
+
+	if (action == GLFW_PRESS) {
+		switch (key) {
+		case GLFW_KEY_RIGHT:
+			if (posX < 8) posX++;
+			break;
+		case GLFW_KEY_LEFT:
+			if (posX > 0) posX--;
+			break;
+		case GLFW_KEY_DOWN:
+			if (posY < 8) posY++;
+			break;
+		case GLFW_KEY_UP:
+			if (posY > 0) posY--;
+			break;
+		}
+	}
 }
 
 GLFWwindow *
@@ -881,8 +901,6 @@ recreate_swap_chain(struct render_context *render)
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 }
-
-
 
 trtl_alloc static VkDescriptorPool
 create_descriptor_pool(struct swap_chain_data *scd)
