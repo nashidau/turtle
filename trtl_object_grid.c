@@ -20,6 +20,9 @@
 #include "turtle.h"
 #include "vertex.h"
 
+extern int posX;
+extern int posY;
+
 struct trtl_object_grid {
 	struct trtl_object parent;
 
@@ -151,21 +154,12 @@ static bool
 grid_update(struct trtl_object *obj, trtl_arg_unused int frame)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
-	struct UniformBufferObject *ubo;
+	struct pos2d *pos;
 
-	ubo = trtl_uniform_info_address(grid->uniform_info, frame);
+	pos = trtl_uniform_info_address(grid->uniform_info, frame);
 
-	glm_mat4_identity(ubo->model);
-	// glm_scale_uni(ubo->model, 2.0f);
-
-	glm_lookat((vec3){0.0f, 0.5f, 0.5f}, GLM_VEC3_ZERO, GLM_ZUP, ubo->view);
-
-	// glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo->proj);
-	// glm_perspective(0.1f, 800 / 640.0, 0.1f, 10.0f, ubo->proj);
-	// glm_ortho(-1, 1, -1, 1, -1, 1, ubo->proj);
-	// glm_ortho(0, 800.0/640 , 0, 1, 0.1f, 100, ubo->proj);
-	glm_ortho_default(800.0 / 640, ubo->proj);
-	ubo->proj[1][1] *= -1;
+	pos->x = posX;
+	pos->y = posY;
 
 	// We updated
 	return true;
@@ -198,7 +192,9 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 	grid->nframes = scd->nimages;
 
 	grid->uniform_info =
+	    //trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
+
 
 	grid->descriptor_set = create_descriptor_sets(grid, scd);
 
@@ -237,23 +233,11 @@ create_descriptor_sets(struct trtl_object_grid *grid, struct swap_chain_data *sc
 		error("failed to allocate descriptor sets!");
 	}
 
-	// FIXME: So leaky (create_texture_image never freed);
-	// FIXME: This isn't needed - it's a short term hack to avoid
-	// having to rewrite the descripter set layot config
-	VkImageView texture_image_view = create_texture_image_view(
-	    scd->render, create_texture_image(scd->render, "images/mac-picchu-512.jpg"));
-
 	for (size_t i = 0; i < grid->nframes; i++) {
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(grid->uniform_info, i);
 
-		VkDescriptorImageInfo image_info = {0};
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		// This should be from the object
-		image_info.imageView = texture_image_view;
-		image_info.sampler = scd->render->texture_sampler;
-
-		VkWriteDescriptorSet descriptorWrites[2] = {0};
+		VkWriteDescriptorSet descriptorWrites[1] = {0};
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = sets[i];
@@ -262,14 +246,6 @@ create_descriptor_sets(struct trtl_object_grid *grid, struct swap_chain_data *sc
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrites[0].descriptorCount = 1;
 		descriptorWrites[0].pBufferInfo = &buffer_info;
-
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = sets[i];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pImageInfo = &image_info;
 
 		vkUpdateDescriptorSets(scd->render->turtle->device,
 				       TRTL_ARRAY_SIZE(descriptorWrites), descriptorWrites, 0,

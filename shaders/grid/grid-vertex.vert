@@ -7,11 +7,22 @@
 
 //layout(location = 0) out vec3 fragColor;
 
+/*
 layout(binding = 0) uniform UniformBufferObject {
 	mat4 model;
 	mat4 view;
 	mat4 proj;
 } ubo;
+
+struct pos2d {
+	float x;
+	float y;
+};*/
+
+layout(binding = 0) uniform  pos2d {
+	float x;
+	float y;
+} centerPos;
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -37,20 +48,26 @@ void main() {
     // Center on the top left tile
     pos -= vec2(0.5, 0.5);
 
+    // Move based on the current view position
+    pos.x -= centerPos.x;
+    pos.y -= centerPos.y;
+
     // rotate
     pos = rotate2d(degree45) * pos;
 
     // Flattern to isometric
     pos.y = pos.y / 2.0;
 
-
     // Expand out by the tile size
     pos *= TILE_SIZE;
     pos /= screenSize;
 
-
     gl_Position = vec4(pos, 0.0, 1.0);
-    fragColor = vec3(1.0,gl_VertexIndex / 3.0,0.0);
+    if (inPosition.x == centerPos.x && inPosition.y == centerPos.y) {
+	    fragColor = vec3(1.0, 0.0, 0.0);
+    } else {
+	    fragColor = vec3(1.0, 1.0, 1.0);
+    }
     fragTexCoord = inTexCoord.xy;
 }
 
