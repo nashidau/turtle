@@ -192,6 +192,7 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 	grid->nframes = scd->nimages;
 
 	grid->uniform_info =
+		// FIXME: This causes a crash.
 	    //trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
