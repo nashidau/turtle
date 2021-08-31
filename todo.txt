@@ -4,6 +4,9 @@ Maybe add pushconstant support through trtl_uniform
 
 Fix resize.
 
+
+Add trtl_crier -> message system
+
 Make it possible to add and remove objects at run time.
 
 Load a map from ancng

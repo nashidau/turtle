@@ -134,22 +134,6 @@ grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused i
 	//vkCmdDrawIndexed(cmd_buffer, 3, 1, 0, 0, 0);// grid->icount, 1, 0, offset, 0);
 }
 
-static uint32_t
-grid_vertices_get(trtl_arg_unused struct trtl_object *obj,
-		  trtl_arg_unused const struct vertex **vertices)
-{
-	assert(!"vertices get called");
-	return -1;
-}
-
-static uint32_t
-grid_indices_get(trtl_arg_unused struct trtl_object *obj, trtl_arg_unused const uint32_t **indices,
-		 trtl_arg_unused uint32_t *restrict offsetsize)
-{
-	assert(!"vertices get called");
-	return -1;
-}
-
 static bool
 grid_update(struct trtl_object *obj, trtl_arg_unused int frame)
 {
@@ -184,8 +168,6 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 	// FIXME: Set a destructor and cleanup
 
 	grid->parent.draw = grid_draw;
-	grid->parent.vertices = grid_vertices_get;
-	grid->parent.indices = grid_indices_get;
 	grid->parent.update = grid_update;
 	grid->parent.pipeline = grid_pipeline;
 

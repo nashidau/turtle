@@ -67,23 +67,6 @@ trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t o
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }
 
-static uint32_t
-trtl_object_vertices_get_(struct trtl_object *obj, const struct vertex **vertices)
-{
-	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
-	if (vertices) *vertices = mesh->model->vertices;
-	return mesh->model->nvertices;
-}
-
-static uint32_t
-trtl_object_indices_get_(struct trtl_object *obj, const uint32_t **indices, uint32_t *indexrange)
-{
-	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
-	if (indices) *indices = mesh->model->indices;
-	if (indexrange) *indexrange = mesh->model->nvertices;
-	return mesh->model->nindices;
-}
-
 static struct trtl_pipeline_info *
 trtl_object_pipeline_(struct trtl_object *obj)
 {
@@ -143,8 +126,6 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass ren
 
 	talloc_set_destructor(mesh, trtl_object_mesh_destructor);
 	mesh->parent.draw = trtl_object_draw_;
-	mesh->parent.vertices = trtl_object_vertices_get_;
-	mesh->parent.indices = trtl_object_indices_get_;
 	mesh->parent.update = trtl_object_update_;
 	mesh->parent.pipeline = trtl_object_pipeline_;
 

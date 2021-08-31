@@ -14,8 +14,8 @@
 #include "trtl_object.h"
 #include "trtl_object_canvas.h"
 #include "trtl_pipeline.h"
-#include "trtl_shell.h"
 #include "trtl_seer.h"
+#include "trtl_shell.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
@@ -82,22 +82,6 @@ canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }
 
-static uint32_t
-canvas_vertices_get(trtl_arg_unused struct trtl_object *obj, const struct vertex **vertices)
-{
-	if (vertices) *vertices = canvas_vertices;
-	return TRTL_ARRAY_SIZE(canvas_vertices);
-}
-
-static uint32_t
-canvas_indices_get(trtl_arg_unused struct trtl_object *obj, const uint32_t **indices,
-		   uint32_t *restrict offsetsize)
-{
-	if (indices) *indices = canvas_indices;
-	if (offsetsize) *offsetsize = 4; // XXX: magic
-	return CANVAS_OBJECT_NINDEXES;
-}
-
 static bool
 canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 {
@@ -140,8 +124,6 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_p
 	// FIXME: Set a destructor and cleanup
 
 	canvas->parent.draw = canvas_draw;
-	canvas->parent.vertices = canvas_vertices_get;
-	canvas->parent.indices = canvas_indices_get;
 	canvas->parent.update = canvas_update;
 	canvas->parent.pipeline = canvas_pipeline;
 
