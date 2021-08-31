@@ -106,13 +106,6 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	return true;
 }
 
-static struct trtl_pipeline_info *
-canvas_pipeline(struct trtl_object *obj)
-{
-	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
-	return &canvas->pipeline_info;
-}
-
 struct trtl_object *
 trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
 		   VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout)
@@ -125,7 +118,6 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_p
 
 	canvas->parent.draw = canvas_draw;
 	canvas->parent.update = canvas_update;
-	canvas->parent.pipeline = canvas_pipeline;
 
 	canvas->nframes = scd->nimages;
 

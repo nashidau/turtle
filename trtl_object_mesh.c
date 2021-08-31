@@ -67,13 +67,6 @@ trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t o
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }
 
-static struct trtl_pipeline_info *
-trtl_object_pipeline_(struct trtl_object *obj)
-{
-	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
-	return &mesh->pipeline_info;
-}
-
 static int
 trtl_object_mesh_destructor(trtl_arg_unused struct trtl_object_mesh *obj)
 {
@@ -127,7 +120,6 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass ren
 	talloc_set_destructor(mesh, trtl_object_mesh_destructor);
 	mesh->parent.draw = trtl_object_draw_;
 	mesh->parent.update = trtl_object_update_;
-	mesh->parent.pipeline = trtl_object_pipeline_;
 
 	mesh->nframes = scd->nimages;
 	mesh->model = load_model(path);

@@ -149,13 +149,6 @@ grid_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	return true;
 }
 
-static struct trtl_pipeline_info *
-grid_pipeline(struct trtl_object *obj)
-{
-	struct trtl_object_grid *grid = trtl_object_grid(obj);
-	return &grid->pipeline_info;
-}
-
 struct trtl_object *
 trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
 		 VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout, uint16_t width,
@@ -169,7 +162,6 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 
 	grid->parent.draw = grid_draw;
 	grid->parent.update = grid_update;
-	grid->parent.pipeline = grid_pipeline;
 
 	grid->nframes = scd->nimages;
 

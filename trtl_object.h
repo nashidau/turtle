@@ -13,7 +13,6 @@ struct trtl_object {
 	void (*draw)(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
 		    int32_t offset);
 	bool (*update)(struct trtl_object *obj, int frame);
-	struct trtl_pipeline_info *(*pipeline)(struct trtl_object *obj);
 };
 
 // Once again: concreate implementation
