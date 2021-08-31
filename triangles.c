@@ -883,6 +883,8 @@ recreate_swap_chain(struct render_context *render)
 	scd->render = render;
 	create_image_views(render->turtle->device, render->scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
+
+	trtl_seer_resize();
 	// info =trtl_pipeline_create(render->turtle->device, scd);
 
 	// scd->pipelines = info->pipelines;
@@ -1372,10 +1374,6 @@ main(int argc, char **argv)
 	create_image_views(render->turtle->device, render->scd);
 	// scd->render_pass = create_render_pass(turtle);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
-	// info =trtl_pipeline_create(render->turtle->device, scd);
-
-	// scd->pipelines = info->pipelines;
-	// scd->pipeline_layout = info->pipeline_layout;
 
 	scd->command_pool = create_command_pool(
 	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);

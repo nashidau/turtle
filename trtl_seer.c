@@ -105,6 +105,19 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent,
 }
 
 int
+trtl_seer_resize() {
+	// recreate pipelines
+	
+	// create_descriptor_pool()
+	
+	// create comand pool
+	//   create_command_pool
+	
+	// depth resources
+	return 0;
+}
+
+int
 trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_layer_t layerid)
 {
 	struct trtl_object *object;
