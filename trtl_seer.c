@@ -114,6 +114,7 @@ trtl_seer_resize() {
 	//   create_command_pool
 	
 	// depth resources
+	// create_depth_resources()
 	return 0;
 }
 
