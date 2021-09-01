@@ -57,7 +57,6 @@ struct swap_chain_data {
 	uint32_t nimages;
 	VkImageView *image_views;
 	VkExtent2D extent;     // Extent of the images
-	VkFramebuffer *framebuffers;
 	VkDescriptorPool descriptor_pool;
 
 	uint32_t nbuffers;

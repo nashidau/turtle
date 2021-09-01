@@ -827,10 +827,6 @@ swap_chain_data_destructor(struct swap_chain_data *scd)
 
 	device = scd->render->turtle->device;
 
-	for (i = 0; i < scd->nimages; i++) {
-		vkDestroyFramebuffer(device, scd->framebuffers[i], NULL);
-	}
-
 	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
 
 	// FIXME: There are multiple pipelines now
@@ -862,8 +858,11 @@ void
 recreate_swap_chain(struct render_context *render)
 {
 	int width = 0, height = 0;
+	VkExtent2D size;
 
 	glfwGetFramebufferSize(render->turtle->window, &width, &height);
+	size.width = width;
+	size.height = height;
 
 	// a width/height of 0 is minimised, just wait for
 	// events to recover (for now);
@@ -884,11 +883,8 @@ recreate_swap_chain(struct render_context *render)
 	create_image_views(render->turtle->device, render->scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 
-	trtl_seer_resize();
+	trtl_seer_resize(size, scd);
 	// info =trtl_pipeline_create(render->turtle->device, scd);
-
-	// scd->pipelines = info->pipelines;
-	// scd->pipeline_layout = info->pipeline_layout;
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 	// FIXME: Call object to update it's descriptor sets
@@ -898,6 +894,7 @@ recreate_swap_chain(struct render_context *render)
 	create_depth_resources(scd);
 	//	scd->framebuffers = create_frame_buffers(render->turtle->device, scd,
 	//			);
+	trtl_seer_create_command_buffers(scd, scd->command_pool);
 
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;

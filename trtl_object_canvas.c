@@ -75,11 +75,6 @@ canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 				canvas->pipeline_info.pipeline_layout, 0, 1, canvas->descriptor_set,
 				0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
-
-	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				canvas->pipeline_info.pipeline_layout, 0, 1, canvas->descriptor_set,
-				0, NULL);
-	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }
 
 static bool
@@ -106,7 +101,14 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	return true;
 }
 
-struct trtl_object *
+static void
+canvas_resize(struct trtl_object *obj, struct swap_chain_data *scd, trtl_arg_unused VkExtent2D size)
+{
+	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
+	canvas->descriptor_set = create_descriptor_sets(canvas, scd);
+}
+
+trtl_alloc struct trtl_object *
 trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
 		   VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout)
 {
@@ -118,6 +120,7 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_p
 
 	canvas->parent.draw = canvas_draw;
 	canvas->parent.update = canvas_update;
+	canvas->parent.resize = canvas_resize;
 
 	canvas->nframes = scd->nimages;
 

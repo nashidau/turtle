@@ -21,7 +21,7 @@ int trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
 
 int trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_layer_t layer);
 
-int trtl_seer_resize(void);
+int trtl_seer_resize(VkExtent2D new_size, struct swap_chain_data *scd);
 
 int trtl_seer_draw(VkCommandBuffer buffer, struct swap_chain_data *scd,
 		   trtl_render_layer_t layerid);

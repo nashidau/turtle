@@ -13,6 +13,10 @@ struct trtl_object {
 	void (*draw)(struct trtl_object *obj, VkCommandBuffer cmd_buffer,
 		    int32_t offset);
 	bool (*update)(struct trtl_object *obj, int frame);
+
+	// A window resize just happned; update.
+	// This is optional, but will generally be required
+	// FIXME: Need to kill the SCD pointer.
+	void (*resize)(struct trtl_object *obj, struct swap_chain_data *scd, VkExtent2D size);
 };
 
-// Once again: concreate implementation

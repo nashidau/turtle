@@ -20,7 +20,6 @@
 #include "trtl_object_canvas.h"
 #include "trtl_object_grid.h"
 #include "trtl_object_mesh.h"
-#include "trtl_pipeline.h"
 #include "trtl_shader.h"
 #include "trtl_seer.h"
 #include "turtle.h"
@@ -108,9 +107,20 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent,
 	return 0;
 }
 
+// FIXME: The SCD arg is terrible :
 int
-trtl_seer_resize() {
+trtl_seer_resize(VkExtent2D new_size, struct swap_chain_data *scd) {
 	// recreate pipelines
+
+	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i ++) {
+		struct objlayer *layer = seer.layers + i;
+		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
+			if (layer->objects[i]->resize) {
+				layer->objects[i]->resize(layer->objects[i], scd, new_size);
+			}
+		}
+	}
+
 	//grid->pipeline_info = trtl_pipeline_create(
 	  //  scd->render->turtle->device, render_pass, extent, descriptor_set_layout,
 
