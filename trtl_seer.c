@@ -21,6 +21,7 @@
 #include "trtl_object_grid.h"
 #include "trtl_object_mesh.h"
 #include "trtl_pipeline.h"
+#include "trtl_shader.h"
 #include "trtl_seer.h"
 #include "turtle.h"
 
@@ -101,12 +102,18 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent,
 		seer.layers[i].render_pass = create_render_pass(turtle, layer_info + i);
 	}
 
+	// FIXME: Should be part of turtle init;
+	trtl_shader_init(turtle);
+
 	return 0;
 }
 
 int
 trtl_seer_resize() {
 	// recreate pipelines
+	//grid->pipeline_info = trtl_pipeline_create(
+	  //  scd->render->turtle->device, render_pass, extent, descriptor_set_layout,
+
 	
 	// create_descriptor_pool()
 	

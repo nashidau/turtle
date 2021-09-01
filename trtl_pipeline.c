@@ -17,32 +17,11 @@
 #include "trtl_object_mesh.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
+#include "trtl_shader.h"
 #include "turtle.h"
 #include "vertex.h"
 
 #include "blobby.h"
-
-static VkShaderModule
-create_shader(VkDevice device, struct blobby *blobby)
-{
-	VkShaderModule shader_module;
-
-	if (!blobby) return 0;
-
-	VkShaderModuleCreateInfo shader_info = {0};
-	shader_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	shader_info.codeSize = blobby->len;
-	shader_info.pCode = (void *)blobby->data;
-
-	if (vkCreateShaderModule(device, &shader_info, NULL, &shader_module) != VK_SUCCESS) {
-		error("Create shader Module\n");
-		return 0;
-	}
-
-	talloc_free(blobby);
-
-	return shader_module;
-}
 
 struct trtl_pipeline_info
 trtl_pipeline_create(VkDevice device,
@@ -54,24 +33,19 @@ trtl_pipeline_create(VkDevice device,
 {
 	struct trtl_pipeline_info info;
 
-	struct blobby *vertcode = blobby_from_file(vertex_shader);
-	struct blobby *fragcode = blobby_from_file(fragment_shader);
-	assert(vertcode);
-	assert(fragcode);
-
-	VkShaderModule vert = create_shader(device, vertcode);
-	VkShaderModule frag = create_shader(device, fragcode);
+	struct trtl_shader *vert = trtl_shader_get(vertex_shader);
+	struct trtl_shader *frag = trtl_shader_get(fragment_shader);
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {0};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
-	vertShaderStageInfo.module = vert;
+	vertShaderStageInfo.module = vert->shader;
 	vertShaderStageInfo.pName = "main";
 
 	VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
 	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	fragShaderStageInfo.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
-	fragShaderStageInfo.module = frag;
+	fragShaderStageInfo.module = frag->shader;
 	fragShaderStageInfo.pName = "main";
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};

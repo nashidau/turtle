@@ -170,7 +170,6 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 	    //trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
-
 	grid->descriptor_set = create_descriptor_sets(grid, scd);
 
 	grid->pipeline_info = trtl_pipeline_create(
