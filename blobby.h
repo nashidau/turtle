@@ -1,4 +1,6 @@
 
+#include <stddef.h>
+
 struct blobby {
 	size_t len;
 	const char *data;
