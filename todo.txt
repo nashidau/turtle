@@ -4,8 +4,9 @@ Maybe add pushconstant support through trtl_uniform
 
 Fix resize.
 
-
 Add trtl_crier -> message system
+	- addd creier event to pipeline and descriptor set to autoamtically nalde the events
+	when it happens.
 
 Make it possible to add and remove objects at run time.
 
