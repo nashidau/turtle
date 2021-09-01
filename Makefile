@@ -5,6 +5,21 @@ VULKANLIBS=-lvulkan
 PKGS=talloc glfw3 check
 CTAGS=/opt/homebrew/bin/ctags
 
+# From: https://airbus-seclab.github.io/c-compiler-security/#clang-tldr
+WARNINGS= \
+	-Werror \
+	-Walloca -Wcast-qual -Wconversion -Wformat=2 -Wformat-security -Wnull-dereference \
+	-Wstack-protector -Wstrict-overflow=3 -Wvla -Warray-bounds \
+	-Warray-bounds-pointer-arithmetic -Wassign-enum -Wbad-function-cast \
+	-Wconditional-uninitialized -Wconversion -Wformat-type-confusion \
+	-Widiomatic-parentheses -Wimplicit-fallthrough -Wloop-analysis -Wpointer-arith \
+	-Wshift-sign-overflow -Wshorten-64-to-32 -Wswitch-enum \
+	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive \
+	-D_FORTIFY_SOURCE=2 \
+	-fstack-protector-strong -fPIE
+# Removed: -Wfloat-equal
+
+
 CFLAGS+=-g -O2 -Wall -Wextra `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
 	-iframework /Library/Frameworks  -Icglm/include
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
