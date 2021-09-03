@@ -20,8 +20,8 @@
 #include "trtl_object_canvas.h"
 #include "trtl_object_grid.h"
 #include "trtl_object_mesh.h"
-#include "trtl_shader.h"
 #include "trtl_seer.h"
+#include "trtl_shader.h"
 #include "turtle.h"
 
 // FIXME: These should be in some loaded metadata
@@ -109,27 +109,27 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent,
 
 // FIXME: The SCD arg is terrible :
 int
-trtl_seer_resize(VkExtent2D new_size, struct swap_chain_data *scd) {
+trtl_seer_resize(VkExtent2D new_size, struct swap_chain_data *scd)
+{
 	// recreate pipelines
 
-	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i ++) {
+	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		struct objlayer *layer = seer.layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
-			if (layer->objects[i]->resize) {
-				layer->objects[i]->resize(layer->objects[i], scd, new_size);
+			if (layer->objects[obj]->resize) {
+				layer->objects[obj]->resize(layer->objects[obj], scd, new_size);
 			}
 		}
 	}
 
-	//grid->pipeline_info = trtl_pipeline_create(
-	  //  scd->render->turtle->device, render_pass, extent, descriptor_set_layout,
+	// grid->pipeline_info = trtl_pipeline_create(
+	//  scd->render->turtle->device, render_pass, extent, descriptor_set_layout,
 
-	
 	// create_descriptor_pool()
-	
+
 	// create comand pool
 	//   create_command_pool
-	
+
 	// depth resources
 	// create_depth_resources()
 	return 0;
@@ -159,17 +159,14 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 					    scd->extent, scd->render->descriptor_set_layout);
 	} else if (streq(name, "grid")) {
 		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
-					    scd->extent, scd->render->descriptor_set_layout,
-					    3, 3);
+					  scd->extent, scd->render->descriptor_set_layout, 3, 3);
 	} else if (streq(name, "grid1")) {
 		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
-					    scd->extent, scd->render->descriptor_set_layout,
-					    1, 1);
+					  scd->extent, scd->render->descriptor_set_layout, 1, 1);
 	} else if (streq(name, "grid9")) {
 		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
-					    scd->extent, scd->render->descriptor_set_layout,
-					    9, 9);
-		
+					  scd->extent, scd->render->descriptor_set_layout, 9, 9);
+
 	} else {
 		error("Unknown object %s\n", name);
 		return -1;
@@ -234,7 +231,8 @@ trtl_seer_create_command_buffers(struct swap_chain_data *scd, VkCommandPool comm
 }
 
 int
-trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct swap_chain_data *scd, trtl_render_layer_t layerid)
+trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct swap_chain_data *scd,
+	       trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
 
@@ -246,7 +244,6 @@ trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct swap_chain_data *s
 */
 
 	struct objlayer *layer = seer.layers + layerid;
-
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 		layer->objects[obj]->draw(layer->objects[obj], buffer, offset);

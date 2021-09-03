@@ -116,6 +116,13 @@ generate_grid(struct trtl_object_grid *grid, struct swap_chain_data *scd, uint16
 }
 
 static void
+grid_resize(struct trtl_object *obj, struct swap_chain_data *scd, trtl_arg_unused VkExtent2D size)
+{
+	struct trtl_object_grid *grid = trtl_object_grid(obj);
+	grid->descriptor_set = create_descriptor_sets(grid, scd);
+}
+
+static void
 grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused int32_t offset)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
@@ -162,6 +169,7 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 
 	grid->parent.draw = grid_draw;
 	grid->parent.update = grid_update;
+	grid->parent.resize = grid_resize;
 
 	grid->nframes = scd->nimages;
 
