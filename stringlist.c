@@ -9,7 +9,7 @@ trtl_alloc trtl_must_check struct trtl_stringlist *
 trtl_stringlist_add(struct trtl_stringlist *stringlist, const char *str) {
 	struct trtl_stringlist *list, *tmp;
 
-	list = talloc(stringlist, struct trtl_stringlist);
+	list = talloc_zero(stringlist, struct trtl_stringlist);
 	if (list == NULL) {
 		// FIXME: Is this the right error handling?
 		return NULL;
