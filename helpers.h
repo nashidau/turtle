@@ -6,6 +6,7 @@
 
 #define trtl_alloc  __attribute__((malloc))
 
+#define trtl_must_check __attribute__((warn_unused_result))
 #define trtl_noreturn  __attribute__((noreturn))
 #define trtl_arg_unused  __attribute__((unused))
 #define trtl_pure __attribute__((pure))

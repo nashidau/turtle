@@ -1,6 +1,8 @@
 // Simple list of strings.
 // Super inefficeint.  Just a work around for C's amazing lack of types.
 
+#include "helpers.h"
+
 // FIXME: Filename should be trtl_stringlist?
 
 struct trtl_stringlist {
@@ -19,5 +21,5 @@ struct trtl_stringlist {
  * @param str Item to insert - will be duplicated.
  * @return New or updated list.
  */
-struct trtl_stringlist *
+trtl_must_check trtl_alloc struct trtl_stringlist *
 trtl_stringlist_add(struct trtl_stringlist *stringlist, const char *str);

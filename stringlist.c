@@ -2,9 +2,10 @@
 
 #include <talloc.h>
 
+#include "helpers.h"
 #include "stringlist.h"
 
-struct trtl_stringlist *
+trtl_alloc trtl_must_check struct trtl_stringlist *
 trtl_stringlist_add(struct trtl_stringlist *stringlist, const char *str) {
 	struct trtl_stringlist *list, *tmp;
 
