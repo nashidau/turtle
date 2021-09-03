@@ -14,32 +14,8 @@ vec2 positions[3] = vec2[](
 );
 
 void main() {
-
-	//gl_Position = vec4(inPosition, 1.0);
-     gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
+    gl_Position = vec4(positions[gl_VertexIndex], 0.0, 1.0);
     fragTexCoord = gl_Position.xy / 2.0;
 }
 
-#if 0
-void main() 
-{
-	fragTexCoord = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
-	gl_Position = vec4(fragTexCoord * 2.0f + -1.0f, 0.0f, 1.0f);
-
-//	fragColor = vec3(1.0,1.0,0);
-/*
-   if (gl_VertexIndex == 0) {
-	   gl_Position = vec4(-1, -1, 0, 1.0);
-   } else if (gl_VertexIndex == 1) {
-	gl_Position = vec4(3, -1, 0, 1.0);
-	} else {
-	gl_Position = vec4(-1, 3, 0, 1.0);
-}
-
-    float x = -1.0 + float((gl_VertexIndex & 1) << 2);
-    float y = -1.0 + float((gl_VertexIndex & 2) << 1);
-    fragTexCoord.x = (x+1.0)*0.5;
-    fragTexCoord.y = (y+1.0)*0.5;
-    gl_Position = vec4(x, y, 0, 1); */
-}
-#endif
+/* vim: set sw=4 sts=4 : */
