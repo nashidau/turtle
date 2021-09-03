@@ -883,18 +883,20 @@ recreate_swap_chain(struct render_context *render)
 	create_image_views(render->turtle->device, render->scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 
+	scd->descriptor_pool = create_descriptor_pool(scd);
+
+	scd->command_pool = create_command_pool(
+	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
+
 	trtl_seer_resize(size, scd);
 	// info =trtl_pipeline_create(render->turtle->device, scd);
 
-	scd->descriptor_pool = create_descriptor_pool(scd);
 	// FIXME: Call object to update it's descriptor sets
 	// scd->descriptor_sets = create_descriptor_sets(scd);
-	scd->command_pool = create_command_pool(
-	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
 	create_depth_resources(scd);
 	//	scd->framebuffers = create_frame_buffers(render->turtle->device, scd,
 	//			);
-	trtl_seer_create_command_buffers(scd, scd->command_pool);
+	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
 
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
