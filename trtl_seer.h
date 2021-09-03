@@ -3,6 +3,8 @@
 
 #include "turtle.h"
 
+#include "helpers.h"
+
 struct swap_chain_data;
 
 struct trtl_seer_vertexset {
@@ -32,5 +34,5 @@ struct trtl_seer_indexset *trtl_seer_indexset_get(trtl_render_layer_t, uint32_t 
 						  uint32_t *nindexes);
 
 // FIXME: Hackery here
-VkCommandBuffer *trtl_seer_create_command_buffers(struct swap_chain_data *scd,
-						  VkCommandPool command_pool);
+trtl_must_check VkCommandBuffer *trtl_seer_create_command_buffers(struct swap_chain_data *scd,
+								   VkCommandPool command_pool);

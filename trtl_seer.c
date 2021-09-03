@@ -222,7 +222,7 @@ trtl_seer_update(uint32_t image_index)
 	return count;
 }
 
-VkCommandBuffer *
+trtl_must_check VkCommandBuffer *
 trtl_seer_create_command_buffers(struct swap_chain_data *scd, VkCommandPool command_pool)
 {
 	seer.framebuffers =
