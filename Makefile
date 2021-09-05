@@ -21,9 +21,10 @@ WARNINGS= \
 
 
 CFLAGS+=-g -O2 -Wall -Wextra `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
-	-iframework /Library/Frameworks  -Icglm/include
+	-iframework /Library/Frameworks  -Icglm/include -fsanitize=address
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
-	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal
+	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
+	 -fsanitize=address
 
 SHADERCC=glslc
 
