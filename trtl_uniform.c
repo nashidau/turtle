@@ -146,7 +146,7 @@ struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size
 		return NULL;
 	}
 
-	info = talloc_zero_size(uniforms, size);
+	info = talloc_zero(uniforms, struct trtl_uniform_info);
 	info->uniforms = uniforms;
 	info->size = size;
 	info->offset = uniforms->bump.offset;
