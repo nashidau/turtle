@@ -5,6 +5,7 @@
  * paramaters into a supplied shader.
  */
 #include <assert.h>
+#include <time.h>
 
 #include <vulkan/vulkan.h>
 
@@ -31,6 +32,13 @@ struct trtl_object_canvas {
 
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
+
+	VkExtent2D size;
+};
+
+struct canvas_shader_params {
+	vec2 screenSize;
+	float time;
 };
 
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_canvas *canvas,
@@ -81,21 +89,13 @@ static bool
 canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
-	struct UniformBufferObject *ubo;
+	struct canvas_shader_params *params;
 
-	ubo = trtl_uniform_info_address(canvas->uniform_info, frame);
+	params = trtl_uniform_info_address(canvas->uniform_info, frame);
 
-	glm_mat4_identity(ubo->model);
-	// glm_scale_uni(ubo->model, 2.0f);
-
-	glm_lookat((vec3){0.0f, 0.5f, 0.5f}, GLM_VEC3_ZERO, GLM_ZUP, ubo->view);
-
-	// glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo->proj);
-	// glm_perspective(0.1f, 800 / 640.0, 0.1f, 10.0f, ubo->proj);
-	// glm_ortho(-1, 1, -1, 1, -1, 1, ubo->proj);
-	// glm_ortho(0, 800.0/640 , 0, 1, 0.1f, 100, ubo->proj);
-	glm_ortho_default(800.0 / 640, ubo->proj);
-	ubo->proj[1][1] *= -1;
+	params->time = time(NULL);
+	params->screenSize[0] = canvas->size.width;
+	params->screenSize[1] = canvas->size.height;
 
 	// We updated
 	return true;
@@ -105,6 +105,7 @@ static void
 canvas_resize(struct trtl_object *obj, struct swap_chain_data *scd, trtl_arg_unused VkExtent2D size)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
+	canvas->size = size;
 	canvas->descriptor_set = create_descriptor_sets(canvas, scd);
 }
 
@@ -123,9 +124,10 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_p
 	canvas->parent.resize = canvas_resize;
 
 	canvas->nframes = scd->nimages;
+	canvas->size = extent;
 
 	canvas->uniform_info =
-	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
+	    trtl_uniform_alloc_type(evil_global_uniform, struct canvas_shader_params);
 
 	canvas->descriptor_set = create_descriptor_sets(canvas, scd);
 
