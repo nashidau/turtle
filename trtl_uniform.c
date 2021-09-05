@@ -26,6 +26,8 @@
 #include "trtl_uniform.h"
 #include "turtle.h"
 
+#define ROUND_UP(N, S) ((((N) + (S) - 1) / (S)) * (S))
+
 /**
  * Internal structore for trtl_uniform info
  */
@@ -137,6 +139,7 @@ struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size
 	struct trtl_uniform_info *info;
 
 	// FIXME: Check size is nicely aligned
+	size = ROUND_UP(size, 16);
 
 	if (uniforms->bump.offset + size > uniforms->buffer_size) {
 		warning("Allocation too large for uniform allocator");
