@@ -1185,7 +1185,7 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemapho
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
 	    frame_buffer_resized) {
-		frame_buffer_resized = true;
+		frame_buffer_resized = false;
 		recreate_swap_chain(render);
 	} else if (result != VK_SUCCESS) {
 		error("Failed to present swap chain image");
