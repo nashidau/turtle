@@ -193,7 +193,7 @@ trtl_uniform_buffer_get_descriptor(struct trtl_uniform_info *info, int frame)
 	VkDescriptorBufferInfo buffer_info = {0};
 	buffer_info.buffer = info->uniforms->uniform_buffers[frame];
 	buffer_info.offset = info->offset;
-	buffer_info.range = sizeof(struct UniformBufferObject);
+	buffer_info.range = info->size;
 
 	return buffer_info;
 }
