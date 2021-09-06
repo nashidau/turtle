@@ -38,6 +38,7 @@ Simple Tasks:
 		- make it small - uint8_t probably
 	- Loading objects should use a shared index cache for 
 		multiple of the same object.  Extra level of indirection on loading I guess
+	- Use vkResetCommandBuffer instead of allocating each frame
 
 Maybe simple tasks:
 	- allow empty layers

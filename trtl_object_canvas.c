@@ -99,8 +99,8 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	params->time = time(NULL);
 	params->screenSize[0] = 1.0;// canvas->size.width;
 	params->screenSize[1] = 0.5;//canvas->size.height;
-	printf("%f %f %f\n", params->screenSize[0], 
-			params->screenSize[1], params->time);
+	//printf("%f %f %f\n", params->screenSize[0], 
+	//		params->screenSize[1], params->time);
 
 	// We updated
 	return true;
