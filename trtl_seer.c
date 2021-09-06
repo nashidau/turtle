@@ -76,8 +76,7 @@ static VkFramebuffer *create_frame_buffers(VkDevice device, struct swap_chain_da
 					   VkRenderPass render_pass, VkExtent2D extent);
 
 int
-trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent,
-	       trtl_arg_unused VkDescriptorSetLayout descriptor_set_layout)
+trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
 {
 	int nlayers = TRTL_RENDER_LAYER_TOTAL;
 
@@ -156,7 +155,7 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 		    scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
-					    scd->extent, scd->render->descriptor_set_layout);
+					    scd->extent);
 	} else if (streq(name, "grid")) {
 		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
 					  scd->extent, scd->render->descriptor_set_layout, 3, 3);

@@ -18,8 +18,7 @@ struct trtl_seer_indexset {
 	const uint32_t *indexes;
 };
 
-int trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
-		   VkDescriptorSetLayout descriptor_set_layout);
+int trtl_seer_init(struct turtle *turtle, VkExtent2D extent);
 
 int trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_layer_t layer);
 

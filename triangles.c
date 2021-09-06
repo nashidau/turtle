@@ -650,6 +650,7 @@ create_image_view(struct render_context *render, VkImage image, VkFormat format,
 void
 create_image_views(trtl_arg_unused VkDevice device, struct swap_chain_data *scd)
 {
+	assert(scd->image_views == NULL);
 	scd->image_views = talloc_array(scd, VkImageView, scd->nimages);
 
 	for (uint32_t i = 0; i < scd->nimages; i++) {
@@ -832,7 +833,6 @@ swap_chain_data_destructor(struct swap_chain_data *scd)
 	// FIXME: There are multiple pipelines now
 	// vkDestroyPipeline(device, *scd->pipelines, NULL);
 	// vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
-	// vkDestroyRenderPass(device, scd->render_pass, NULL);
 
 	for (i = 0; i < scd->nimages; i++) {
 		vkDestroyImageView(device, scd->image_views[i], NULL);
@@ -881,7 +881,6 @@ recreate_swap_chain(struct render_context *render)
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
 	create_image_views(render->turtle->device, render->scd);
-	render->descriptor_set_layout = create_descriptor_set_layout(render);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
@@ -1371,13 +1370,11 @@ main(int argc, char **argv)
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
 	create_image_views(render->turtle->device, render->scd);
-	// scd->render_pass = create_render_pass(turtle);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 
 	scd->command_pool = create_command_pool(
 	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
 	create_depth_resources(scd);
-	// scd->framebuffers = create_frame_buffers(render->turtle->device, scd);
 
 	// Init the trtl Uniform buffers; We have one currently
 	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
@@ -1386,7 +1383,7 @@ main(int argc, char **argv)
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
 	// FIXME: Object is destroyed when screen chages; wrong
-	trtl_seer_init(render->turtle, scd->extent, scd->render->descriptor_set_layout);
+	trtl_seer_init(render->turtle, scd->extent);
 
 	load_objects(scd);
 
