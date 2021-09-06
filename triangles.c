@@ -534,8 +534,8 @@ chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
 		return capabilities->currentExtent;
 	} else {
 		int width, height;
-		width = 800;
-		height = 600;
+		width = 50;
+		height = 50;
 		fprintf(stderr, "Hardcoded size you fools!\n");
 		// glfwGetFramebufferSize(window, &width, &height);
 
@@ -938,6 +938,7 @@ create_image(struct render_context *render, uint32_t width, uint32_t height, VkF
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.extent.width = width;
 	imageInfo.extent.height = height;
+printf("Create image: %d %d\n", width, height);
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;
