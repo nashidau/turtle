@@ -43,8 +43,7 @@ struct trtl_object_grid {
 trtl_alloc static VkDescriptorSet *grid_create_descriptor_sets(struct trtl_object_grid *grid,
 							       struct swap_chain_data *scd);
 
-static VkDescriptorSetLayout
-grid_create_descriptor_set_layout(VkDevice device);
+static VkDescriptorSetLayout grid_create_descriptor_set_layout(VkDevice device);
 
 // Inline function to cast from abstract to concrete type.
 // FIXME: Make Debug and non-debug do different things
@@ -124,6 +123,8 @@ static void
 grid_resize(struct trtl_object *obj, struct swap_chain_data *scd, VkExtent2D size)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
+	grid->descriptor_set_layout =
+	    grid_create_descriptor_set_layout(scd->render->turtle->device);
 	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
 	grid->pipeline_info = trtl_pipeline_create(
 	    scd->render->turtle->device, renderpasshack, size, grid->descriptor_set_layout,
@@ -135,6 +136,10 @@ grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused i
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	VkDeviceSize offsets = 0;
+
+	printf("Grid draw: Pipeline %p PipeLayout %p Descriptor set %p\n",
+	       grid->pipeline_info.pipeline, grid->pipeline_info.pipeline_layout,
+	       grid->descriptor_set);
 
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			  grid->pipeline_info.pipeline);
@@ -193,7 +198,7 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 
 	grid->pipeline_info =
 	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
-				 descriptor_set_layout, "shaders/grid/grid-vertex.spv",
+				 grid->descriptor_set_layout, "shaders/grid/grid-vertex.spv",
 				 // "shaders/grid/lines.spv");
 				 "shaders/grid/browns.spv");
 	//"shaders/grid/stars-1.spv");
