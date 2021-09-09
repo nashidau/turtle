@@ -3,7 +3,12 @@
  *
  * Creates and manages pipeline objects.
  *
- * Created as a singleton.  Has an evil global.
+ *
+ * Sets specialisation data:
+ * 	0 is width
+ * 	1 is height (both floats)
+ *
+ *
  */
 #include <assert.h>
 #include <string.h>
@@ -23,24 +28,47 @@
 
 #include "blobby.h"
 
+static VkSpecializationInfo *
+set_specialise_info(VkExtent2D *extent)
+{
+	VkSpecializationInfo *info = talloc_zero(NULL, VkSpecializationInfo);
+	info->mapEntryCount = 2;
+	VkSpecializationMapEntry *entries =
+	    talloc_zero_array(info, VkSpecializationMapEntry, info->mapEntryCount);
+	info->pMapEntries = entries;
+
+	// Width
+	entries[0].constantID = 0;
+	entries[0].size = sizeof(float);
+	entries[0].offset = 0;
+	// Height
+	entries[1].constantID = 1;
+	entries[1].size = sizeof(float);
+	entries[1].offset = sizeof(float);
+
+	info->dataSize = sizeof(*extent);
+	info->pData = extent;
+	return info;
+}
+
 struct trtl_pipeline_info
-trtl_pipeline_create(VkDevice device,
-		VkRenderPass render_pass,
-		VkExtent2D extent,
-		VkDescriptorSetLayout descriptor_set_layout,
-		const char *vertex_shader,
-		const char *fragment_shader)
+trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D extent,
+		     VkDescriptorSetLayout descriptor_set_layout, const char *vertex_shader,
+		     const char *fragment_shader)
 {
 	struct trtl_pipeline_info info;
 
 	struct trtl_shader *vert = trtl_shader_get(vertex_shader);
 	struct trtl_shader *frag = trtl_shader_get(fragment_shader);
 
+	VkSpecializationInfo *specialisationInfo = set_specialise_info(&extent);
+
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {0};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 	vertShaderStageInfo.stage = VK_SHADER_STAGE_VERTEX_BIT;
 	vertShaderStageInfo.module = vert->shader;
 	vertShaderStageInfo.pName = "main";
+	vertShaderStageInfo.pSpecializationInfo = specialisationInfo;
 
 	VkPipelineShaderStageCreateInfo fragShaderStageInfo = {};
 	fragShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -183,7 +211,6 @@ trtl_pipeline_create(VkDevice device,
 	pipelineInfo.subpass = TRTL_RENDER_LAYER_BACKGROUND;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-
 	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL,
 				      &info.pipeline) != VK_SUCCESS) {
 		error("failed to create graphics pipeline!");
@@ -193,4 +220,3 @@ trtl_pipeline_create(VkDevice device,
 
 	return info;
 }
-
