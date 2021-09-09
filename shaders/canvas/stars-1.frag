@@ -9,10 +9,9 @@
 
 layout(location = 0) out vec4 outColor;
 
-layout(location = 0) in vec3 fragColor;
-layout(location = 1) in vec2 fragTexCoord;
-layout(location = 2) in vec2 screenSize_in;
-layout(location = 3) in float time;
+layout(location = 0) in vec2 fragTexCoord;
+layout(location = 1) in vec2 screenSize_in;
+layout(location = 2) in float time;
 
 
 
@@ -26,7 +25,7 @@ vec3 nrand3( vec2 co )
 
 
 void main() {
-	vec2 screenSize = vec2(1600.0, 1200.0);
+	vec2 screenSize = screenSize_in;
 
 	vec2 iResolution = vec2(screenSize.x, screenSize.y);
 	vec2 fragCoord = gl_FragCoord.xy / vec2(screenSize.x/screenSize.y);
@@ -35,7 +34,7 @@ void main() {
 	vec3 p = vec3(uvs / 4., time) + vec3(1., -1.3, 0.);
 	vec3 p2 = p;
 
-	outColor = vec4(fragColor,0.2);
+	outColor = vec4(0,0,0,1.0);
 	
 	//Let's add some stars
 	//Thanks to http://glsl.heroku.com/e#6904.0
