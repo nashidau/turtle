@@ -137,10 +137,6 @@ grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused i
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	VkDeviceSize offsets = 0;
 
-	printf("Grid draw: Pipeline %p PipeLayout %p Descriptor set %p\n",
-	       grid->pipeline_info.pipeline, grid->pipeline_info.pipeline_layout,
-	       grid->descriptor_set);
-
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			  grid->pipeline_info.pipeline);
 
