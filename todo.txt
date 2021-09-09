@@ -1,3 +1,17 @@
+Get the grid rendering to be per tile.  Add some params to each tile can
+have a flavour (maybe a vector of colors).
+
+Handle resize for mesh.
+
+Fix the compile warnings for grid (unused pipeline layout).
+
+Am I creating too many pipeline layouts/
+
+Free resources on:
+	- grid resize
+	- canvas resize
+	- grid exit
+
 Finish moving VkPipeline{Layout} out of trtl.
 	- need a pipeline cache
 Maybe add pushconstant support through trtl_uniform
