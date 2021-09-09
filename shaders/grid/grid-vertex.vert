@@ -7,17 +7,8 @@
 
 //layout(location = 0) out vec3 fragColor;
 
-/*
-layout(binding = 0) uniform UniformBufferObject {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-} ubo;
-
-struct pos2d {
-	float x;
-	float y;
-};*/
+layout(constant_id = 0) const int screenWidth = 800;
+layout(constant_id = 1) const int screenHeight = 600;
 
 layout(binding = 0) uniform  pos2d {
 	float x;
@@ -42,7 +33,7 @@ mat2 rotate2d(float angle) {
 }
 
 void main() {
-    vec2 screenSize = vec2(800, 600) / 2.0;
+    vec2 screenSize = vec2(screenWidth, screenHeight) / 2.0;
     vec2 pos = inPosition.xy;
 
     // Center on the top left tile

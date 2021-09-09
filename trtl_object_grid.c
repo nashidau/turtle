@@ -27,6 +27,7 @@ struct trtl_object_grid {
 	struct trtl_object parent;
 
 	uint32_t nframes;
+	VkDescriptorSetLayout descriptor_set_layout;
 	VkDescriptorSet *descriptor_set;
 	struct trtl_uniform_info *uniform_info;
 
@@ -39,8 +40,11 @@ struct trtl_object_grid {
 	VkBuffer vertex_buffer;
 };
 
-trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_grid *grid,
-							  struct swap_chain_data *scd);
+trtl_alloc static VkDescriptorSet *grid_create_descriptor_sets(struct trtl_object_grid *grid,
+							       struct swap_chain_data *scd);
+
+static VkDescriptorSetLayout
+grid_create_descriptor_set_layout(VkDevice device);
 
 // Inline function to cast from abstract to concrete type.
 // FIXME: Make Debug and non-debug do different things
@@ -52,7 +56,6 @@ trtl_object_grid(struct trtl_object *obj)
 	assert(grid != NULL);
 	return grid;
 }
-
 
 // Width and height are single values.
 static void
@@ -115,11 +118,16 @@ generate_grid(struct trtl_object_grid *grid, struct swap_chain_data *scd, uint16
 	grid->icount = icount;
 }
 
+VkRenderPass renderpasshack;
+
 static void
-grid_resize(struct trtl_object *obj, struct swap_chain_data *scd, trtl_arg_unused VkExtent2D size)
+grid_resize(struct trtl_object *obj, struct swap_chain_data *scd, VkExtent2D size)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
-	grid->descriptor_set = create_descriptor_sets(grid, scd);
+	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
+	grid->pipeline_info = trtl_pipeline_create(
+	    scd->render->turtle->device, renderpasshack, size, grid->descriptor_set_layout,
+	    "shaders/grid/grid-vertex.spv", "shaders/grid/browns.spv");
 }
 
 static void
@@ -138,7 +146,6 @@ grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused i
 				grid->pipeline_info.pipeline_layout, 0, 1, grid->descriptor_set, 0,
 				NULL);
 	vkCmdDrawIndexed(cmd_buffer, grid->icount, 1, 0, offset, 0);
-	//vkCmdDrawIndexed(cmd_buffer, 3, 1, 0, 0, 0);// grid->icount, 1, 0, offset, 0);
 }
 
 static bool
@@ -171,37 +178,67 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 	grid->parent.update = grid_update;
 	grid->parent.resize = grid_resize;
 
+	renderpasshack = render_pass;
+
 	grid->nframes = scd->nimages;
 
 	grid->uniform_info =
-		// FIXME: This causes a crash.
-	    //trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
+	    // FIXME: This causes a crash.
+	    // trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
-	grid->descriptor_set = create_descriptor_sets(grid, scd);
+	grid->descriptor_set_layout =
+	    grid_create_descriptor_set_layout(scd->render->turtle->device);
+	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
 
-	grid->pipeline_info = trtl_pipeline_create(
-	    scd->render->turtle->device, render_pass, extent, descriptor_set_layout,
-	    "shaders/grid/grid-vertex.spv", 
-	    "shaders/grid/lines.spv");
-	//	"shaders/grid/browns.spv");	
-	    //"shaders/canvas/stars-1.spv");
-	    //"shaders/grid/red.spv");
+	grid->pipeline_info =
+	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
+				 descriptor_set_layout, "shaders/grid/grid-vertex.spv",
+				 // "shaders/grid/lines.spv");
+				 "shaders/grid/browns.spv");
+	//"shaders/grid/stars-1.spv");
+	//"shaders/grid/red.spv");
 
 	generate_grid(grid, scd, width, height);
 
 	return (struct trtl_object *)grid;
 }
 
+static VkDescriptorSetLayout
+grid_create_descriptor_set_layout(VkDevice device)
+{
+	VkDescriptorSetLayout descriptor_set_layout;
+
+	VkDescriptorSetLayoutBinding ubo_layout_binding = {0};
+	ubo_layout_binding.binding = 0;
+	ubo_layout_binding.descriptorCount = 1;
+	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	ubo_layout_binding.pImmutableSamplers = NULL;
+	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkDescriptorSetLayoutBinding bindings[1];
+	bindings[0] = ubo_layout_binding;
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
+	layoutInfo.pBindings = bindings;
+
+	if (vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &descriptor_set_layout) !=
+	    VK_SUCCESS) {
+		error("failed to create descriptor set layout!");
+	}
+	return descriptor_set_layout;
+}
+
 trtl_alloc static VkDescriptorSet *
-create_descriptor_sets(struct trtl_object_grid *grid, struct swap_chain_data *scd)
+grid_create_descriptor_sets(struct trtl_object_grid *grid, struct swap_chain_data *scd)
 {
 	VkDescriptorSet *sets = talloc_zero_array(grid, VkDescriptorSet, grid->nframes);
 	VkDescriptorSetLayout *layouts =
 	    talloc_zero_array(NULL, VkDescriptorSetLayout, grid->nframes);
 
 	for (uint32_t i = 0; i < grid->nframes; i++) {
-		layouts[i] = scd->render->descriptor_set_layout;
+		layouts[i] = grid->descriptor_set_layout;
 	}
 
 	VkDescriptorSetAllocateInfo alloc_info = {0};
