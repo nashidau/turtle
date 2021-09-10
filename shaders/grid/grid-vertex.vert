@@ -1,12 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-// the book of shaders binding
-//layout(location = 0) in vec2 inPosition;
-//layout(location = 1) in vec3 inColor;
-
-//layout(location = 0) out vec3 fragColor;
-
 layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
 layout(constant_id = 2) const int tileSize = 128;
@@ -32,6 +26,7 @@ mat2 rotate2d(float angle) {
 }
 
 void main() {
+	// FIXME: This 2 is a hack.
     vec2 screenSize = vec2(screenWidth, screenHeight) / 2.0;
     vec2 pos = inPosition.xy;
 

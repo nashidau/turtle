@@ -30,6 +30,7 @@
 
 extern int zoom;
 
+// FIXME: Is this freed correctly?
 static VkSpecializationInfo *
 set_specialise_info(VkExtent2D *extent)
 {
