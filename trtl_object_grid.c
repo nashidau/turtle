@@ -1,8 +1,6 @@
 /**
- * A grid object is afairly simple grid object used to render/manage a shader object.
+ * A grid object is afairly simple grid object used to render a map.
  *
- * Used for backgrounds. skyboses and similar objects. It provides a number of hooks to insert
- * paramaters into a supplied shader.
  */
 #include <assert.h>
 
@@ -166,8 +164,7 @@ grid_update(struct trtl_object *obj, trtl_arg_unused int frame)
 
 struct trtl_object *
 trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
-		 VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout, uint16_t width,
-		 uint16_t height)
+		 VkExtent2D extent, uint16_t width, uint16_t height)
 {
 	struct trtl_object_grid *grid;
 
