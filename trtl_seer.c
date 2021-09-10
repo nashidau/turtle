@@ -391,7 +391,6 @@ create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
 		renderPassInfo.framebuffer = framebuffers[i];
 		renderPassInfo.renderArea.offset.x = 0;
 		renderPassInfo.renderArea.offset.y = 0;
-	printf("Create command buffer size: %d %d\n", scd->extent.width, scd->extent.height);
 		renderPassInfo.renderArea.extent = scd->extent;
 
 		VkClearValue clearValues[] = {

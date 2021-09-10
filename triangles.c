@@ -122,8 +122,6 @@ void
 key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
 	     trtl_arg_unused int mods)
 {
-	if (key == GLFW_KEY_O && action == GLFW_PRESS) printf("Got message");
-
 	if (action == GLFW_PRESS) {
 		switch (key) {
 		case GLFW_KEY_RIGHT:
@@ -346,7 +344,6 @@ create_surface(VkInstance instance, GLFWwindow *window)
 {
 	VkSurfaceKHR surface;
 	VkResult result;
-	printf("Instance: %lld, Winf %p\n", (uint64_t)instance, window);
 	result = glfwCreateWindowSurface(instance, window, NULL, &surface);
 	if (result != VK_SUCCESS) {
 		printf("failed to create window surface! %d\n", result);
@@ -950,7 +947,6 @@ create_image(struct render_context *render, uint32_t width, uint32_t height, VkF
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.extent.width = width;
 	imageInfo.extent.height = height;
-printf("Create image: %d %d\n", width, height);
 	imageInfo.extent.depth = 1;
 	imageInfo.mipLevels = 1;
 	imageInfo.arrayLayers = 1;

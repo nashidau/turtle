@@ -74,7 +74,6 @@ canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
 	VkDeviceSize offsets = 0;
 
-	printf("Canvas draw start\n");
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			  canvas->pipeline_info.pipeline);
 
@@ -85,7 +84,6 @@ canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 				canvas->pipeline_info.pipeline_layout, 0, 1, canvas->descriptor_set,
 				0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
-	printf("Canvas draw done\n");
 }
 
 static bool
