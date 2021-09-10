@@ -28,26 +28,39 @@
 
 #include "blobby.h"
 
+extern int zoom;
+
 static VkSpecializationInfo *
 set_specialise_info(VkExtent2D *extent)
 {
 	VkSpecializationInfo *info = talloc_zero(NULL, VkSpecializationInfo);
-	info->mapEntryCount = 2;
+	info->mapEntryCount = 3;
+	int *data = talloc_zero_array(info, int, info->mapEntryCount);
 	VkSpecializationMapEntry *entries =
 	    talloc_zero_array(info, VkSpecializationMapEntry, info->mapEntryCount);
 	info->pMapEntries = entries;
 
 	// Width
 	entries[0].constantID = 0;
-	entries[0].size = sizeof(float);
+	entries[0].size = sizeof(int);
 	entries[0].offset = 0;
+	data[0] = extent->width;
+
 	// Height
 	entries[1].constantID = 1;
-	entries[1].size = sizeof(float);
-	entries[1].offset = sizeof(float);
+	entries[1].size = sizeof(int);
+	entries[1].offset = sizeof(int);
+	data[1] = extent->width;
 
-	info->dataSize = sizeof(*extent);
-	info->pData = extent;
+	// Tile size
+	entries[2].constantID = 2;
+	entries[2].size = sizeof(int);
+	entries[2].offset = entries[1].offset + entries[1].size;
+	printf("Zoom is %d\n", zoom);
+	data[2] = zoom;
+
+	info->dataSize = entries[2].offset + entries[2].size;
+	info->pData = data;
 	return info;
 }
 

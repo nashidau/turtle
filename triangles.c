@@ -113,8 +113,10 @@ window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
 	if (debug) printf("Window resized\n");
 }
 
+// FIXME: These should be in a nice game state stucture
 int posX = 0;
 int posY = 0;
+int zoom = 128;
 
 void
 key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
@@ -135,6 +137,16 @@ key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int sc
 			break;
 		case GLFW_KEY_UP:
 			if (posY > 0) posY--;
+			break;
+		case GLFW_KEY_EQUAL:
+			zoom *= 2;
+			// FIXME: This is a terrible way to regen everything
+			frame_buffer_resized = true;
+			break;
+		case GLFW_KEY_MINUS:
+			if (zoom > 32)
+				zoom /= 2;
+			frame_buffer_resized = true;
 			break;
 		}
 	}

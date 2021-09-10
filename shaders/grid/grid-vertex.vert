@@ -9,6 +9,7 @@
 
 layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
+layout(constant_id = 2) const int tileSize = 128;
 
 layout(binding = 0) uniform  pos2d {
 	float x;
@@ -21,8 +22,6 @@ layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
-
-#define TILE_SIZE 128.0
 
 const float pi = 3.141592653589793;
 const float degree45 = pi / 4.0;
@@ -50,7 +49,7 @@ void main() {
     pos.y = pos.y / 2.0;
 
     // Expand out by the tile size
-    pos *= TILE_SIZE;
+    pos *= tileSize;
     pos /= screenSize;
 
     gl_Position = vec4(pos, 0.0, 1.0);
