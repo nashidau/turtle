@@ -56,7 +56,6 @@ set_specialise_info(VkExtent2D *extent)
 	entries[2].constantID = 2;
 	entries[2].size = sizeof(int);
 	entries[2].offset = entries[1].offset + entries[1].size;
-	printf("Zoom is %d\n", zoom);
 	data[2] = zoom;
 
 	info->dataSize = entries[2].offset + entries[2].size;
