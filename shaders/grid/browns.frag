@@ -59,7 +59,7 @@ float noise (in vec2 st) {
 
 void main()
 {
-   vec2  st = gl_FragCoord.xy / 64.0;// / iResolution.xy;
+   vec2  st = fragTexCoord.xy / 64.0;// / iResolution.xy;
    
    //st *= 10.0;
    
@@ -72,4 +72,5 @@ void main()
    
     outColor = mix(vec4(212.0/255.0,201.0/255.0,182.0/255.0,1.0),
 		    vec4(147.0/255.0,127.0/255.0,111.0/255.0,1.0),n);
+    outColor = vec4(fragTexCoord.xy, 0.0, 0.0);
 }
