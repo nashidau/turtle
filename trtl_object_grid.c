@@ -18,6 +18,10 @@
 #include "turtle.h"
 #include "vertex.h"
 
+
+#define FRAG_SHADER "shaders/grid/lines.spv"
+//#define FRAG_SHADER "shaders/grid/browns.spv"
+
 extern int posX;
 extern int posY;
 
@@ -126,7 +130,7 @@ grid_resize(struct trtl_object *obj, struct swap_chain_data *scd, VkExtent2D siz
 	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
 	grid->pipeline_info = trtl_pipeline_create(
 	    scd->render->turtle->device, renderpasshack, size, grid->descriptor_set_layout,
-	    "shaders/grid/grid-vertex.spv", "shaders/grid/browns.spv");
+	    "shaders/grid/grid-vertex.spv", FRAG_SHADER);
 }
 
 static void
@@ -192,10 +196,7 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 	grid->pipeline_info =
 	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
 				 grid->descriptor_set_layout, "shaders/grid/grid-vertex.spv",
-				 // "shaders/grid/lines.spv");
-				 "shaders/grid/browns.spv");
-	//"shaders/grid/stars-1.spv");
-	//"shaders/grid/red.spv");
+				 FRAG_SHADER);
 
 	generate_grid(grid, scd, width, height);
 
