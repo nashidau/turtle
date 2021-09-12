@@ -114,7 +114,7 @@ canvas_resize(struct trtl_object *obj, struct swap_chain_data *scd, trtl_arg_unu
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, scd);
 	canvas->pipeline_info = trtl_pipeline_create(
 	    scd->render->turtle->device, renderpasshack, size, canvas->descriptor_set_layout,
-	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv");
+	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
 }
 
 static VkDescriptorSetLayout
@@ -175,12 +175,13 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_p
 	// and vertex_binding_description_get.
 	canvas->pipeline_info = trtl_pipeline_create(
 	    scd->render->turtle->device, render_pass, extent, canvas->descriptor_set_layout,
-	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv");
+	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv",NULL, NULL, 0);
 
 	{
 		struct trtl_seer_vertexset vertices;
 		vertices.nvertexes = TRTL_ARRAY_SIZE(canvas_vertices);
 		vertices.vertices = canvas_vertices;
+		vertices.vertex_size = sizeof(struct vertex);
 
 		canvas->vertex_buffer = create_vertex_buffers(scd->render, &vertices);
 	}

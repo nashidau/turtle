@@ -41,7 +41,9 @@ create_vertex_buffers(struct render_context *render, const struct trtl_seer_vert
 		return VK_NULL_HANDLE;
 	}
 
-	VkDeviceSize bufferSize = sizeof(struct vertex) * nvertexes;
+	assert(vertices->vertex_size != 0);
+
+	VkDeviceSize bufferSize = vertices->vertex_size * nvertexes;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
@@ -50,13 +52,7 @@ create_vertex_buffers(struct render_context *render, const struct trtl_seer_vert
 
 	void *data;
 	vkMapMemory(render->turtle->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	off_t offset = 0;
-	for (uint32_t i = 0; i < nobjects; i++) {
-		memcpy(data + offset, vertices[i].vertices,
-		       vertices[i].nvertexes * sizeof(struct vertex));
-		offset += vertices[i].nvertexes * sizeof(struct vertex);
-	}
-	// FIXME: Should be a loop here.
+	memcpy(data, vertices->vertices, bufferSize);
 	vkUnmapMemory(render->turtle->device, stagingBufferMemory);
 
 	VkBuffer vertex_buffer;

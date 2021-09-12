@@ -8,8 +8,9 @@
 struct swap_chain_data;
 
 struct trtl_seer_vertexset {
+	uint32_t vertex_size;
 	uint32_t nvertexes;
-	const struct vertex *vertices;
+	const void *vertices;
 };
 
 struct trtl_seer_indexset {

@@ -8,7 +8,6 @@
  * 	0 is width
  * 	1 is height (both floats)
  *
- *
  */
 #include <assert.h>
 #include <string.h>
@@ -67,7 +66,10 @@ set_specialise_info(VkExtent2D *extent)
 struct trtl_pipeline_info
 trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D extent,
 		     VkDescriptorSetLayout descriptor_set_layout, const char *vertex_shader,
-		     const char *fragment_shader)
+		     const char *fragment_shader,
+		     const VkVertexInputBindingDescription *binding_description,
+		     const VkVertexInputAttributeDescription *attribute_description,
+		     uint32_t nattributes)
 {
 	struct trtl_pipeline_info info;
 
@@ -75,6 +77,7 @@ trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D exten
 	struct trtl_shader *frag = trtl_shader_get(fragment_shader);
 
 	VkSpecializationInfo *specialisationInfo = set_specialise_info(&extent);
+	VkVertexInputAttributeDescription *tofree = NULL;
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {0};
 	vertShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -91,21 +94,28 @@ trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D exten
 
 	VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
-	VkVertexInputBindingDescription binding_description;
-
-	VkVertexInputAttributeDescription *attribute_description;
-
 	// So this should be cleverer, built ffrom the list objects
 	// And the vertexes for multiple objects, coallesced
-	binding_description = vertex_binding_description_get();
-	uint32_t nentries;
-	attribute_description = get_attribute_description_pair(&nentries);
+	VkVertexInputBindingDescription btmp;
+	if (binding_description == NULL) {
+		// FIXME: binding & attribute should both be set
+		// FIXME: Should pass these as a isngle struct to
+		// make the paramster sane
+		btmp = vertex_binding_description_get();
+		binding_description = &btmp;
+	}
+	bool free_attribute = false;
+	if (attribute_description == NULL) {
+		tofree = get_attribute_description_pair(&nattributes);
+		attribute_description = tofree;
+		free_attribute = true;
+	}
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.pVertexBindingDescriptions = &binding_description;
-	vertexInputInfo.vertexAttributeDescriptionCount = nentries;
+	vertexInputInfo.pVertexBindingDescriptions = binding_description;
+	vertexInputInfo.vertexAttributeDescriptionCount = nattributes;
 	vertexInputInfo.pVertexAttributeDescriptions = attribute_description;
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly = {0};
@@ -229,7 +239,7 @@ trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D exten
 		error("failed to create graphics pipeline!");
 	}
 
-	talloc_free(attribute_description);
+	if (tofree) talloc_free(tofree);
 
 	return info;
 }

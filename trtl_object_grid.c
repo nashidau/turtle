@@ -18,7 +18,6 @@
 #include "turtle.h"
 #include "vertex.h"
 
-
 #define FRAG_SHADER "shaders/grid/lines.spv"
 //#define FRAG_SHADER "shaders/grid/browns.spv"
 
@@ -45,6 +44,47 @@ struct trtl_object_grid {
 trtl_alloc static VkDescriptorSet *grid_create_descriptor_sets(struct trtl_object_grid *grid,
 							       struct swap_chain_data *scd);
 
+struct grid_vertex {
+	struct pos3d pos;
+	struct {
+		uint8_t x;
+		uint8_t y;
+		uint8_t seed;
+		uint8_t unused;
+	} tile;
+	struct pos2d tex_coord;
+};
+
+static const VkVertexInputAttributeDescription grid_vertex_description[3] = {
+    {
+	.binding = 0,
+	.location = 0,
+	.format = VK_FORMAT_R32G32B32_SFLOAT,
+	.offset = offsetof(struct grid_vertex, pos),
+    },
+    {
+	.binding = 0,
+	.location = 1,
+	.format = VK_FORMAT_R8G8B8A8_UINT,
+	.offset = offsetof(struct grid_vertex, tile),
+    },
+    {
+	.binding = 0,
+	.location = 2,
+	.format = VK_FORMAT_R32G32_SFLOAT,
+	.offset = offsetof(struct grid_vertex, tex_coord),
+    },
+};
+
+static const VkVertexInputBindingDescription grid_binding_descriptor = {
+    .binding = 0,
+    .stride = sizeof(struct grid_vertex),
+    // Should this be 'instance?'
+    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+};
+
+#define N_VERTEX_ATTRIBUTE_DESCRIPTORS TRTL_ARRAY_SIZE(grid_vertex_description)
+
 static VkDescriptorSetLayout grid_create_descriptor_set_layout(VkDevice device);
 
 // Inline function to cast from abstract to concrete type.
@@ -67,7 +107,7 @@ generate_grid(struct trtl_object_grid *grid, struct swap_chain_data *scd, uint16
 	const int vcount = tiles * 4;
 	const int icount = tiles * 6;
 
-	struct vertex *vertex = talloc_zero_array(grid, struct vertex, vcount);
+	struct grid_vertex *vertex = talloc_zero_array(grid, struct grid_vertex, vcount);
 	uint32_t *indices = talloc_zero_array(grid, uint32_t, icount);
 
 	for (int i = 0; i < tiles; i++) {
@@ -93,6 +133,22 @@ generate_grid(struct trtl_object_grid *grid, struct swap_chain_data *scd, uint16
 		vertex[i * 4 + 3].tex_coord.x = 1;
 		vertex[i * 4 + 3].tex_coord.y = 1;
 
+		vertex[i * 4].tile.x = col;
+		vertex[i * 4 + 1].tile.x = col;
+		vertex[i * 4 + 2].tile.x = col;
+		vertex[i * 4 + 3].tile.x = col;
+
+		vertex[i * 4].tile.y = row;
+		vertex[i * 4 + 1].tile.y = row;
+		vertex[i * 4 + 2].tile.y = row;
+		vertex[i * 4 + 3].tile.y = row;
+		
+		uint8_t seed = ((row + col * 87) * 48271) >> 4;
+		vertex[i * 4].tile.seed = seed;
+		vertex[i * 4 + 1].tile.seed = seed;
+		vertex[i * 4 + 2].tile.seed = seed;
+		vertex[i * 4 + 3].tile.seed = seed;
+		
 		indices[i * 6] = i * 4;
 		indices[i * 6 + 1] = i * 4 + 2;
 		indices[i * 6 + 2] = i * 4 + 1;
@@ -103,6 +159,7 @@ generate_grid(struct trtl_object_grid *grid, struct swap_chain_data *scd, uint16
 
 	{
 		struct trtl_seer_vertexset vertices;
+		vertices.vertex_size = sizeof(struct grid_vertex);
 		vertices.nvertexes = vcount;
 		vertices.vertices = vertex;
 
@@ -130,7 +187,8 @@ grid_resize(struct trtl_object *obj, struct swap_chain_data *scd, VkExtent2D siz
 	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
 	grid->pipeline_info = trtl_pipeline_create(
 	    scd->render->turtle->device, renderpasshack, size, grid->descriptor_set_layout,
-	    "shaders/grid/grid-vertex.spv", FRAG_SHADER);
+	    "shaders/grid/grid-vertex.spv", FRAG_SHADER, &grid_binding_descriptor,
+	    grid_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS);
 }
 
 static void
@@ -189,14 +247,7 @@ trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pas
 	    // trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
-	grid->descriptor_set_layout =
-	    grid_create_descriptor_set_layout(scd->render->turtle->device);
-	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
-
-	grid->pipeline_info =
-	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
-				 grid->descriptor_set_layout, "shaders/grid/grid-vertex.spv",
-				 FRAG_SHADER);
+	grid_resize((struct trtl_object *)grid, scd, extent);
 
 	generate_grid(grid, scd, width, height);
 

@@ -1,14 +1,18 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
 
 layout(binding = 1) uniform sampler2D texSampler;
 
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
+layout(location = 2) in vec2 tilePos;
+layout(location = 3) flat in u8vec4 tileData;
 
 layout(location = 0) out vec4 outColor;
 
-#define BORDER_WIDTH 0.01
+#define BORDER_WIDTH  0.01
+#define BORDER_ADJUST 0.01
 
 float random (in vec2 _st) {
     return fract(sin(dot(_st.xy,
@@ -19,7 +23,6 @@ float random (in vec2 _st) {
 float rand(in float x) {
 	return fract(sin(x)*1.0);
 }
-
 
 // 2D Noise based on Morgan McGuire @morgan3d
 // https://www.shadertoy.com/view/4dS3Wd
@@ -55,21 +58,25 @@ void main(){
 
     vec2 st = fragTexCoord;
 
+    uint8_t seed = tileData.z;
+
     // Enable this to force tiling
-    st = fract(st * 2.0);
+    // FIXME: SHould shift this a litte so 2 is less frequent, and 3 is infrequnt.
+    float mul = 1.0 + bitCount(seed & 0x7);
+    st = fract(st * mul);
 
     vec3 color = fragColor;
 
     // This is our borders
     // bottom-left
-    vec2 bl = step(vec2(BORDER_WIDTH),st);
+    vec2 bl = step(vec2(BORDER_WIDTH + BORDER_ADJUST * sin(st.x+st.y*7)),st);
     float pct = bl.x * bl.y;
     // top-right
     vec2 tr = step(vec2(BORDER_WIDTH),1.0-st);
     pct *= tr.x * tr.y;
 
     // The brown
-    float n = noise(st * 5);
+    float n = noise((fragTexCoord + 7 * tilePos) * 5);
  
     vec3 tileColor = mix(brown2, darkbrown, n);
 

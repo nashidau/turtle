@@ -19,7 +19,9 @@ static int vhash_netries(struct vhash *vhash, int *lookups);
 
 #define DEBUGTHIS 0
 
-trtl_pure VkVertexInputBindingDescription vertex_binding_description_get(void)
+// FIXME: This doesn't need to a function
+trtl_pure VkVertexInputBindingDescription
+vertex_binding_description_get(void)
 {
 	VkVertexInputBindingDescription bindingDescription = {};
 	bindingDescription.binding = 0;
@@ -29,7 +31,8 @@ trtl_pure VkVertexInputBindingDescription vertex_binding_description_get(void)
 	return bindingDescription;
 }
 
-VkVertexInputAttributeDescription *get_attribute_description_pair(uint32_t *nentries)
+VkVertexInputAttributeDescription *
+get_attribute_description_pair(uint32_t *nentries)
 {
 	VkVertexInputAttributeDescription *descriptions;
 
@@ -57,8 +60,9 @@ VkVertexInputAttributeDescription *get_attribute_description_pair(uint32_t *nent
 	return descriptions;
 }
 
-static void tinyobj_file_reader(void *ctx, const char *filename, int is_mtl,
-				const char *obj_filename, char **buf, size_t *len)
+static void
+tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj_filename,
+		    char **buf, size_t *len)
 {
 	struct blobby *blobby;
 
@@ -91,7 +95,8 @@ static void tinyobj_file_reader(void *ctx, const char *filename, int is_mtl,
  *
  * Returns a model structure, that should be freed with talloc_free.
  */
-struct trtl_model *load_model(const char *basename)
+struct trtl_model *
+load_model(const char *basename)
 {
 	void *ctx;
 	struct trtl_model *model;
@@ -189,14 +194,15 @@ struct vhash_node {
 	int32_t vindex;
 };
 
-static uint32_t hash(uint32_t vertex_index, uint32_t texture_index, uint32_t size)
+static uint32_t
+hash(uint32_t vertex_index, uint32_t texture_index, uint32_t size)
 {
 	return (vertex_index + texture_index) % size;
 }
 
 // Returns the index to use for this vertex.
-static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index,
-			  bool *created)
+static int32_t
+vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, bool *created)
 {
 	struct vhash_node *node;
 	uint32_t key = hash(vertex_index, texture_index, vhash->size);
@@ -226,7 +232,8 @@ static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t t
 	return node->vindex;
 }
 
-static struct vhash *vhash_init(int32_t size)
+static struct vhash *
+vhash_init(int32_t size)
 {
 	struct vhash *vhash;
 
@@ -239,7 +246,8 @@ static struct vhash *vhash_init(int32_t size)
 	return vhash;
 }
 
-static int vhash_netries(struct vhash *vhash, int *lookups)
+static int
+vhash_netries(struct vhash *vhash, int *lookups)
 {
 	if (lookups) *lookups = vhash->lookups;
 	return vhash->next;
