@@ -6,21 +6,25 @@ PKGS=talloc glfw3 check
 CTAGS=/opt/homebrew/bin/ctags
 
 # From: https://airbus-seclab.github.io/c-compiler-security/#clang-tldr
+# Removed: -Wfloat-equal
+# Removed: -Wcast-qual <- stb image is super unhappy about this
+# Not yet: -Wconversion; many of them
+# Not yet: -Wimplicit-fallthrough
+# Not yet: -Wswitch-enum (vulkan error messages
+# Not yet; built in is set to '0'; -D_FORTIFY_SOURCE=2
 WARNINGS= \
 	-Werror \
-	-Walloca -Wcast-qual -Wconversion -Wformat=2 -Wformat-security -Wnull-dereference \
+	-Wall -Wextra \
+	-Walloca -Wformat=2 -Wformat-security -Wnull-dereference \
 	-Wstack-protector -Wstrict-overflow=3 -Wvla -Warray-bounds \
 	-Warray-bounds-pointer-arithmetic -Wassign-enum -Wbad-function-cast \
-	-Wconditional-uninitialized -Wconversion -Wformat-type-confusion \
-	-Widiomatic-parentheses -Wimplicit-fallthrough -Wloop-analysis -Wpointer-arith \
-	-Wshift-sign-overflow -Wshorten-64-to-32 -Wswitch-enum \
+	-Wconditional-uninitialized  -Wformat-type-confusion \
+	-Widiomatic-parentheses -Wloop-analysis -Wpointer-arith \
+	-Wshift-sign-overflow -Wshorten-64-to-32 \
 	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive \
-	-D_FORTIFY_SOURCE=2 \
-	-fstack-protector-strong -fPIE
-# Removed: -Wfloat-equal
+	-fstack-protector-strong
 
-
-CFLAGS+=-g -O2 -Wall -Wextra `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
+CFLAGS+=-g -O2 ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
 	-iframework /Library/Frameworks  -Icglm/include -fsanitize=address
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
 	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
