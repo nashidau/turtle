@@ -60,6 +60,7 @@ enum trtl_debug {
 
 static enum trtl_debug debug = TRTL_DEBUG_INFO;
 
+__attribute__((format(printf, 2, 3)))
 static void
 verbose(enum trtl_debug msg_level, const char *fmt, ...)
 {

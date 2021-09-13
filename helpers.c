@@ -6,6 +6,7 @@
 
 #include "helpers.h"
 
+__attribute__((format(printf, 1, 2)))
 trtl_noreturn int
 error(const char *msg, ...) {
 	va_list ap;
@@ -19,6 +20,7 @@ error(const char *msg, ...) {
  * FIXME: Should have (runtime) option to exit on warning
  * FIXME: Should print line number and file of the caller
  */
+__attribute__((format(printf, 1, 2)))
 int
 warning(const char *msg, ...) {
 	va_list ap;
