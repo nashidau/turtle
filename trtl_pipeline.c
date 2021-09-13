@@ -50,7 +50,7 @@ set_specialise_info(VkExtent2D *extent)
 	entries[1].constantID = 1;
 	entries[1].size = sizeof(int);
 	entries[1].offset = sizeof(int);
-	data[1] = extent->width;
+	data[1] = extent->height;
 
 	// Tile size
 	entries[2].constantID = 2;
