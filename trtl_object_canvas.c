@@ -218,7 +218,7 @@ create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct swap_cha
 		error("failed to allocate descriptor sets!");
 	}
 
-	for (size_t i = 0; i < canvas->nframes; i++) {
+	for (uint32_t i = 0; i < canvas->nframes; i++) {
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(canvas->uniform_info, i);
 

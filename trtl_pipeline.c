@@ -55,7 +55,8 @@ set_specialise_info(VkExtent2D *extent)
 	// Tile size
 	entries[2].constantID = 2;
 	entries[2].size = sizeof(int);
-	entries[2].offset = entries[1].offset + entries[1].size;
+	// FIXME: This whole thing should be a stricut, then the casing is much better
+	entries[2].offset = 2 * sizeof(int);
 	data[2] = zoom;
 
 	info->dataSize = entries[2].offset + entries[2].size;

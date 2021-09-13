@@ -301,7 +301,7 @@ grid_create_descriptor_sets(struct trtl_object_grid *grid, struct swap_chain_dat
 		error("failed to allocate descriptor sets!");
 	}
 
-	for (size_t i = 0; i < grid->nframes; i++) {
+	for (uint32_t i = 0; i < grid->nframes; i++) {
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(grid->uniform_info, i);
 

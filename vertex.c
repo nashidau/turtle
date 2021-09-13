@@ -80,7 +80,8 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
 		return;
 	}
 
-	*buf = (char *)blobby->data;
+	// FIXME: tinyobj file reader should take const char
+	*buf = (char *)(uintptr_t)blobby->data;
 	*len = blobby->len;
 }
 

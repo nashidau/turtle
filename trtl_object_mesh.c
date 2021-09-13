@@ -184,7 +184,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *sc
 		error("failed to allocate descriptor sets!");
 	}
 
-	for (size_t i = 0; i < mesh->nframes; i++) {
+	for (uint32_t i = 0; i < mesh->nframes; i++) {
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(mesh->uniform_info, i);
 
