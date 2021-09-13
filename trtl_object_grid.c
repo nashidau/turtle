@@ -47,10 +47,9 @@ trtl_alloc static VkDescriptorSet *grid_create_descriptor_sets(struct trtl_objec
 struct grid_vertex {
 	struct pos3d pos;
 	struct {
-		uint8_t x;
-		uint8_t y;
-		uint8_t seed;
-		uint8_t unused;
+		uint32_t x;
+		uint32_t y;
+		uint32_t seed;
 	} tile;
 	struct pos2d tex_coord;
 };
@@ -65,7 +64,7 @@ static const VkVertexInputAttributeDescription grid_vertex_description[3] = {
     {
 	.binding = 0,
 	.location = 1,
-	.format = VK_FORMAT_R8G8B8A8_UINT,
+	.format = VK_FORMAT_R32G32B32_UINT,
 	.offset = offsetof(struct grid_vertex, tile),
     },
     {

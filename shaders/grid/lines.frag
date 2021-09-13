@@ -7,7 +7,7 @@ layout(binding = 1) uniform sampler2D texSampler;
 layout(location = 0) in vec3 fragColor;
 layout(location = 1) in vec2 fragTexCoord;
 layout(location = 2) in vec2 tilePos;
-layout(location = 3) flat in u8vec4 tileData;
+layout(location = 3) flat in uvec3 tileData;
 
 layout(location = 0) out vec4 outColor;
 
@@ -58,7 +58,7 @@ void main(){
 
     vec2 st = fragTexCoord;
 
-    uint8_t seed = tileData.z;
+    uint seed = tileData.z;
 
     // Enable this to force tiling
     // FIXME: SHould shift this a litte so 2 is less frequent, and 3 is infrequnt.

@@ -12,13 +12,13 @@ layout(binding = 0) uniform  pos2d {
 } centerPos;
 
 layout(location = 0) in vec3 inPosition;
-layout(location = 1) in u8vec4 tileData;
+layout(location = 1) in uvec3 tileData;
 layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec2 tilePos;
-layout(location = 3) out u8vec4 tileDataOut;
+layout(location = 3) out uvec3 tileDataOut;
 
 const float pi = 3.141592653589793;
 const float degree45 = pi / 4.0;
