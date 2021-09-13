@@ -238,8 +238,7 @@ createInstance(trtl_arg_unused GLFWwindow *window)
 	createInfo.pNext = &debug_create_info;
 
 	if (vkCreateInstance(&createInfo, NULL, &instance) != VK_SUCCESS) {
-		error("Unable tp create instance");
-		return 0;
+		error("Unable to create instance");
 	}
 	return instance;
 }

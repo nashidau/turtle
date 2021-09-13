@@ -96,7 +96,6 @@ create_shader(VkDevice device, struct blobby *blobby)
 
 	if (vkCreateShaderModule(device, &shader_info, NULL, &shader_module) != VK_SUCCESS) {
 		error("Create shader Module\n");
-		return 0;
 	}
 
 	talloc_free(blobby);

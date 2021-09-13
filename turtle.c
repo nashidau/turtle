@@ -51,6 +51,5 @@ uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
 	}
 
 	error("failed to find suitable memory type!");
-	return -1;
 }
 

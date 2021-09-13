@@ -168,7 +168,6 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 
 	} else {
 		error("Unknown object %s\n", name);
-		return -1;
 	}
 
 	seer.nobjects++;
@@ -185,7 +184,6 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 		if (objs == NULL) {
 			talloc_free(object);
 			error("Could not resize object array");
-			return -1;
 		}
 		layer->objects = objs;
 	}
