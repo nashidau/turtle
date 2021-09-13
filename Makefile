@@ -20,7 +20,7 @@ WARNINGS= \
 	-Warray-bounds-pointer-arithmetic -Wassign-enum -Wbad-function-cast \
 	-Wconditional-uninitialized  -Wformat-type-confusion \
 	-Widiomatic-parentheses -Wloop-analysis -Wpointer-arith \
-	-Wshift-sign-overflow -Wshorten-64-to-32 \
+	-Wshift-sign-overflow -Wshorten-64-to-32 -Wswitch-enum \
 	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive \
 	-fstack-protector-strong
 
