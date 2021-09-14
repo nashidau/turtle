@@ -83,7 +83,7 @@ static const char *required_extensions[] = {
 static const char *VALIDATION_LAYER = "VK_LAYER_KHRONOS_validation";
 
 // Belongs in render frame state
-static bool frame_buffer_resized = false;
+bool frame_buffer_resized = false;
 
 // Context stored with the main window.
 struct window_context {
@@ -105,67 +105,10 @@ VkDebugUtilsMessengerEXT debugMessenger;
 
 /** Window stuff (glfw) */
 
-static void
-window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
-		 trtl_arg_unused int height)
-{
-	frame_buffer_resized = true;
-	if (debug) printf("Window resized\n");
-}
 
-// FIXME: These should be in a nice game state stucture
-int posX = 0;
-int posY = 0;
-int zoom = 128;
 
-void
-key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
-	     trtl_arg_unused int mods)
-{
-	if (action == GLFW_PRESS) {
-		switch (key) {
-		case GLFW_KEY_RIGHT:
-			if (posX < 8) posX++;
-			break;
-		case GLFW_KEY_LEFT:
-			if (posX > 0) posX--;
-			break;
-		case GLFW_KEY_DOWN:
-			if (posY < 8) posY++;
-			break;
-		case GLFW_KEY_UP:
-			if (posY > 0) posY--;
-			break;
-		case GLFW_KEY_EQUAL:
-			zoom *= 2;
-			// FIXME: This is a terrible way to regen everything
-			frame_buffer_resized = true;
-			break;
-		case GLFW_KEY_MINUS:
-			if (zoom > 32) zoom /= 2;
-			frame_buffer_resized = true;
-			break;
-		}
-	}
-}
 
-GLFWwindow *
-window_init(void)
-{
-	GLFWwindow *window;
 
-	glfwInit();
-
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
-	window = glfwCreateWindow(800, 600, "Vulkan", NULL, NULL);
-	glfwSetFramebufferSizeCallback(window, window_resize_cb);
-
-	glfwSetKeyCallback(window, key_callback);
-
-	return window;
-}
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -1345,13 +1288,12 @@ main(int argc, char **argv)
 
 	printf("Validation Layer Support: %s\n", check_validation_layer_support() ? "Yes" : "No");
 
-	turtle = talloc(NULL, struct turtle);
+	turtle = turtle_init();
 
 	render = talloc(NULL, struct render_context);
 	talloc_set_destructor(render, render_context_destructor);
 	render->turtle = turtle;
 
-	render->turtle->window = window_init();
 	instance = createInstance(render->turtle->window);
 
 	setupDebugMessenger(instance);

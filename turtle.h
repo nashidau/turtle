@@ -92,6 +92,7 @@ typedef enum {
 
 int trtl_main_loop(struct turtle *turtle, struct render_context *render);
 
+struct turtle *turtle_init(void);
 
 
 

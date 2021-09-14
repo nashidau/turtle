@@ -1,13 +1,87 @@
+#include <talloc.h>
 
-
-#include "turtle.h"
 #include "helpers.h"
+#include "turtle.h"
 
 // FIXME: move into here or shell
-void
-draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemaphore image_semaphore,
-	   VkSemaphore renderFinishedSemaphore, VkFence fence);
+void draw_frame(struct render_context *render, struct swap_chain_data *scd,
+		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore, VkFence fence);
 
+extern bool frame_buffer_resized;
+
+static void window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
+			     trtl_arg_unused int height);
+static void key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode,
+			 int action, trtl_arg_unused int mods);
+
+
+// FIXME: These should be in a nice game state stucture
+int posX = 0;
+int posY = 0;
+int zoom = 128;
+
+// FIXME: Probably need a trtl_window file
+static void
+window_init(struct turtle *turtle, const char *title)
+{
+	glfwInit();
+
+	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+	turtle->window = glfwCreateWindow(800, 600, title, NULL, NULL);
+	glfwSetFramebufferSizeCallback(turtle->window, window_resize_cb);
+
+	glfwSetKeyCallback(turtle->window, key_callback);
+}
+
+void
+key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
+	     trtl_arg_unused int mods)
+{
+	if (action == GLFW_PRESS) {
+		switch (key) {
+		case GLFW_KEY_RIGHT:
+			if (posX < 8) posX++;
+			break;
+		case GLFW_KEY_LEFT:
+			if (posX > 0) posX--;
+			break;
+		case GLFW_KEY_DOWN:
+			if (posY < 8) posY++;
+			break;
+		case GLFW_KEY_UP:
+			if (posY > 0) posY--;
+			break;
+		case GLFW_KEY_EQUAL:
+			zoom *= 2;
+			// FIXME: This is a terrible way to regen everything
+			frame_buffer_resized = true;
+			break;
+		case GLFW_KEY_MINUS:
+			if (zoom > 32) zoom /= 2;
+			frame_buffer_resized = true;
+			break;
+		}
+	}
+}
+
+static void
+window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
+		 trtl_arg_unused int height)
+{
+	frame_buffer_resized = true;
+}
+
+struct turtle *
+turtle_init(void)
+{
+	struct turtle *turtle = talloc(NULL, struct turtle);
+
+	window_init(turtle, "Turtle");
+
+	return turtle;
+}
 
 int
 trtl_main_loop(struct turtle *turtle, struct render_context *render)
@@ -26,13 +100,13 @@ trtl_main_loop(struct turtle *turtle, struct render_context *render)
 	return 0;
 }
 
-
 /**
  * Create a generic buffer with the supplied flags.
  * Return is in VkBuffer/VkDeviceMemory,
  */
-void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
-		   VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory)
+void
+create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
+	      VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory)
 {
 	VkBufferCreateInfo bufferInfo = {};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -53,15 +127,16 @@ void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsa
 	allocInfo.memoryTypeIndex =
 	    findMemoryType(render, memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(render->turtle->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
+	if (vkAllocateMemory(render->turtle->device, &allocInfo, NULL, bufferMemory) !=
+	    VK_SUCCESS) {
 		error("failed to allocate buffer memory!");
 	}
 
 	vkBindBufferMemory(render->turtle->device, *buffer, *bufferMemory, 0);
 }
 
-uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
-			VkMemoryPropertyFlags properties)
+uint32_t
+findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(render->turtle->physical_device, &memProperties);
@@ -75,4 +150,3 @@ uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
 
 	error("failed to find suitable memory type!");
 }
-
