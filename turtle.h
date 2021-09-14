@@ -5,7 +5,6 @@
 
 #pragma once
 
-
 // c++, there is a C library at https://github.com/recp/cglm
 //#include <glm/glm.hpp>
 // This is the C version of glm; so these don't work
@@ -19,6 +18,8 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#define TRTL_MAX_FRAMES_IN_FLIGHT 2
+
 // Global structure for frequently used global state.
 // Everything here should not change frequently
 struct turtle {
@@ -26,9 +27,15 @@ struct turtle {
 	VkSurfaceKHR surface;
 	VkDevice device;
 	VkPhysicalDevice physical_device;
-	
+
 	// XXX: Does this belong here?
 	VkFormat image_format; // Swap chain image formt
+
+	struct {
+		VkSemaphore image_ready_sem[TRTL_MAX_FRAMES_IN_FLIGHT];
+		VkSemaphore render_done_sem[TRTL_MAX_FRAMES_IN_FLIGHT];
+		VkFence in_flight_fences[TRTL_MAX_FRAMES_IN_FLIGHT];
+	} barriers;
 };
 
 // All data used to render a frame
@@ -56,7 +63,7 @@ struct swap_chain_data {
 	VkImage *images;
 	uint32_t nimages;
 	VkImageView *image_views;
-	VkExtent2D extent;     // Extent of the images
+	VkExtent2D extent; // Extent of the images
 	VkDescriptorPool descriptor_pool;
 
 	uint32_t nbuffers;
@@ -81,6 +88,12 @@ typedef enum {
 	// Last counter
 	TRTL_RENDER_LAYER_TOTAL
 } trtl_render_layer_t;
+
+
+int trtl_main_loop(struct turtle *turtle, struct render_context *render);
+
+
+
 
 VkImage create_texture_image(struct render_context *render, const char *path);
 VkImageView create_texture_image_view(struct render_context *render, VkImage texture_image);

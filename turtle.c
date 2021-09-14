@@ -3,6 +3,29 @@
 #include "turtle.h"
 #include "helpers.h"
 
+// FIXME: move into here or shell
+void
+draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemaphore image_semaphore,
+	   VkSemaphore renderFinishedSemaphore, VkFence fence);
+
+
+int
+trtl_main_loop(struct turtle *turtle, struct render_context *render)
+{
+	int currentFrame = 0;
+	while (!glfwWindowShouldClose(render->turtle->window)) {
+		glfwPollEvents();
+		draw_frame(render, render->scd, turtle->barriers.image_ready_sem[currentFrame],
+			   turtle->barriers.render_done_sem[currentFrame],
+			   turtle->barriers.in_flight_fences[currentFrame]);
+		currentFrame++;
+		currentFrame %= TRTL_MAX_FRAMES_IN_FLIGHT;
+	}
+	vkDeviceWaitIdle(render->turtle->device);
+
+	return 0;
+}
+
 
 /**
  * Create a generic buffer with the supplied flags.

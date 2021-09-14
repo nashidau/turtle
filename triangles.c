@@ -60,8 +60,7 @@ enum trtl_debug {
 
 static enum trtl_debug debug = TRTL_DEBUG_INFO;
 
-__attribute__((format(printf, 2, 3)))
-static void
+__attribute__((format(printf, 2, 3))) static void
 verbose(enum trtl_debug msg_level, const char *fmt, ...)
 {
 	if (msg_level <= debug) {
@@ -143,8 +142,7 @@ key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int sc
 			frame_buffer_resized = true;
 			break;
 		case GLFW_KEY_MINUS:
-			if (zoom > 32)
-				zoom /= 2;
+			if (zoom > 32) zoom /= 2;
 			frame_buffer_resized = true;
 			break;
 		}
@@ -1223,16 +1221,6 @@ check_validation_layer_support(void)
 	return false;
 }
 
-int
-main_loop(GLFWwindow *window)
-{
-	while (!glfwWindowShouldClose(window)) {
-		glfwPollEvents();
-		// draw_frame();
-	}
-	return 0;
-}
-
 VkResult
 CreateDebugUtilsMessengerEXT(VkInstance instance,
 			     const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
@@ -1352,9 +1340,6 @@ main(int argc, char **argv)
 	struct render_context *render;
 	struct turtle *turtle;
 	VkInstance instance;
-	VkSemaphore image_ready_sem[MAX_FRAMES_IN_FLIGHT];
-	VkSemaphore render_done_sem[MAX_FRAMES_IN_FLIGHT];
-	VkFence in_flight_fences[MAX_FRAMES_IN_FLIGHT];
 
 	parse_arguments(argc, argv);
 
@@ -1406,9 +1391,9 @@ main(int argc, char **argv)
 	// and shoukd be done dynamically as the state of the worlld changes.
 	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		image_ready_sem[i] = create_semaphores(render->turtle->device);
-		render_done_sem[i] = create_semaphores(render->turtle->device);
-		in_flight_fences[i] = create_fences(render->turtle->device);
+		turtle->barriers.image_ready_sem[i] = create_semaphores(render->turtle->device);
+		turtle->barriers.render_done_sem[i] = create_semaphores(render->turtle->device);
+		turtle->barriers.in_flight_fences[i] = create_fences(render->turtle->device);
 	}
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
@@ -1417,15 +1402,7 @@ main(int argc, char **argv)
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
-	int currentFrame = 0;
-	while (!glfwWindowShouldClose(render->turtle->window)) {
-		glfwPollEvents();
-		draw_frame(render, render->scd, image_ready_sem[currentFrame],
-			   render_done_sem[currentFrame], in_flight_fences[currentFrame]);
-		currentFrame++;
-		currentFrame %= MAX_FRAMES_IN_FLIGHT;
-	}
-	vkDeviceWaitIdle(render->turtle->device);
+	trtl_main_loop(turtle, render);	
 
 	//	main_loop(window);
 

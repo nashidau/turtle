@@ -69,7 +69,9 @@ SHADERS= \
 OBJECTS := $(SOURCES:%.c=%.o)
 
 
-ALL: triangles trtl_check ${SHADERS} 
+#ALL: triangles trtl_check ${SHADERS} 
+# FIXME: trtl_check doesn't link at the moment.
+ALL: triangles ${SHADERS} 
 
 
 # Dependancies (from http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#tldr)
