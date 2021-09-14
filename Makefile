@@ -6,11 +6,10 @@ PKGS=talloc glfw3 check
 CTAGS=/opt/homebrew/bin/ctags
 
 # From: https://airbus-seclab.github.io/c-compiler-security/#clang-tldr
-# Removed: -Wfloat-equal
+# Removed: -Wfloat-equal <- too many floats
 # Removed: -Wcast-qual <- stb image is super unhappy about this
 # Not yet: -Wconversion; many of them
 # Not yet: -Wimplicit-fallthrough
-# Not yet: -Wswitch-enum (vulkan error messages
 # Not yet; built in is set to '0'; -D_FORTIFY_SOURCE=2
 WARNINGS= \
 	-Werror \

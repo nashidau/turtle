@@ -137,6 +137,7 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass ren
 
 	mesh->descriptor_set = create_descriptor_sets(mesh, scd);
 
+	// FIXME: Need to not leak this; and reuse other function
 	mesh->pipeline_info =
 	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
 				 descriptor_set_layout, "shaders/vert.spv", "shaders/frag.spv",
