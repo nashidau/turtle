@@ -83,7 +83,8 @@ COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
 
 %.o : %.c
 %.o : %.c $(DEPDIR)/%.d | $(DEPDIR)
-	$(COMPILE.c) $(OUTPUT_OPTION) $<
+	@echo Compile $<
+	@$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 $(DEPDIR): ; @mkdir -p $@
 
