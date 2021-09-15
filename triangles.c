@@ -51,29 +51,6 @@ struct trtl_uniform *evil_global_uniform;
 		_x > _y ? _x : _y;                                                                 \
 	})
 
-enum trtl_debug {
-	TRTL_DEBUG_ERROR = 0,
-	TRTL_DEBUG_WARNING = 1,
-	TRTL_DEBUG_INFO = 2,
-	TRTL_DEBUG_VERBOSE = 3,
-	TRTL_DEBUG_DEBUG = 4,
-};
-
-static enum trtl_debug debug = TRTL_DEBUG_INFO;
-
-__attribute__((format(printf, 2, 3))) static void
-verbose(enum trtl_debug msg_level, const char *fmt, ...)
-{
-	if (msg_level <= debug) {
-		va_list ap;
-		va_start(ap, fmt);
-		vprintf(fmt, ap);
-		va_end(ap);
-	}
-}
-
-#define LOG(x, ...) verbose(TRTL_DEBUG_##x, __VA_ARGS__)
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
 static const char *required_extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -81,7 +58,6 @@ static const char *required_extensions[] = {
 };
 #define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
 
-static const char *VALIDATION_LAYER = "VK_LAYER_KHRONOS_validation";
 
 // Belongs in render frame state
 bool frame_buffer_resized = false;
@@ -99,84 +75,9 @@ static void create_image(struct render_context *render, uint32_t width, uint32_t
 			 VkMemoryPropertyFlags properties, VkImage *image,
 			 VkDeviceMemory *imageMemory);
 
-// This has a big fixme on it
-VkDebugUtilsMessengerEXT debugMessenger;
 
 /** End Generic */
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL
-debugCallback(trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	      trtl_arg_unused VkDebugUtilsMessageTypeFlagsEXT messageType,
-	      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-	      trtl_arg_unused void *pUserData)
-{
-	LOG(VERBOSE, "Validation Layer: %s\n", pCallbackData->pMessage);
-
-	return VK_FALSE;
-}
-
-static VkDebugUtilsMessengerCreateInfoEXT
-populate_debug_messenger_create_info(void)
-{
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = {0};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-				     VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				     VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-				 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debugCallback;
-
-	return createInfo;
-}
-
-VkInstance
-createInstance(trtl_arg_unused GLFWwindow *window)
-{
-	VkInstance instance;
-
-	VkApplicationInfo appInfo;
-	appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-	appInfo.pApplicationName = "Hello Triangle";
-	appInfo.applicationVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.pEngineName = "No Engine";
-	appInfo.engineVersion = VK_MAKE_VERSION(1, 0, 0);
-	appInfo.apiVersion = VK_API_VERSION_1_0;
-
-	uint32_t glfwExtensionCount;
-	const char **glfwExtensions;
-	char **allExtensions;
-	glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-	printf("Need %d extensions\n", glfwExtensionCount);
-	for (uint32_t i = 0; i < glfwExtensionCount; i++) {
-		printf("  - %s\n", glfwExtensions[i]);
-	}
-
-	allExtensions = talloc_zero_array(NULL, char *, glfwExtensionCount + 1);
-	memcpy(allExtensions, glfwExtensions, glfwExtensionCount * sizeof(char *));
-	allExtensions[glfwExtensionCount] = strdup("VK_KHR_get_physical_device_properties2");
-
-	VkDebugUtilsMessengerCreateInfoEXT debug_create_info =
-	    populate_debug_messenger_create_info();
-
-	VkInstanceCreateInfo createInfo;
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledExtensionCount = glfwExtensionCount + 1;
-	createInfo.ppEnabledExtensionNames = (const char *const *)allExtensions;
-	// FIXME: A flag to toggle validation layers
-	// createInfo.enabledLayerCount = 0;
-	// createInfo.pNext = NULL;
-	createInfo.enabledLayerCount = 1;
-	createInfo.ppEnabledLayerNames = &VALIDATION_LAYER;
-	createInfo.pNext = &debug_create_info;
-
-	if (vkCreateInstance(&createInfo, NULL, &instance) != VK_SUCCESS) {
-		error("Unable to create instance");
-	}
-	return instance;
-}
 
 struct queue_family_indices {
 	uint32_t graphics_family;
@@ -207,9 +108,9 @@ check_device_extension_support(VkPhysicalDevice device)
 	uint32_t j;
 	for (uint32_t i = 0; i < N_REQUIRED_EXTENSIONS; i++) {
 		for (j = 0; j < extensionCount; j++) {
-			LOG(VERBOSE, "Found Extension: %s (%d)\n",
-			    available_extensions[j].extensionName,
-			    available_extensions[j].specVersion);
+			//LOG(VERBOSE, "Found Extension: %s (%d)\n",
+			 //   available_extensions[j].extensionName,
+			  //  available_extensions[j].specVersion);
 			if (strcmp(required_extensions[i], available_extensions[j].extensionName) ==
 			    0) {
 				break;
@@ -766,15 +667,6 @@ swap_chain_data_destructor(struct swap_chain_data *scd)
 	return 0;
 }
 
-static int
-render_context_destructor(trtl_arg_unused struct render_context *render)
-{
-	// FIXME: Destructor for the objects should do this
-	// vkDestroyImage(render->turtle->device, render->texture_image, NULL);
-	// vkFreeMemory(render->turtle->device, render->texture_image_memory, NULL);
-	return 0;
-}
-
 void
 recreate_swap_chain(struct render_context *render)
 {
@@ -1112,55 +1004,7 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemapho
 	}
 }
 
-static bool
-check_validation_layer_support(void)
-{
-	uint32_t layer_count;
-	vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
-	VkLayerProperties *available = talloc_array(NULL, VkLayerProperties, layer_count);
-	vkEnumerateInstanceLayerProperties(&layer_count, available);
-
-	for (uint32_t i = 0; i < layer_count; i++) {
-		VkLayerProperties layerName = available[i];
-		if (strcmp(VALIDATION_LAYER, layerName.layerName) == 0) {
-			talloc_free(available);
-			return true;
-		}
-	}
-
-	return false;
-}
-
-VkResult
-CreateDebugUtilsMessengerEXT(VkInstance instance,
-			     const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-			     const VkAllocationCallbacks *pAllocator,
-			     VkDebugUtilsMessengerEXT *pDebugMessenger)
-{
-	PFN_vkCreateDebugUtilsMessengerEXT func =
-	    (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-		instance, "vkCreateDebugUtilsMessengerEXT");
-	if (func != NULL) {
-		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-	} else {
-		return VK_ERROR_EXTENSION_NOT_PRESENT;
-	}
-}
-
-static void
-setupDebugMessenger(VkInstance instance)
-{
-	VkResult err;
-	// if (!enableValidationLayers) return;
-
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = populate_debug_messenger_create_info();
-
-	err = CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger);
-	if (err != VK_SUCCESS) {
-		// error_msg(err, "failed to set up debug messenger!");
-	}
-}
 
 static void
 show_usage(const char *binary)
@@ -1190,7 +1034,7 @@ parse_arguments(int argc, char **argv)
 			show_usage(argv[0]);
 			exit(0);
 		case 'd':
-			debug = 1;
+			//debug = 1;
 			continue;
 		case 'b':
 			objs_to_load[TRTL_RENDER_LAYER_BACKGROUND] =
@@ -1248,28 +1092,19 @@ load_objects(struct swap_chain_data *scd)
 int
 main(int argc, char **argv)
 {
-	struct render_context *render;
+	struct render_context *render = talloc_zero(NULL, struct render_context);
 	struct turtle *turtle;
-	VkInstance instance;
 
 	parse_arguments(argc, argv);
 
-	printf("Validation Layer Support: %s\n", check_validation_layer_support() ? "Yes" : "No");
 
 	turtle = turtle_init();
 
-	render = talloc(NULL, struct render_context);
-	talloc_set_destructor(render, render_context_destructor);
-	render->turtle = turtle;
 
-	instance = createInstance(render->turtle->window);
-
-	setupDebugMessenger(instance);
-
-	render->turtle->surface = create_surface(instance, render->turtle->window);
-	render->turtle->physical_device = pickPhysicalDevice(instance, render->turtle->surface);
-	render->turtle->device =
-	    create_logical_device(render->turtle->physical_device, render->turtle->surface,
+	turtle->surface = create_surface(turtle->instance, turtle->window);
+	turtle->physical_device = pickPhysicalDevice(turtle->instance, turtle->surface);
+	turtle->device =
+	    create_logical_device(turtle->physical_device, turtle->surface,
 				  &render->graphicsQueue, &render->presentQueue);
 
 	render->scd = create_swap_chain(render->turtle, render->turtle->physical_device,

@@ -36,6 +36,8 @@ struct turtle {
 		VkSemaphore render_done_sem[TRTL_MAX_FRAMES_IN_FLIGHT];
 		VkFence in_flight_fences[TRTL_MAX_FRAMES_IN_FLIGHT];
 	} barriers;
+
+	VkInstance instance;
 };
 
 // All data used to render a frame
