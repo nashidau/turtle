@@ -26,6 +26,7 @@
 #include "turtle.h"
 
 #include "stringlist.h"
+#include "trtl_barriers.h"
 #include "trtl_object.h"
 #include "trtl_seer.h"
 #include "trtl_uniform.h"
@@ -102,13 +103,6 @@ static void create_image(struct render_context *render, uint32_t width, uint32_t
 VkDebugUtilsMessengerEXT debugMessenger;
 
 /** End Generic */
-
-/** Window stuff (glfw) */
-
-
-
-
-
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 debugCallback(trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -747,32 +741,6 @@ create_depth_resources(struct swap_chain_data *scd)
 	scd->depth_image_view = create_image_view(scd->render, scd->depth_image, depthFormat,
 						  VK_IMAGE_ASPECT_DEPTH_BIT);
 }
-
-VkSemaphore
-create_semaphores(VkDevice device)
-{
-	VkSemaphoreCreateInfo sem_info = {0};
-	VkSemaphore sem;
-	sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	if (vkCreateSemaphore(device, &sem_info, NULL, &sem)) {
-		error("failed tocreate sem");
-	}
-	return sem;
-}
-
-VkFence
-create_fences(VkDevice device)
-{
-	VkFenceCreateInfo fenceInfo = {0};
-	VkFence fence;
-	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	if (vkCreateFence(device, &fenceInfo, NULL, &fence) != VK_SUCCESS) {
-		error("Failed to create fence");
-	}
-	return fence;
-}
-
 static int
 swap_chain_data_destructor(struct swap_chain_data *scd)
 {
@@ -1326,17 +1294,12 @@ main(int argc, char **argv)
 
 	load_objects(scd);
 
-	// FIXME: all object ot update it's descriptor sets
-	// scd->descriptor_sets = create_descriptor_sets(scd);
-
 	// FIXME: This is a hack, this shoudl be managed by seer,
 	// and shoukd be done dynamically as the state of the worlld changes.
 	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
-	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-		turtle->barriers.image_ready_sem[i] = create_semaphores(render->turtle->device);
-		turtle->barriers.render_done_sem[i] = create_semaphores(render->turtle->device);
-		turtle->barriers.in_flight_fences[i] = create_fences(render->turtle->device);
-	}
+
+	trtl_barriers_init(render->turtle, MAX_FRAMES_IN_FLIGHT);
+
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
 	// createInfo.pNext = &debug_create_info;

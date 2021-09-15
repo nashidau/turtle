@@ -45,6 +45,7 @@ SOURCES= \
 	helpers.c	\
 	objloader.c	\
 	blobby.c	\
+	trtl_barriers.c \
 	trtl_uniform.c	\
 	trtl_object_mesh.c	\
 	trtl_object_canvas.c	\

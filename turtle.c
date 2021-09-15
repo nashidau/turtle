@@ -2,6 +2,7 @@
 
 #include "helpers.h"
 #include "turtle.h"
+#include "trtl_barriers.h"
 
 // FIXME: move into here or shell
 void draw_frame(struct render_context *render, struct swap_chain_data *scd,
@@ -79,6 +80,9 @@ turtle_init(void)
 	struct turtle *turtle = talloc(NULL, struct turtle);
 
 	window_init(turtle, "Turtle");
+
+
+	// trtl_barriers_init();
 
 	return turtle;
 }
