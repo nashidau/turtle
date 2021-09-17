@@ -175,19 +175,6 @@ is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
 	       swapChainAdequate && supportedFeatures.samplerAnisotropy;
 }
 
-VkSurfaceKHR
-create_surface(VkInstance instance, GLFWwindow *window)
-{
-	VkSurfaceKHR surface;
-	VkResult result;
-	result = glfwCreateWindowSurface(instance, window, NULL, &surface);
-	if (result != VK_SUCCESS) {
-		printf("failed to create window surface! %d\n", result);
-		error("bailing");
-	}
-	return surface;
-}
-
 VkPhysicalDevice
 pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
 {
@@ -1101,8 +1088,6 @@ main(int argc, char **argv)
 	turtle = turtle_init();
 	render->turtle = turtle;
 
-
-	turtle->surface = create_surface(turtle->instance, turtle->window);
 	turtle->physical_device = pickPhysicalDevice(turtle->instance, turtle->surface);
 	turtle->device =
 	    create_logical_device(turtle->physical_device, turtle->surface,

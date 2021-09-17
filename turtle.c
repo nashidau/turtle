@@ -126,7 +126,18 @@ create_instance(const char *name)
 }
 
 
-
+static VkSurfaceKHR
+create_surface(VkInstance instance, GLFWwindow *window)
+{
+	VkSurfaceKHR surface;
+	VkResult result;
+	result = glfwCreateWindowSurface(instance, window, NULL, &surface);
+	if (result != VK_SUCCESS) {
+		printf("failed to create window surface! %d\n", result);
+		error("bailing");
+	}
+	return surface;
+}
 
 struct turtle *
 turtle_init(void)
@@ -140,6 +151,8 @@ turtle_init(void)
 	turtle->instance = create_instance("Turtle");
 
 	trtl_setup_debug_messenger(turtle->instance);
+
+	turtle->surface = create_surface(turtle->instance, turtle->window);
 
 	// trtl_barriers_init();
 
@@ -217,6 +230,8 @@ findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPrope
 static int
 turtle_destructor(struct turtle *turtle) {
 	printf("destructor for %p\n", turtle);
+
+	vkDestroySurfaceKHR(turtle->instance, turtle->surface, NULL);
 
 	return 0;
 }
