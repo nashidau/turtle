@@ -1099,6 +1099,7 @@ main(int argc, char **argv)
 
 
 	turtle = turtle_init();
+	render->turtle = turtle;
 
 
 	turtle->surface = create_surface(turtle->instance, turtle->window);
@@ -1107,15 +1108,15 @@ main(int argc, char **argv)
 	    create_logical_device(turtle->physical_device, turtle->surface,
 				  &render->graphicsQueue, &render->presentQueue);
 
-	render->scd = create_swap_chain(render->turtle, render->turtle->physical_device,
-					render->turtle->surface);
+	render->scd = create_swap_chain(turtle, turtle->physical_device,
+					turtle->surface);
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
-	create_image_views(render->turtle->device, render->scd);
+	create_image_views(turtle->device, render->scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 
 	scd->command_pool = create_command_pool(
-	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
+	    turtle->device, turtle->physical_device, turtle->surface);
 	create_depth_resources(scd);
 
 	// Init the trtl Uniform buffers; We have one currently
@@ -1125,7 +1126,7 @@ main(int argc, char **argv)
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
 	// FIXME: Object is destroyed when screen chages; wrong
-	trtl_seer_init(render->turtle, scd->extent);
+	trtl_seer_init(turtle, scd->extent);
 
 	load_objects(scd);
 
@@ -1133,7 +1134,7 @@ main(int argc, char **argv)
 	// and shoukd be done dynamically as the state of the worlld changes.
 	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
 
-	trtl_barriers_init(render->turtle, MAX_FRAMES_IN_FLIGHT);
+	trtl_barriers_init(turtle, MAX_FRAMES_IN_FLIGHT);
 
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
