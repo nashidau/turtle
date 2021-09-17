@@ -1113,6 +1113,8 @@ main(int argc, char **argv)
 	// FIXME: Object is destroyed when screen chages; wrong
 	trtl_seer_init(turtle, scd->extent);
 
+	// Above here shold be in turtle_init.
+	
 	load_objects(scd);
 
 	// FIXME: This is a hack, this shoudl be managed by seer,
@@ -1121,9 +1123,10 @@ main(int argc, char **argv)
 
 	trtl_barriers_init(turtle, MAX_FRAMES_IN_FLIGHT);
 
+
+	// This should go into main loop
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
-	// createInfo.pNext = &debug_create_info;
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
