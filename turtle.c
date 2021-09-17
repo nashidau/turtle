@@ -14,9 +14,6 @@
 static int turtle_destructor(struct turtle *turtle);
 
 
-// This has a big fixme on it
-VkDebugUtilsMessengerEXT debugMessenger;
-static const char *VALIDATION_LAYER = "VK_LAYER_KHRONOS_validation";
 
 // FIXME: move into here or shell
 void draw_frame(struct render_context *render, struct swap_chain_data *scd,
@@ -88,52 +85,6 @@ window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
 	frame_buffer_resized = true;
 }
 
-static VKAPI_ATTR VkBool32 VKAPI_CALL
-debugCallback(trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	      trtl_arg_unused VkDebugUtilsMessageTypeFlagsEXT messageType,
-	      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
-	      trtl_arg_unused void *pUserData)
-{
-	LOG(VERBOSE, "Validation Layer: %s\n", pCallbackData->pMessage);
-
-	return VK_FALSE;
-}
-
-static VkDebugUtilsMessengerCreateInfoEXT
-populate_debug_messenger_create_info(void)
-{
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = {0};
-	createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-	createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-				     VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-				     VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-				 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-				 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-	createInfo.pfnUserCallback = debugCallback;
-
-	return createInfo;
-}
-
-static bool
-check_validation_layer_support(void)
-{
-	uint32_t layer_count;
-	vkEnumerateInstanceLayerProperties(&layer_count, NULL);
-
-	VkLayerProperties *available = talloc_array(NULL, VkLayerProperties, layer_count);
-	vkEnumerateInstanceLayerProperties(&layer_count, available);
-
-	for (uint32_t i = 0; i < layer_count ; i++) {
-		VkLayerProperties layer_name = available[i];
-		if (strcmp(VALIDATION_LAYER, layer_name.layerName) == 0) {
-			talloc_free(available);
-			return true;
-		}
-	}
-	return false;
-}
-
 static VkInstance
 create_instance(const char *name)
 {
@@ -160,54 +111,21 @@ create_instance(const char *name)
 	memcpy(allExtensions, glfwExtensions, glfwExtensionCount * sizeof(char *));
 	allExtensions[glfwExtensionCount] = strdup("VK_KHR_get_physical_device_properties2");
 
-	VkDebugUtilsMessengerCreateInfoEXT debug_create_info =
-	    populate_debug_messenger_create_info();
 
-	VkInstanceCreateInfo createInfo;
-	createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-	createInfo.pApplicationInfo = &appInfo;
-	createInfo.enabledExtensionCount = glfwExtensionCount + 1;
-	createInfo.ppEnabledExtensionNames = (const char *const *)allExtensions;
-	// FIXME: A flag to toggle validation layers
-	// createInfo.enabledLayerCount = 0;
-	// createInfo.pNext = NULL;
-	createInfo.enabledLayerCount = 1;
-	createInfo.ppEnabledLayerNames = &VALIDATION_LAYER;
-	createInfo.pNext = &debug_create_info;
+	VkInstanceCreateInfo create_info;
+	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	create_info.pApplicationInfo = &appInfo;
+	create_info.enabledExtensionCount = glfwExtensionCount + 1;
+	create_info.ppEnabledExtensionNames = (const char *const *)allExtensions;
+	trtl_scribe_upadate_validation(&create_info);
 
-	if (vkCreateInstance(&createInfo, NULL, &instance) != VK_SUCCESS) {
+	if (vkCreateInstance(&create_info, NULL, &instance) != VK_SUCCESS) {
 		error("Unable to create instance");
 	}
 	return instance;
 }
 
-VkResult
-CreateDebugUtilsMessengerEXT(VkInstance instance,
-			     const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
-			     const VkAllocationCallbacks *pAllocator,
-			     VkDebugUtilsMessengerEXT *pDebugMessenger)
-{
-	PFN_vkCreateDebugUtilsMessengerEXT func =
-	    (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
-		instance, "vkCreateDebugUtilsMessengerEXT");
-	if (func != NULL) {
-		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
-	} else {
-		return VK_ERROR_EXTENSION_NOT_PRESENT;
-	}
-}
 
-static void
-setupDebugMessenger(VkInstance instance) {
-	VkResult err;
-
-	VkDebugUtilsMessengerCreateInfoEXT createInfo = populate_debug_messenger_create_info();
-
-	err = CreateDebugUtilsMessengerEXT(instance, &createInfo, NULL, &debugMessenger);
-	if (err != VK_SUCCESS) {
-		printf("Failed to cretate debug messenger\n");
-	}
-}
 
 
 struct turtle *
@@ -215,13 +133,13 @@ turtle_init(void)
 {
 	struct turtle *turtle = talloc(NULL, struct turtle);
 	talloc_set_destructor(turtle, turtle_destructor);
-	printf("Validation Layer Support: %s\n", check_validation_layer_support() ? "Yes" : "No");
+	printf("Validation Layer Support: %s\n", trtl_scribe_check_validation_layer_support() ? "Yes" : "No");
 
 	window_init(turtle, "Turtle");
 
 	turtle->instance = create_instance("Turtle");
 
-	setupDebugMessenger(turtle->instance);
+	trtl_setup_debug_messenger(turtle->instance);
 
 	// trtl_barriers_init();
 
