@@ -38,6 +38,10 @@ struct turtle {
 	} barriers;
 
 	VkInstance instance;
+
+
+	VkQueue graphicsQueue;
+	VkQueue presentQueue;
 };
 
 // All data used to render a frame
@@ -46,8 +50,6 @@ struct render_context {
 
 	VkDescriptorSetLayout descriptor_set_layout;
 
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
 
 	struct swap_chain_data *scd;
 
@@ -55,6 +57,7 @@ struct render_context {
 
 	// Textures
 	VkSampler texture_sampler;
+
 };
 
 struct swap_chain_data {
@@ -83,6 +86,25 @@ struct UniformBufferObject {
 	mat4 view;
 	mat4 proj;
 };
+
+// FIXME: SHoudl move into the turtle.h (or a make device.h)
+// once the swap chain code has moved across
+struct swap_chain_support_details {
+	VkSurfaceCapabilitiesKHR capabilities;
+	uint32_t nformats;
+	uint32_t npresentmodes;
+	VkSurfaceFormatKHR *formats;
+	VkPresentModeKHR *presentModes;
+};
+
+struct queue_family_indices {
+	uint32_t graphics_family;
+	uint32_t present_family;
+	bool has_graphics;
+	bool has_present;
+};
+
+
 
 typedef enum {
 	TRTL_RENDER_LAYER_BACKGROUND = 0,

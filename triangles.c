@@ -52,13 +52,6 @@ struct trtl_uniform *evil_global_uniform;
 	})
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
-static const char *required_extensions[] = {
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
-};
-#define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
-
-
 // Belongs in render frame state
 bool frame_buffer_resized = false;
 
@@ -68,188 +61,12 @@ struct window_context {
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
-static struct queue_family_indices find_queue_families(VkPhysicalDevice device,
-						       VkSurfaceKHR surface);
 static void create_image(struct render_context *render, uint32_t width, uint32_t height,
 			 VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
 			 VkMemoryPropertyFlags properties, VkImage *image,
 			 VkDeviceMemory *imageMemory);
 
-
 /** End Generic */
-
-
-struct queue_family_indices {
-	uint32_t graphics_family;
-	uint32_t present_family;
-	bool has_graphics;
-	bool has_present;
-};
-
-struct swap_chain_support_details {
-	VkSurfaceCapabilitiesKHR capabilities;
-	uint32_t nformats;
-	uint32_t npresentmodes;
-	VkSurfaceFormatKHR *formats;
-	VkPresentModeKHR *presentModes;
-};
-
-static bool
-check_device_extension_support(VkPhysicalDevice device)
-{
-	uint32_t extensionCount;
-	VkExtensionProperties *available_extensions;
-
-	vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, NULL);
-
-	available_extensions = talloc_array(NULL, VkExtensionProperties, extensionCount);
-	vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, available_extensions);
-
-	uint32_t j;
-	for (uint32_t i = 0; i < N_REQUIRED_EXTENSIONS; i++) {
-		for (j = 0; j < extensionCount; j++) {
-			//LOG(VERBOSE, "Found Extension: %s (%d)\n",
-			 //   available_extensions[j].extensionName,
-			  //  available_extensions[j].specVersion);
-			if (strcmp(required_extensions[i], available_extensions[j].extensionName) ==
-			    0) {
-				break;
-			}
-		}
-		if (j == extensionCount) {
-			return false;
-		}
-	}
-	return true;
-}
-
-static struct swap_chain_support_details *
-query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
-{
-	struct swap_chain_support_details *details;
-	details = talloc(NULL, struct swap_chain_support_details);
-
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details->capabilities);
-
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details->nformats, NULL);
-
-	if (details->nformats != 0) {
-		details->formats = talloc_array(details, VkSurfaceFormatKHR, details->nformats);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &details->nformats,
-						     details->formats);
-	}
-
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details->npresentmodes, NULL);
-
-	if (details->npresentmodes != 0) {
-		details->presentModes =
-		    talloc_array(details, VkPresentModeKHR, details->npresentmodes);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &details->npresentmodes,
-							  details->presentModes);
-	}
-
-	return details;
-}
-
-static bool
-is_device_suitable(VkPhysicalDevice physical_device, VkSurfaceKHR surface)
-{
-	struct queue_family_indices indices = find_queue_families(physical_device, surface);
-	struct swap_chain_support_details *swap_chain_support;
-
-	bool extensionsSupported = check_device_extension_support(physical_device);
-
-	bool swapChainAdequate = false;
-	if (extensionsSupported) {
-		swap_chain_support = query_swap_chain_support(physical_device, surface);
-		if (swap_chain_support->npresentmodes > 0 && swap_chain_support->nformats > 0) {
-			swapChainAdequate = true;
-		}
-		talloc_free(swap_chain_support);
-	}
-
-	VkPhysicalDeviceFeatures supportedFeatures;
-	vkGetPhysicalDeviceFeatures(physical_device, &supportedFeatures);
-
-	return indices.has_present && indices.has_present && extensionsSupported &&
-	       swapChainAdequate && supportedFeatures.samplerAnisotropy;
-}
-
-VkPhysicalDevice
-pickPhysicalDevice(VkInstance instance, VkSurfaceKHR surface)
-{
-	uint32_t deviceCount = 0;
-	// Urgh; leaky leaky leak
-	VkPhysicalDevice *devices;
-	VkPhysicalDevice candidate;
-
-	vkEnumeratePhysicalDevices(instance, &deviceCount, NULL);
-
-	if (deviceCount == 0) {
-		error("failed to find GPUs with Vulkan support!");
-		return NULL;
-	}
-
-	devices = talloc_array(NULL, VkPhysicalDevice, deviceCount);
-
-	vkEnumeratePhysicalDevices(instance, &deviceCount, devices);
-	printf("Found %d devices\n", deviceCount);
-	candidate = VK_NULL_HANDLE;
-
-	for (uint32_t i = 0; i < deviceCount; i++) {
-		if (is_device_suitable(devices[i], surface)) {
-			candidate = devices[i];
-			break;
-		}
-	}
-
-	if (candidate == VK_NULL_HANDLE) {
-		error("Unable to find suitable device\n");
-	}
-
-	return candidate;
-}
-
-static struct queue_family_indices
-find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
-{
-	struct queue_family_indices indices = {0, 0, false, false};
-	VkQueueFamilyProperties *properties;
-
-	uint32_t queueFamilyCount = 0;
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, NULL);
-
-	properties = talloc_array(NULL, VkQueueFamilyProperties, queueFamilyCount);
-	memset(properties, 0, sizeof(VkQueueFamilyProperties) * queueFamilyCount);
-
-	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, properties);
-
-	for (uint32_t i = 0; i < queueFamilyCount; i++) {
-		VkQueueFamilyProperties *queue_family = properties + i;
-
-		if (!indices.has_graphics) {
-			if (queue_family->queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				indices.graphics_family = i;
-				indices.has_graphics = true;
-				continue;
-			}
-		}
-
-		VkBool32 presentSupport = false;
-		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &presentSupport);
-
-		if (presentSupport) {
-			indices.present_family = i;
-			indices.has_present = true;
-		}
-
-		if (indices.has_present && indices.has_graphics) {
-			break;
-		}
-	}
-
-	return indices;
-}
 
 static VkFormat
 find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, VkFormat *candidates,
@@ -281,57 +98,6 @@ find_depth_format(VkPhysicalDevice physical_device)
 	return find_supported_format(physical_device, TRTL_ARRAY_SIZE(formats), formats,
 				     VK_IMAGE_TILING_OPTIMAL,
 				     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-}
-
-static VkDevice
-create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue *graphicsQueue,
-		      VkQueue *presentQueue)
-{
-	struct queue_family_indices queue_family_indices;
-	float queue_priority = 1.0f;
-	VkDevice device;
-	VkDeviceQueueCreateInfo queue_info[2] = {0};
-	VkPhysicalDeviceFeatures device_features = {
-	    .samplerAnisotropy = VK_TRUE,
-	};
-	VkDeviceCreateInfo device_info = {
-	    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-	    .pNext = NULL,
-	    .flags = 0,
-	    .queueCreateInfoCount = TRTL_ARRAY_SIZE(queue_info),
-	    .pQueueCreateInfos = queue_info,
-	    .enabledLayerCount = 0,
-	    .ppEnabledLayerNames = NULL,
-	    .enabledExtensionCount = N_REQUIRED_EXTENSIONS,
-	    .ppEnabledExtensionNames = required_extensions,
-	    .pEnabledFeatures = &device_features,
-	};
-
-	// Once for graphics, once for present
-	queue_family_indices = find_queue_families(physicalDevice, surface);
-
-	queue_info[0].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queue_info[0].queueFamilyIndex = queue_family_indices.graphics_family;
-	queue_info[0].queueCount = 1;
-	queue_info[0].pQueuePriorities = &queue_priority;
-
-	queue_info[1].sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-	queue_info[1].queueFamilyIndex = queue_family_indices.present_family;
-	queue_info[1].queueCount = 1;
-	queue_info[1].pQueuePriorities = &queue_priority;
-	// FIXME: Should be distinct
-	printf("queue_info: %d %d\n", queue_family_indices.graphics_family,
-	       queue_family_indices.present_family);
-
-	VkResult result = vkCreateDevice(physicalDevice, &device_info, NULL, &device);
-	if (result != VK_SUCCESS) {
-		error_msg(result, "vkCreateDevice");
-	}
-
-	vkGetDeviceQueue(device, queue_family_indices.graphics_family, 0, graphicsQueue);
-	vkGetDeviceQueue(device, queue_family_indices.present_family, 0, presentQueue);
-
-	return device;
 }
 
 const VkSurfaceFormatKHR *
@@ -389,6 +155,12 @@ chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
 		return actualExtent;
 	}
 }
+
+// In turtle .c
+struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
+
+struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice device,
+							    VkSurfaceKHR surface);
 
 struct swap_chain_data *
 create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
@@ -523,17 +295,18 @@ create_texture_sampler(struct render_context *render)
 	return sampler;
 }
 
+// FIXME: There should be a nice single command
 VkCommandBuffer
-beginSingleTimeCommands(struct render_context *render)
+beginSingleTimeCommands(struct turtle *turtle, VkCommandPool command_pool)
 {
 	VkCommandBufferAllocateInfo allocInfo = {0};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = render->scd->command_pool;
+	allocInfo.commandPool = command_pool;
 	allocInfo.commandBufferCount = 1;
 
 	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(render->turtle->device, &allocInfo, &commandBuffer);
+	vkAllocateCommandBuffers(turtle->device, &allocInfo, &commandBuffer);
 
 	VkCommandBufferBeginInfo beginInfo = {0};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -545,7 +318,8 @@ beginSingleTimeCommands(struct render_context *render)
 }
 
 void
-endSingleTimeCommands(struct render_context *render, VkCommandBuffer commandBuffer)
+endSingleTimeCommands(struct turtle *turtle, VkCommandBuffer commandBuffer,
+		      VkCommandPool command_pool)
 {
 	vkEndCommandBuffer(commandBuffer);
 
@@ -554,10 +328,10 @@ endSingleTimeCommands(struct render_context *render, VkCommandBuffer commandBuff
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &commandBuffer;
 
-	vkQueueSubmit(render->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(render->graphicsQueue);
+	vkQueueSubmit(turtle->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
+	vkQueueWaitIdle(turtle->graphicsQueue);
 
-	vkFreeCommandBuffers(render->turtle->device, render->scd->command_pool, 1, &commandBuffer);
+	vkFreeCommandBuffers(turtle->device, command_pool, 1, &commandBuffer);
 }
 
 VkDescriptorSetLayout
@@ -769,10 +543,11 @@ create_image(struct render_context *render, uint32_t width, uint32_t height, VkF
 }
 
 void
-transitionImageLayout(struct render_context *render, VkImage image, trtl_arg_unused VkFormat format,
-		      VkImageLayout oldLayout, VkImageLayout newLayout)
+transitionImageLayout(struct turtle *turtle, struct render_context *render, VkImage image,
+		      trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
+		      VkImageLayout newLayout)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands(turtle, render->scd->command_pool);
 
 	VkImageMemoryBarrier barrier = {0};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -811,14 +586,14 @@ transitionImageLayout(struct render_context *render, VkImage image, trtl_arg_unu
 	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, NULL, 0, NULL, 1,
 			     &barrier);
 
-	endSingleTimeCommands(render, commandBuffer);
+	endSingleTimeCommands(turtle, commandBuffer, render->scd->command_pool);
 }
 
 void
-copyBufferToImage(struct render_context *render, VkBuffer buffer, VkImage image, uint32_t width,
-		  uint32_t height)
+copyBufferToImage(struct turtle *turtle, struct render_context *render, VkBuffer buffer,
+		  VkImage image, uint32_t width, uint32_t height)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
+	VkCommandBuffer commandBuffer = beginSingleTimeCommands(turtle, render->scd->command_pool);
 
 	VkBufferImageCopy region = {0};
 	region.bufferOffset = 0;
@@ -834,14 +609,15 @@ copyBufferToImage(struct render_context *render, VkBuffer buffer, VkImage image,
 	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			       1, &region);
 
-	endSingleTimeCommands(render, commandBuffer);
+	endSingleTimeCommands(turtle, commandBuffer, render->scd->command_pool);
 }
 
 void
 copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImage image, uint32_t width,
 		     uint32_t height)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
+	VkCommandBuffer commandBuffer =
+	    beginSingleTimeCommands(render->turtle, render->scd->command_pool);
 
 	VkBufferImageCopy region = {0};
 	region.bufferOffset = 0;
@@ -857,7 +633,7 @@ copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImage ima
 	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			       1, &region);
 
-	endSingleTimeCommands(render, commandBuffer);
+	endSingleTimeCommands(render->turtle, commandBuffer, render->scd->command_pool);
 }
 
 VkImage
@@ -891,10 +667,10 @@ create_texture_image(struct render_context *render, const char *path)
 		     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &image, &imageMemory);
 
-	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+	transitionImageLayout(render->turtle, render, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
 			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	copy_buffer_to_image(render, staging_buffer, image, width, height);
-	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB,
+	transitionImageLayout(render->turtle, render, image, VK_FORMAT_R8G8B8A8_SRGB,
 			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
@@ -962,10 +738,10 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemapho
 
 	vkResetFences(device, 1, &fence);
 
-	result = vkQueueSubmit(render->graphicsQueue, 1, &submitInfo, fence);
+	result = vkQueueSubmit(render->turtle->graphicsQueue, 1, &submitInfo, fence);
 	if (result != VK_SUCCESS) {
 		printf("failed to submit draw command buffer %d! %p %p %p\n", result,
-		       render->graphicsQueue, &submitInfo, fence);
+		       render->turtle->graphicsQueue, &submitInfo, fence);
 		exit(1);
 	}
 
@@ -980,7 +756,7 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemapho
 
 	presentInfo.pImageIndices = &imageIndex;
 
-	result = vkQueuePresentKHR(render->presentQueue, &presentInfo);
+	result = vkQueuePresentKHR(render->turtle->presentQueue, &presentInfo);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
 	    frame_buffer_resized) {
@@ -990,8 +766,6 @@ draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemapho
 		error("Failed to present swap chain image");
 	}
 }
-
-
 
 static void
 show_usage(const char *binary)
@@ -1021,7 +795,7 @@ parse_arguments(int argc, char **argv)
 			show_usage(argv[0]);
 			exit(0);
 		case 'd':
-			//debug = 1;
+			// debug = 1;
 			continue;
 		case 'b':
 			objs_to_load[TRTL_RENDER_LAYER_BACKGROUND] =
@@ -1084,24 +858,17 @@ main(int argc, char **argv)
 
 	parse_arguments(argc, argv);
 
-
 	turtle = turtle_init();
 	render->turtle = turtle;
 
-	turtle->physical_device = pickPhysicalDevice(turtle->instance, turtle->surface);
-	turtle->device =
-	    create_logical_device(turtle->physical_device, turtle->surface,
-				  &render->graphicsQueue, &render->presentQueue);
-
-	render->scd = create_swap_chain(turtle, turtle->physical_device,
-					turtle->surface);
+	render->scd = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
 	create_image_views(turtle->device, render->scd);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 
-	scd->command_pool = create_command_pool(
-	    turtle->device, turtle->physical_device, turtle->surface);
+	scd->command_pool =
+	    create_command_pool(turtle->device, turtle->physical_device, turtle->surface);
 	create_depth_resources(scd);
 
 	// Init the trtl Uniform buffers; We have one currently
@@ -1114,7 +881,7 @@ main(int argc, char **argv)
 	trtl_seer_init(turtle, scd->extent);
 
 	// Above here shold be in turtle_init.
-	
+
 	load_objects(scd);
 
 	// FIXME: This is a hack, this shoudl be managed by seer,
@@ -1123,7 +890,6 @@ main(int argc, char **argv)
 
 	trtl_barriers_init(turtle, MAX_FRAMES_IN_FLIGHT);
 
-
 	// This should go into main loop
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
@@ -1131,7 +897,7 @@ main(int argc, char **argv)
 		render->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
-	trtl_main_loop(turtle, render);	
+	trtl_main_loop(turtle, render);
 
 	//	main_loop(window);
 
