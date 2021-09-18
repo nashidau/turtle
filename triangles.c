@@ -35,21 +35,6 @@ struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
 struct trtl_uniform *evil_global_uniform;
 
-#define MIN(x, y)                                                                                  \
-	({                                                                                         \
-		typeof(x) _x = (x);                                                                \
-		typeof(y) _y = (y);                                                                \
-		(void)(&_x == &_y);                                                                \
-		_x < _y ? _x : _y;                                                                 \
-	})
-
-#define MAX(x, y)                                                                                  \
-	({                                                                                         \
-		typeof(x) _x = (x);                                                                \
-		typeof(y) _y = (y);                                                                \
-		(void)(&_x == &_y);                                                                \
-		_x > _y ? _x : _y;                                                                 \
-	})
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 // Belongs in render frame state
@@ -625,10 +610,9 @@ parse_arguments(int argc, char **argv)
 static int
 load_object_default(struct swap_chain_data *scd)
 {
-	printf("Loading default objects: Background 'background', Main: 'room', 'couch'\n");
+	printf("Loading default objects: Background 'background', Main: 'grid9'\n");
 	trtl_seer_object_add("background", scd, TRTL_RENDER_LAYER_BACKGROUND);
-	trtl_seer_object_add("room", scd, TRTL_RENDER_LAYER_MAIN);
-	trtl_seer_object_add("couch", scd, TRTL_RENDER_LAYER_MAIN);
+	trtl_seer_object_add("grid9", scd, TRTL_RENDER_LAYER_MAIN);
 	return 2;
 }
 
