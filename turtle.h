@@ -119,15 +119,11 @@ int trtl_main_loop(struct turtle *turtle, struct render_context *render);
 struct turtle *turtle_init(void);
 
 
-
-VkImage create_texture_image(struct render_context *render, const char *path);
-VkImageView create_texture_image_view(struct render_context *render, VkImage texture_image);
-
 // FIXME: Should be turtle_create() and render_context should be a struct turtle.
-void create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
+void create_buffer(struct turtle *turtle, VkDeviceSize size, VkBufferUsageFlags usage,
 		   VkMemoryPropertyFlags properties, VkBuffer *buffer,
 		   VkDeviceMemory *bufferMemory);
 
 // FIXME: This name style
-uint32_t findMemoryType(struct render_context *render, uint32_t typeFilter,
+uint32_t findMemoryType(struct turtle *turtle, uint32_t typeFilter,
 			VkMemoryPropertyFlags properties);

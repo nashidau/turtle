@@ -100,7 +100,7 @@ struct trtl_uniform *trtl_uniform_init(struct render_context *render, uint8_t nf
 	uniforms->uniform_buffers_memory = talloc_array(uniforms, VkDeviceMemory, nframes);
 
 	for (size_t i = 0; i < nframes; i++) {
-		create_buffer(render, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		create_buffer(render->turtle, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 				  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			      &uniforms->uniform_buffers[i], &uniforms->uniform_buffers_memory[i]);

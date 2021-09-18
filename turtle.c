@@ -445,7 +445,7 @@ trtl_main_loop(struct turtle *turtle, struct render_context *render)
  * Return is in VkBuffer/VkDeviceMemory,
  */
 void
-create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFlags usage,
+create_buffer(struct turtle *turtle, VkDeviceSize size, VkBufferUsageFlags usage,
 	      VkMemoryPropertyFlags properties, VkBuffer *buffer, VkDeviceMemory *bufferMemory)
 {
 	VkBufferCreateInfo bufferInfo = {};
@@ -454,32 +454,32 @@ create_buffer(struct render_context *render, VkDeviceSize size, VkBufferUsageFla
 	bufferInfo.usage = usage;
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-	if (vkCreateBuffer(render->turtle->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
+	if (vkCreateBuffer(turtle->device, &bufferInfo, NULL, buffer) != VK_SUCCESS) {
 		error("failed to create buffer!");
 	}
 
 	VkMemoryRequirements memRequirements = {0};
-	vkGetBufferMemoryRequirements(render->turtle->device, *buffer, &memRequirements);
+	vkGetBufferMemoryRequirements(turtle->device, *buffer, &memRequirements);
 
 	VkMemoryAllocateInfo allocInfo = {0};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
 	allocInfo.memoryTypeIndex =
-	    findMemoryType(render, memRequirements.memoryTypeBits, properties);
+	    findMemoryType(turtle, memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(render->turtle->device, &allocInfo, NULL, bufferMemory) !=
+	if (vkAllocateMemory(turtle->device, &allocInfo, NULL, bufferMemory) !=
 	    VK_SUCCESS) {
 		error("failed to allocate buffer memory!");
 	}
 
-	vkBindBufferMemory(render->turtle->device, *buffer, *bufferMemory, 0);
+	vkBindBufferMemory(turtle->device, *buffer, *bufferMemory, 0);
 }
 
 uint32_t
-findMemoryType(struct render_context *render, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+findMemoryType(struct turtle *turtle, uint32_t typeFilter, VkMemoryPropertyFlags properties)
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(render->turtle->physical_device, &memProperties);
+	vkGetPhysicalDeviceMemoryProperties(turtle->physical_device, &memProperties);
 
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++) {
 		if ((typeFilter & (1 << i)) &&

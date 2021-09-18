@@ -48,7 +48,7 @@ create_vertex_buffers(struct render_context *render, const struct trtl_seer_vert
 	VkDeviceSize bufferSize = vertices->vertex_size * nvertexes;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	create_buffer(render, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	create_buffer(render->turtle, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		      &stagingBuffer, &stagingBufferMemory);
 
@@ -59,7 +59,7 @@ create_vertex_buffers(struct render_context *render, const struct trtl_seer_vert
 
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
-	create_buffer(render, bufferSize,
+	create_buffer(render->turtle, bufferSize,
 		      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory);
 
@@ -109,7 +109,7 @@ create_index_buffer(struct render_context *render, const struct trtl_seer_indexs
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	create_buffer(render, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	create_buffer(render->turtle, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		      &stagingBuffer, &stagingBufferMemory);
 
@@ -131,7 +131,7 @@ create_index_buffer(struct render_context *render, const struct trtl_seer_indexs
 	vkUnmapMemory(render->turtle->device, stagingBufferMemory);
 
 	VkBuffer index_buffer;
-	create_buffer(render, buffer_size,
+	create_buffer(render->turtle, buffer_size,
 		      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &memory);
 

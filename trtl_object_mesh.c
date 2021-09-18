@@ -9,6 +9,7 @@
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "trtl_shell.h"
+#include "trtl_texture.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h" // FIXME: has trtl_model in it
@@ -56,7 +57,8 @@ trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t o
 	VkDeviceSize offsets = 0;
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 
-	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mesh->pipeline_info.pipeline);
+	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+			  mesh->pipeline_info.pipeline);
 
 	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh->vertex_buffer, &offsets);
 	vkCmdBindIndexBuffer(cmd_buffer, mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
@@ -132,16 +134,15 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass ren
 	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
 	// FIXME: So leaky (create_texture_image never freed);
-	mesh->texture_image_view =
-	    create_texture_image_view(scd->render, create_texture_image(scd->render, texture));
+	mesh->texture_image_view = create_texture_image_view(
+	    scd->render->turtle, create_texture_image(scd->render->turtle, texture));
 
 	mesh->descriptor_set = create_descriptor_sets(mesh, scd);
 
 	// FIXME: Need to not leak this; and reuse other function
-	mesh->pipeline_info =
-	    trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
-				 descriptor_set_layout, "shaders/vert.spv", "shaders/frag.spv",
-				 NULL, NULL, 0);
+	mesh->pipeline_info = trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
+						   descriptor_set_layout, "shaders/vert.spv",
+						   "shaders/frag.spv", NULL, NULL, 0);
 
 	{
 		struct trtl_seer_vertexset vertices;

@@ -4,8 +4,6 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_beta.h>
 
-#include "stb/stb_image.h"
-
 #include <fcntl.h>
 #include <getopt.h>
 #include <stdarg.h>
@@ -29,6 +27,7 @@
 #include "trtl_barriers.h"
 #include "trtl_object.h"
 #include "trtl_seer.h"
+#include "trtl_texture.h"
 #include "trtl_solo.h"
 #include "trtl_uniform.h"
 
@@ -62,10 +61,6 @@ struct window_context {
 static int swap_chain_data_destructor(struct swap_chain_data *scd);
 
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
-static void create_image(struct render_context *render, uint32_t width, uint32_t height,
-			 VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage,
-			 VkMemoryPropertyFlags properties, VkImage *image,
-			 VkDeviceMemory *imageMemory);
 
 /** End Generic */
 
@@ -232,41 +227,7 @@ create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device, VkSur
 	return scd;
 }
 
-static VkImageView
-create_image_view(struct render_context *render, VkImage image, VkFormat format,
-		  VkImageAspectFlags aspect_flags)
-{
-	VkImageViewCreateInfo viewInfo = {0};
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = image;
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = format;
-	viewInfo.subresourceRange.aspectMask = aspect_flags;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.levelCount = 1;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.layerCount = 1;
 
-	VkImageView imageView;
-	if (vkCreateImageView(render->turtle->device, &viewInfo, NULL, &imageView) != VK_SUCCESS) {
-		error("failed to create texture image view!");
-	}
-
-	return imageView;
-}
-
-void
-create_image_views(trtl_arg_unused VkDevice device, struct swap_chain_data *scd)
-{
-	assert(scd->image_views == NULL);
-	scd->image_views = talloc_array(scd, VkImageView, scd->nimages);
-
-	for (uint32_t i = 0; i < scd->nimages; i++) {
-		scd->image_views[i] =
-		    create_image_view(scd->render, scd->images[i],
-				      scd->render->turtle->image_format, VK_IMAGE_ASPECT_COLOR_BIT);
-	}
-}
 
 static VkSampler
 create_texture_sampler(struct render_context *render)
@@ -358,11 +319,11 @@ create_depth_resources(struct swap_chain_data *scd)
 {
 	VkFormat depthFormat = find_depth_format(scd->render->turtle->physical_device);
 
-	create_image(scd->render, scd->extent.width, scd->extent.height, depthFormat,
+	create_image(scd->render->turtle, scd->extent.width, scd->extent.height, depthFormat,
 		     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &scd->depth_image,
 		     &scd->depth_image_memory);
-	scd->depth_image_view = create_image_view(scd->render, scd->depth_image, depthFormat,
+	scd->depth_image_view = create_image_view(scd->render->turtle, scd->depth_image, depthFormat,
 						  VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 static int
@@ -416,7 +377,7 @@ recreate_swap_chain(struct render_context *render)
 					render->turtle->surface);
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
-	create_image_views(render->turtle->device, render->scd);
+	scd->image_views = create_image_views(render->turtle, scd->images, scd->nimages);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
@@ -464,46 +425,7 @@ create_descriptor_pool(struct swap_chain_data *scd)
 	return descriptor_pool;
 }
 
-static void
-create_image(struct render_context *render, uint32_t width, uint32_t height, VkFormat format,
-	     VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties,
-	     VkImage *image, VkDeviceMemory *imageMemory)
-{
-	VkImageCreateInfo imageInfo = {0};
-	imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	imageInfo.imageType = VK_IMAGE_TYPE_2D;
-	imageInfo.extent.width = width;
-	imageInfo.extent.height = height;
-	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = 1;
-	imageInfo.arrayLayers = 1;
-	imageInfo.format = format;
-	imageInfo.tiling = tiling;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	imageInfo.usage = usage;
-	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-	if (vkCreateImage(render->turtle->device, &imageInfo, NULL, image) != VK_SUCCESS) {
-		error("failed to create image");
-	}
-
-	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(render->turtle->device, *image, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo = {0};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex =
-	    findMemoryType(render, memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(render->turtle->device, &allocInfo, NULL, imageMemory) != VK_SUCCESS) {
-		error("failed to allocate image memory!");
-	}
-
-	vkBindImageMemory(render->turtle->device, *image, *imageMemory, 0);
-}
-
+// FIXME: Fix the args on this.
 void
 transitionImageLayout(trtl_arg_unused struct render_context *render, VkImage image,
 		      trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
@@ -573,80 +495,6 @@ copyBufferToImage(trtl_arg_unused struct turtle *turtle,
 			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
 	talloc_free(solo);
-}
-
-void
-copy_buffer_to_image(trtl_arg_unused struct render_context *render, VkBuffer buffer, VkImage image, uint32_t width,
-		     uint32_t height)
-{
-	struct trtl_solo *solo = trtl_solo_get();
-
-	VkBufferImageCopy region = {0};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageSubresource.mipLevel = 0;
-	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
-	region.imageOffset = (VkOffset3D){0, 0, 0};
-	region.imageExtent = (VkExtent3D){width, height, 1};
-
-	vkCmdCopyBufferToImage(solo->command_buffer, buffer, image,
-			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-	trtl_solo_done(solo);
-}
-
-VkImage
-create_texture_image(struct render_context *render, const char *path)
-{
-	VkImage image;
-	VkDeviceMemory imageMemory;
-	int width, height, channels;
-
-	stbi_uc *pixels = stbi_load(path, &width, &height, &channels, STBI_rgb_alpha);
-
-	if (pixels == NULL) {
-		error("failed to load texture image!");
-	}
-	VkDeviceSize imageSize = width * height * 4;
-
-	VkBuffer staging_buffer;
-	VkDeviceMemory staging_buffer_memory;
-	create_buffer(render, imageSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-		      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-		      &staging_buffer, &staging_buffer_memory);
-
-	void *data;
-	vkMapMemory(render->turtle->device, staging_buffer_memory, 0, imageSize, 0, &data);
-	memcpy(data, pixels, imageSize);
-	vkUnmapMemory(render->turtle->device, staging_buffer_memory);
-
-	stbi_image_free(pixels);
-
-	create_image(render, width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_TILING_OPTIMAL,
-		     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
-		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &image, &imageMemory);
-
-	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB,
-			      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	copy_buffer_to_image(render, staging_buffer, image, width, height);
-	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB,
-			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	vkDestroyBuffer(render->turtle->device, staging_buffer, NULL);
-	vkFreeMemory(render->turtle->device, staging_buffer_memory, NULL);
-
-	return image;
-}
-
-VkImageView
-create_texture_image_view(struct render_context *render, VkImage texture_image)
-{
-	return create_image_view(render, texture_image, VK_FORMAT_R8G8B8A8_SRGB,
-				 VK_IMAGE_ASPECT_COLOR_BIT);
 }
 
 void
@@ -826,7 +674,7 @@ main(int argc, char **argv)
 	render->scd = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
 	struct swap_chain_data *scd = render->scd;
 	scd->render = render;
-	create_image_views(turtle->device, render->scd);
+	scd->image_views = create_image_views(turtle, scd->images, scd->nimages);
 	render->descriptor_set_layout = create_descriptor_set_layout(render);
 
 	scd->command_pool =
