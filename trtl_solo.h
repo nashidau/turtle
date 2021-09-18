@@ -10,3 +10,10 @@ struct trtl_solo {
 void trtl_solo_init(struct turtle *turtle);
 
 struct trtl_solo *trtl_solo_get(void);
+
+#define trtl_solo_done(_solo) 	\
+	do {				\
+		struct trtl_solo *_tmp; \
+		(&_tmp == &_solo);	\
+		talloc_free(_solo);	\
+	} while (0)

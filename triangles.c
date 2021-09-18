@@ -29,6 +29,7 @@
 #include "trtl_barriers.h"
 #include "trtl_object.h"
 #include "trtl_seer.h"
+#include "trtl_solo.h"
 #include "trtl_uniform.h"
 
 struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
@@ -295,45 +296,6 @@ create_texture_sampler(struct render_context *render)
 	return sampler;
 }
 
-// FIXME: There should be a nice single command
-VkCommandBuffer
-beginSingleTimeCommands(struct turtle *turtle, VkCommandPool command_pool)
-{
-	VkCommandBufferAllocateInfo allocInfo = {0};
-	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	allocInfo.commandPool = command_pool;
-	allocInfo.commandBufferCount = 1;
-
-	VkCommandBuffer commandBuffer;
-	vkAllocateCommandBuffers(turtle->device, &allocInfo, &commandBuffer);
-
-	VkCommandBufferBeginInfo beginInfo = {0};
-	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-	vkBeginCommandBuffer(commandBuffer, &beginInfo);
-
-	return commandBuffer;
-}
-
-void
-endSingleTimeCommands(struct turtle *turtle, VkCommandBuffer commandBuffer,
-		      VkCommandPool command_pool)
-{
-	vkEndCommandBuffer(commandBuffer);
-
-	VkSubmitInfo submitInfo = {0};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &commandBuffer;
-
-	vkQueueSubmit(turtle->graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE);
-	vkQueueWaitIdle(turtle->graphicsQueue);
-
-	vkFreeCommandBuffers(turtle->device, command_pool, 1, &commandBuffer);
-}
-
 VkDescriptorSetLayout
 create_descriptor_set_layout(struct render_context *render)
 {
@@ -543,11 +505,11 @@ create_image(struct render_context *render, uint32_t width, uint32_t height, VkF
 }
 
 void
-transitionImageLayout(struct turtle *turtle, struct render_context *render, VkImage image,
+transitionImageLayout(trtl_arg_unused struct render_context *render, VkImage image,
 		      trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
 		      VkImageLayout newLayout)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands(turtle, render->scd->command_pool);
+	struct trtl_solo *solo = trtl_solo_get();
 
 	VkImageMemoryBarrier barrier = {0};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -583,17 +545,18 @@ transitionImageLayout(struct turtle *turtle, struct render_context *render, VkIm
 		error("unsupported layout transition!");
 	}
 
-	vkCmdPipelineBarrier(commandBuffer, sourceStage, destinationStage, 0, 0, NULL, 0, NULL, 1,
-			     &barrier);
+	vkCmdPipelineBarrier(solo->command_buffer, sourceStage, destinationStage, 0, 0, NULL, 0,
+			     NULL, 1, &barrier);
 
-	endSingleTimeCommands(turtle, commandBuffer, render->scd->command_pool);
+	talloc_free(solo);
 }
 
 void
-copyBufferToImage(struct turtle *turtle, struct render_context *render, VkBuffer buffer,
-		  VkImage image, uint32_t width, uint32_t height)
+copyBufferToImage(trtl_arg_unused struct turtle *turtle,
+		  trtl_arg_unused struct render_context *render, VkBuffer buffer, VkImage image,
+		  uint32_t width, uint32_t height)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands(turtle, render->scd->command_pool);
+	struct trtl_solo *solo = trtl_solo_get();
 
 	VkBufferImageCopy region = {0};
 	region.bufferOffset = 0;
@@ -606,18 +569,17 @@ copyBufferToImage(struct turtle *turtle, struct render_context *render, VkBuffer
 	region.imageOffset = (VkOffset3D){0};
 	region.imageExtent = (VkExtent3D){width, height, 1};
 
-	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			       1, &region);
+	vkCmdCopyBufferToImage(solo->command_buffer, buffer, image,
+			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-	endSingleTimeCommands(turtle, commandBuffer, render->scd->command_pool);
+	talloc_free(solo);
 }
 
 void
-copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImage image, uint32_t width,
+copy_buffer_to_image(trtl_arg_unused struct render_context *render, VkBuffer buffer, VkImage image, uint32_t width,
 		     uint32_t height)
 {
-	VkCommandBuffer commandBuffer =
-	    beginSingleTimeCommands(render->turtle, render->scd->command_pool);
+	struct trtl_solo *solo = trtl_solo_get();
 
 	VkBufferImageCopy region = {0};
 	region.bufferOffset = 0;
@@ -630,10 +592,10 @@ copy_buffer_to_image(struct render_context *render, VkBuffer buffer, VkImage ima
 	region.imageOffset = (VkOffset3D){0, 0, 0};
 	region.imageExtent = (VkExtent3D){width, height, 1};
 
-	vkCmdCopyBufferToImage(commandBuffer, buffer, image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			       1, &region);
+	vkCmdCopyBufferToImage(solo->command_buffer, buffer, image,
+			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-	endSingleTimeCommands(render->turtle, commandBuffer, render->scd->command_pool);
+	trtl_solo_done(solo);
 }
 
 VkImage
@@ -667,10 +629,10 @@ create_texture_image(struct render_context *render, const char *path)
 		     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &image, &imageMemory);
 
-	transitionImageLayout(render->turtle, render, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
-			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB,
+			      VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	copy_buffer_to_image(render, staging_buffer, image, width, height);
-	transitionImageLayout(render->turtle, render, image, VK_FORMAT_R8G8B8A8_SRGB,
+	transitionImageLayout(render, image, VK_FORMAT_R8G8B8A8_SRGB,
 			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
