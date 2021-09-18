@@ -5,6 +5,7 @@
 
 #include "trtl_seer.h"
 #include "trtl_shell.h"
+#include "trtl_solo.h"
 #include "turtle.h"
 #include "vertex.h"
 
@@ -13,15 +14,16 @@ VkCommandBuffer beginSingleTimeCommands(struct render_context *render);
 void endSingleTimeCommands(struct render_context *render, VkCommandBuffer commandBuffer);
 
 static void
-copyBuffer(struct render_context *render, VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
+copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-	VkCommandBuffer commandBuffer = beginSingleTimeCommands(render);
+	struct trtl_solo *solo = trtl_solo_get();
 
 	VkBufferCopy copyRegion = {0};
 	copyRegion.size = size;
-	vkCmdCopyBuffer(commandBuffer, srcBuffer, dstBuffer, 1, &copyRegion);
+	vkCmdCopyBuffer(solo->command_buffer, srcBuffer, dstBuffer, 1, &copyRegion);
 
-	endSingleTimeCommands(render, commandBuffer);
+	// Executes!
+	talloc_free(solo);
 }
 
 // FIXME: Trtl should take a model and create a vertex buffer for this
@@ -61,7 +63,7 @@ create_vertex_buffers(struct render_context *render, const struct trtl_seer_vert
 		      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory);
 
-	copyBuffer(render, stagingBuffer, vertex_buffer, bufferSize);
+	copyBuffer(stagingBuffer, vertex_buffer, bufferSize);
 
 	vkDestroyBuffer(render->turtle->device, stagingBuffer, NULL);
 	vkFreeMemory(render->turtle->device, stagingBufferMemory, NULL);
@@ -133,7 +135,7 @@ create_index_buffer(struct render_context *render, const struct trtl_seer_indexs
 		      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &memory);
 
-	copyBuffer(render, stagingBuffer, index_buffer, buffer_size);
+	copyBuffer(stagingBuffer, index_buffer, buffer_size);
 
 	vkDestroyBuffer(render->turtle->device, stagingBuffer, NULL);
 	vkFreeMemory(render->turtle->device, stagingBufferMemory, NULL);

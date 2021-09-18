@@ -55,6 +55,7 @@ SOURCES= \
 	trtl_shader.c	\
 	trtl_shell.c    \
 	trtl_seer.c	\
+	trtl_solo.c	\
 	turtle.c
 
 SHADERS= \

@@ -13,6 +13,7 @@
 #include "turtle.h"
 #include "trtl_barriers.h"
 #include "trtl_scribe.h"
+#include "trtl_solo.h"
 
 static int turtle_destructor(struct turtle *turtle);
 
@@ -416,6 +417,7 @@ turtle_init(void)
 	turtle->device = create_logical_device(turtle->physical_device, turtle->surface,
 					       &turtle->graphicsQueue, &turtle->presentQueue);
 
+	trtl_solo_init(turtle);
 	// trtl_barriers_init();
 
 	return turtle;
