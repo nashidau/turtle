@@ -95,9 +95,9 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	params = trtl_uniform_info_address(canvas->uniform_info, frame);
 
 	params->time = time(NULL);
-	params->screenSize[0] = 1.0;// canvas->size.width;
-	params->screenSize[1] = 0.5;//canvas->size.height;
-	//printf("%f %f %f\n", params->screenSize[0], 
+	params->screenSize[0] = 1.0; // canvas->size.width;
+	params->screenSize[1] = 0.5; // canvas->size.height;
+	// printf("%f %f %f\n", params->screenSize[0],
 	//		params->screenSize[1], params->time);
 
 	// We updated
@@ -144,8 +144,8 @@ canvas_create_descriptor_set_layout(VkDevice device)
 }
 
 trtl_alloc struct trtl_object *
-trtl_canvas_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_pass,
-		   VkExtent2D extent)
+trtl_canvas_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd,
+		   VkRenderPass render_pass, VkExtent2D extent)
 {
 	struct trtl_object_canvas *canvas;
 
@@ -163,10 +163,9 @@ trtl_canvas_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_p
 	canvas->size = extent;
 
 	canvas->uniform_info =
-	    trtl_uniform_alloc_type(evil_global_uniform, struct canvas_shader_params);
+	    trtl_uniform_alloc_type(turtle->uniforms, struct canvas_shader_params);
 
-	canvas->descriptor_set_layout =
-	    canvas_create_descriptor_set_layout(scd->render->turtle->device);
+	canvas->descriptor_set_layout = canvas_create_descriptor_set_layout(turtle->device);
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, scd);
 
 	// FIXME: this pipeline includes verteex, color and texture coords.
@@ -175,7 +174,7 @@ trtl_canvas_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_p
 	// and vertex_binding_description_get.
 	canvas->pipeline_info = trtl_pipeline_create(
 	    scd->render->turtle->device, render_pass, extent, canvas->descriptor_set_layout,
-	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv",NULL, NULL, 0);
+	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
 
 	{
 		struct trtl_seer_vertexset vertices;

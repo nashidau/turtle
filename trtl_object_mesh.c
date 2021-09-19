@@ -130,8 +130,8 @@ trtl_object_mesh_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass ren
 		return NULL;
 	}
 
-	mesh->uniform_info =
-	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
+//	mesh->uniform_info =
+//	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
 	// FIXME: So leaky (create_texture_image never freed);
 	mesh->texture_image_view = create_texture_image_view(

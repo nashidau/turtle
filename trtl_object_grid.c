@@ -141,13 +141,13 @@ generate_grid(struct trtl_object_grid *grid, struct trtl_swap_chain *scd, uint16
 		vertex[i * 4 + 1].tile.y = row;
 		vertex[i * 4 + 2].tile.y = row;
 		vertex[i * 4 + 3].tile.y = row;
-		
+
 		uint8_t seed = ((row + col * 87) * 48271) >> 4;
 		vertex[i * 4].tile.seed = seed;
 		vertex[i * 4 + 1].tile.seed = seed;
 		vertex[i * 4 + 2].tile.seed = seed;
 		vertex[i * 4 + 3].tile.seed = seed;
-		
+
 		indices[i * 6] = i * 4;
 		indices[i * 6 + 1] = i * 4 + 2;
 		indices[i * 6 + 2] = i * 4 + 1;
@@ -224,8 +224,8 @@ grid_update(struct trtl_object *obj, trtl_arg_unused int frame)
 }
 
 struct trtl_object *
-trtl_grid_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_pass,
-		 VkExtent2D extent, uint16_t width, uint16_t height)
+trtl_grid_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd,
+		 VkRenderPass render_pass, VkExtent2D extent, uint16_t width, uint16_t height)
 {
 	struct trtl_object_grid *grid;
 
@@ -244,7 +244,7 @@ trtl_grid_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_pas
 	grid->uniform_info =
 	    // FIXME: This causes a crash.
 	    // trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
-	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
+	    trtl_uniform_alloc_type(turtle->uniforms, struct UniformBufferObject);
 
 	grid_resize((struct trtl_object *)grid, scd, extent);
 

@@ -26,7 +26,7 @@
 #include "trtl_uniform.h"
 #include "turtle.h"
 
-#define ROUND_UP(N, S) ((((N) + (S) - 1) / (S)) * (S))
+#define ROUND_UP(N, S) ((((N) + (S)-1) / (S)) * (S))
 
 /**
  * Internal structore for trtl_uniform info
@@ -68,7 +68,8 @@ static int trtl_uniform_destructor(struct trtl_uniform *x);
  * @param nframes Number of frames in flight at once.
  * @param size Size of the uniform pool.  Zero (0) indicates the default size.
  */
-struct trtl_uniform *trtl_uniform_init(struct render_context *render, uint8_t nframes, size_t size)
+struct trtl_uniform *
+trtl_uniform_init(struct turtle *turtle, uint8_t nframes, size_t size)
 {
 	struct trtl_uniform *uniforms;
 
@@ -80,7 +81,7 @@ struct trtl_uniform *trtl_uniform_init(struct render_context *render, uint8_t nf
 		size = TRTL_DEFAULT_SIZE;
 	}
 
-	uniforms = talloc_size(render, offsetof(struct trtl_uniform, buffers[nframes]));
+	uniforms = talloc_size(turtle, offsetof(struct trtl_uniform, buffers[nframes]));
 	assert(uniforms);
 	talloc_set_name(uniforms, "Uniform Buffer");
 
@@ -95,12 +96,12 @@ struct trtl_uniform *trtl_uniform_init(struct render_context *render, uint8_t nf
 	}
 
 	// We use the device all over
-	uniforms->device = render->turtle->device;
+	uniforms->device = turtle->device;
 	uniforms->uniform_buffers = talloc_array(uniforms, VkBuffer, nframes);
 	uniforms->uniform_buffers_memory = talloc_array(uniforms, VkDeviceMemory, nframes);
 
 	for (size_t i = 0; i < nframes; i++) {
-		create_buffer(render->turtle, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		create_buffer(turtle, size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 			      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
 				  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 			      &uniforms->uniform_buffers[i], &uniforms->uniform_buffers_memory[i]);
@@ -119,7 +120,8 @@ struct trtl_uniform *trtl_uniform_init(struct render_context *render, uint8_t nf
  * @param frame Frame to get buffer for
  * @return Pointer to base address of the uniform buffer.
  */
-void *trtl_uniform_buffer_base_get(struct trtl_uniform *uniforms, uint8_t frame)
+void *
+trtl_uniform_buffer_base_get(struct trtl_uniform *uniforms, uint8_t frame)
 {
 	return uniforms->uniform_buffers[frame];
 }
@@ -129,12 +131,14 @@ void *trtl_uniform_buffer_base_get(struct trtl_uniform *uniforms, uint8_t frame)
  *
  * Sends the uniform data to the GPU.
  */
-int trtl_uniform_render(trtl_arg_unused int frame)
+int
+trtl_uniform_render(trtl_arg_unused int frame)
 {
 	return 0;
 }
 
-struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size)
+struct trtl_uniform_info *
+trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size)
 {
 	struct trtl_uniform_info *info;
 
@@ -172,7 +176,8 @@ struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size
  * @param frame Which frame we are rendering.
  * @return Address of the uniform field.
  */
-void *trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
+void *
+trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
 {
 	off_t offset = info->offset;
 
@@ -204,7 +209,8 @@ trtl_uniform_buffer_get_descriptor(struct trtl_uniform_info *info, int frame)
  * @param info Uniform info field.
  * @return Offset of the uniform field.
  */
-off_t trtl_uniform_info_offset(struct trtl_uniform_info *info)
+off_t
+trtl_uniform_info_offset(struct trtl_uniform_info *info)
 {
 	return info->offset;
 }
@@ -214,16 +220,18 @@ off_t trtl_uniform_info_offset(struct trtl_uniform_info *info)
  *
  * @param uniforms The uniforms.
  */
-void trtl_uniform_update(struct trtl_uniform *uniforms, uint32_t frame)
+void
+trtl_uniform_update(struct trtl_uniform *uniforms, uint32_t frame)
 {
 	void *data;
 	vkMapMemory(uniforms->device, uniforms->uniform_buffers_memory[frame], 0,
-			uniforms->bump.offset, 0, &data);
+		    uniforms->bump.offset, 0, &data);
 	memcpy(data, uniforms->buffers[frame], uniforms->bump.offset);
 	vkUnmapMemory(uniforms->device, uniforms->uniform_buffers_memory[frame]);
 }
 
-static int trtl_uniform_destructor(struct trtl_uniform *uniforms)
+static int
+trtl_uniform_destructor(struct trtl_uniform *uniforms)
 {
 	// All the children shoudl be called
 

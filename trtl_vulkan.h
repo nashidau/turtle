@@ -9,3 +9,9 @@ VkPresentModeKHR chooseSwapPresentMode(const VkPresentModeKHR *availablePresentM
 				       uint32_t npresentmodes);
 
 VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities);
+
+VkFormat find_depth_format(VkPhysicalDevice physical_device);
+
+VkFormat find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates,
+			       VkFormat *candidates, VkImageTiling tiling,
+			       VkFormatFeatureFlags features);

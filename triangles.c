@@ -33,8 +33,6 @@
 
 struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
-struct trtl_uniform *evil_global_uniform;
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
 // Belongs in render frame state
 bool frame_buffer_resized = false;
@@ -42,38 +40,6 @@ bool frame_buffer_resized = false;
 trtl_alloc static VkDescriptorPool create_descriptor_pool(struct trtl_swap_chain *scd);
 
 /** End Generic */
-
-static VkFormat
-find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, VkFormat *candidates,
-		      VkImageTiling tiling, VkFormatFeatureFlags features)
-{
-	for (uint32_t i = 0; i < ncandidates; i++) {
-		VkFormat format = candidates[i];
-		VkFormatProperties props;
-		vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
-
-		if (tiling == VK_IMAGE_TILING_LINEAR &&
-		    (props.linearTilingFeatures & features) == features) {
-			return format;
-		} else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
-			   (props.optimalTilingFeatures & features) == features) {
-			return format;
-		}
-	}
-
-	error("Failed to find a supported format");
-}
-
-VkFormat
-find_depth_format(VkPhysicalDevice physical_device)
-{
-	VkFormat formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
-			      VK_FORMAT_D24_UNORM_S8_UINT};
-
-	return find_supported_format(physical_device, TRTL_ARRAY_SIZE(formats), formats,
-				     VK_IMAGE_TILING_OPTIMAL,
-				     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
-}
 
 // In turtle .c
 struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
@@ -109,24 +75,6 @@ create_texture_sampler(struct render_context *render)
 	return sampler;
 }
 
-/**
- *
- * We only need one depth image view as only one render pass is running
- * at a time.
- */
-static void
-create_depth_resources(struct trtl_swap_chain *scd)
-{
-	VkFormat depthFormat = find_depth_format(scd->render->turtle->physical_device);
-
-	create_image(scd->render->turtle, scd->extent.width, scd->extent.height, depthFormat,
-		     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &scd->depth_image,
-		     &scd->depth_image_memory);
-	scd->depth_image_view = create_image_view(scd->render->turtle, scd->depth_image,
-						  depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
-}
-
 void
 recreate_swap_chain(struct render_context *render)
 {
@@ -151,23 +99,24 @@ recreate_swap_chain(struct render_context *render)
 	talloc_free(render->scd);
 
 	// FIXME: when we resize, I need to fix this
-	//render->turtle->tsc = create_swap_chain(render->turtle, render->turtle->physical_device,
+	// render->turtle->tsc = create_swap_chain(render->turtle, render->turtle->physical_device,
 	//					render->turtle->surface);
 	struct trtl_swap_chain *scd = turtle->tsc;
 	scd->render = render;
 	scd->image_views = create_image_views(render->turtle, scd->images, scd->nimages);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
-//
-//	scd->command_pool = create_command_pool(
-//	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
+	//
+	//	scd->command_pool = create_command_pool(
+	//	    render->turtle->device, render->turtle->physical_device,
+	//render->turtle->surface);
 
 	trtl_seer_resize(size, scd);
 	// info =trtl_pipeline_create(render->turtle->device, scd);
 
 	// FIXME: Call object to update it's descriptor sets
 	// scd->descriptor_sets = create_descriptor_sets(scd);
-	create_depth_resources(scd);
+	// create_depth_resources(scd);
 	//	scd->framebuffers = create_frame_buffers(render->turtle->device, scd,
 	//			);
 	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
@@ -298,7 +247,7 @@ draw_frame(struct render_context *render, struct trtl_swap_chain *scd, VkSemapho
 	trtl_seer_update(imageIndex);
 
 	// FIXME: Device should be some sort of global context
-	trtl_uniform_update(evil_global_uniform, imageIndex);
+	trtl_uniform_update(render->turtle->uniforms, imageIndex);
 
 	// Check the system has finished with this image before we start
 	// scribbling over the top of it.
@@ -401,16 +350,16 @@ parse_arguments(int argc, char **argv)
 }
 
 static int
-load_object_default(struct trtl_swap_chain *scd)
+load_object_default(struct trtl_swap_chain *scd, struct turtle *turtle)
 {
 	printf("Loading default objects: Background 'background', Main: 'grid9'\n");
-	trtl_seer_object_add("background", scd, TRTL_RENDER_LAYER_BACKGROUND);
-	trtl_seer_object_add("grid9", scd, TRTL_RENDER_LAYER_MAIN);
+	trtl_seer_object_add("background", turtle, scd, TRTL_RENDER_LAYER_BACKGROUND);
+	trtl_seer_object_add("grid9", turtle, scd, TRTL_RENDER_LAYER_MAIN);
 	return 2;
 }
 
 int
-load_objects(struct trtl_swap_chain *scd)
+load_objects(struct trtl_swap_chain *scd, struct turtle *turtle)
 {
 	int i;
 
@@ -422,14 +371,14 @@ load_objects(struct trtl_swap_chain *scd)
 		}
 	}
 	if (i == TRTL_RENDER_LAYER_TOTAL) {
-		return load_object_default(scd);
+		return load_object_default(scd, turtle);
 	}
 
 	// For each layer, load it
 	for (i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		struct trtl_stringlist *load = objs_to_load[i];
 		while (load != NULL) {
-			trtl_seer_object_add(load->string, scd, i);
+			trtl_seer_object_add(load->string, turtle, scd, i);
 			load = load->next;
 		}
 		talloc_free(objs_to_load[i]);
@@ -452,10 +401,7 @@ main(int argc, char **argv)
 	render->scd = scd;
 	scd->render = render;
 
-create_depth_resources(scd);
-
 	// Init the trtl Uniform buffers; We have one currently
-	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);
 	render->texture_sampler = create_texture_sampler(render);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
@@ -464,7 +410,7 @@ create_depth_resources(scd);
 
 	// Above here shold be in turtle_init.
 
-	load_objects(scd);
+	load_objects(scd, turtle);
 
 	// FIXME: This is a hack, this shoudl be managed by seer,
 	// and shoukd be done dynamically as the state of the worlld changes.

@@ -12,6 +12,7 @@
 #include "trtl_scribe.h"
 #include "trtl_solo.h"
 #include "trtl_texture.h"
+#include "trtl_uniform.h"
 #include "trtl_vulkan.h"
 #include "turtle.h"
 
@@ -409,6 +410,24 @@ create_command_pool(VkDevice device, VkPhysicalDevice physical_device, VkSurface
 	return command_pool;
 }
 
+/**
+ *
+ * We only need one depth image view as only one render pass is running
+ * at a time.
+ */
+static void
+create_depth_resources(struct turtle *turtle)
+{
+	VkFormat depthFormat = find_depth_format(turtle->physical_device);
+
+	create_image(turtle, turtle->tsc->extent.width, turtle->tsc->extent.height, depthFormat,
+		     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &turtle->tsc->depth_image,
+		     &turtle->tsc->depth_image_memory);
+	turtle->tsc->depth_image_view = create_image_view(turtle, turtle->tsc->depth_image,
+							  depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
+}
+
 struct turtle *
 turtle_init(void)
 {
@@ -439,6 +458,9 @@ turtle_init(void)
 	turtle->tsc->command_pool =
 	    create_command_pool(turtle->device, turtle->physical_device, turtle->surface);
 
+	create_depth_resources(turtle);
+
+	turtle->uniforms = trtl_uniform_init(turtle, turtle->tsc->nimages, 1024);
 	// trtl_barriers_init();
 
 	return turtle;

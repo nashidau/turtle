@@ -43,6 +43,9 @@ struct turtle {
 
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
+
+
+	struct trtl_uniform *uniforms;
 };
 
 // All data used to render a frame

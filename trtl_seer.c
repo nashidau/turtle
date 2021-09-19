@@ -135,7 +135,8 @@ trtl_seer_resize(VkExtent2D new_size, struct trtl_swap_chain *scd)
 }
 
 int
-trtl_seer_object_add(const char *name, struct trtl_swap_chain *scd, trtl_render_layer_t layerid)
+trtl_seer_object_add(const char *name, struct turtle *turtle, struct trtl_swap_chain *scd,
+		     trtl_render_layer_t layerid)
 {
 	struct trtl_object *object = NULL;
 	struct objlayer *layer;
@@ -147,25 +148,25 @@ trtl_seer_object_add(const char *name, struct trtl_swap_chain *scd, trtl_render_
 	// FIXME: This is super unscalable.  Shoudl have a DB or a way to search filesystem
 	if (streq(name, "couch")) {
 		printf("Couch diesabled\n");
-		//object = trtl_object_mesh_create(
-		 //   seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
-		   // scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
+		// object = trtl_object_mesh_create(
+		//   seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		// scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
 	} else if (streq(name, "room")) {
 		printf("room disabled\n");
-		//object = trtl_object_mesh_create(
-		  //  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
-		    //scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
+		// object = trtl_object_mesh_create(
+		//  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		// scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "background")) {
-		object = trtl_canvas_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+		object = trtl_canvas_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
 					    scd->extent);
 	} else if (streq(name, "grid")) {
-		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+		object = trtl_grid_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
 					  scd->extent, 3, 3);
 	} else if (streq(name, "grid1")) {
-		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+		object = trtl_grid_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
 					  scd->extent, 1, 1);
 	} else if (streq(name, "grid9")) {
-		object = trtl_grid_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
+		object = trtl_grid_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
 					  scd->extent, 9, 9);
 
 	} else {

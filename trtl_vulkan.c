@@ -3,8 +3,8 @@
 
 #include <vulkan/vulkan.h>
 
-#include "trtl_vulkan.h"
 #include "helpers.h"
+#include "trtl_vulkan.h"
 
 const VkSurfaceFormatKHR *
 chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *availableFormats, uint32_t nformats)
@@ -60,4 +60,38 @@ chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
 
 		return actualExtent;
 	}
+}
+
+VkFormat
+find_depth_format(VkPhysicalDevice physical_device)
+{
+	VkFormat formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+			      VK_FORMAT_D24_UNORM_S8_UINT};
+
+	return find_supported_format(physical_device, TRTL_ARRAY_SIZE(formats), formats,
+				     VK_IMAGE_TILING_OPTIMAL,
+				     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
+}
+
+VkFormat
+find_supported_format(VkPhysicalDevice physical_device, uint32_t ncandidates, VkFormat *candidates,
+		      VkImageTiling tiling, VkFormatFeatureFlags features)
+{
+
+	for (uint32_t i = 0; i < ncandidates; i++) {
+		VkFormat format = candidates[i];
+		VkFormatProperties props;
+
+		vkGetPhysicalDeviceFormatProperties(physical_device, format, &props);
+
+		if (tiling == VK_IMAGE_TILING_LINEAR &&
+		    (props.linearTilingFeatures & features) == features) {
+			return format;
+
+		} else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+			   (props.optimalTilingFeatures & features) == features) {
+			return format;
+		}
+	}
+	error("Failed to find a supported format");
 }
