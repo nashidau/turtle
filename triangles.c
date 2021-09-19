@@ -503,7 +503,6 @@ main(int argc, char **argv)
 	struct trtl_swap_chain *scd = turtle->tsc;
 	render->scd = scd;
 	scd->render = render;
-	//render->descriptor_set_layout = create_descriptor_set_layout(render);
 
 	scd->command_pool =
 	    create_command_pool(turtle->device, turtle->physical_device, turtle->surface);
@@ -515,7 +514,6 @@ main(int argc, char **argv)
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
-	// FIXME: Object is destroyed when screen chages; wrong
 	trtl_seer_init(turtle, scd->extent);
 
 	// Above here shold be in turtle_init.
