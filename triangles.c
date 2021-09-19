@@ -109,58 +109,6 @@ create_texture_sampler(struct render_context *render)
 	return sampler;
 }
 
-VkDescriptorSetLayout
-create_descriptor_set_layout(struct render_context *render)
-{
-	VkDescriptorSetLayout descriptor_set_layout;
-
-	VkDescriptorSetLayoutBinding ubo_layout_binding = {0};
-	ubo_layout_binding.binding = 0;
-	ubo_layout_binding.descriptorCount = 1;
-	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubo_layout_binding.pImmutableSamplers = NULL;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkDescriptorSetLayoutBinding sampler_layout_binding = {0};
-	sampler_layout_binding.binding = 1;
-	sampler_layout_binding.descriptorCount = 1;
-	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	sampler_layout_binding.pImmutableSamplers = NULL;
-	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-
-	VkDescriptorSetLayoutBinding bindings[2];
-	bindings[0] = ubo_layout_binding;
-	bindings[1] = sampler_layout_binding;
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
-	layoutInfo.pBindings = bindings;
-
-	if (vkCreateDescriptorSetLayout(render->turtle->device, &layoutInfo, NULL,
-					&descriptor_set_layout) != VK_SUCCESS) {
-		error("failed to create descriptor set layout!");
-	}
-	return descriptor_set_layout;
-}
-
-VkCommandPool
-create_command_pool(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
-{
-	VkCommandPool command_pool;
-	struct queue_family_indices qfi = find_queue_families(physical_device, surface);
-
-	VkCommandPoolCreateInfo pool_info = {0};
-	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	pool_info.queueFamilyIndex = qfi.graphics_family;
-	pool_info.flags = 0;
-
-	if (vkCreateCommandPool(device, &pool_info, NULL, &command_pool) != VK_SUCCESS) {
-		error("Failed to create command pool");
-	}
-
-	return command_pool;
-}
-
 /**
  *
  * We only need one depth image view as only one render pass is running
@@ -210,9 +158,9 @@ recreate_swap_chain(struct render_context *render)
 	scd->image_views = create_image_views(render->turtle, scd->images, scd->nimages);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
-
-	scd->command_pool = create_command_pool(
-	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
+//
+//	scd->command_pool = create_command_pool(
+//	    render->turtle->device, render->turtle->physical_device, render->turtle->surface);
 
 	trtl_seer_resize(size, scd);
 	// info =trtl_pipeline_create(render->turtle->device, scd);
@@ -504,9 +452,7 @@ main(int argc, char **argv)
 	render->scd = scd;
 	scd->render = render;
 
-	scd->command_pool =
-	    create_command_pool(turtle->device, turtle->physical_device, turtle->surface);
-	create_depth_resources(scd);
+create_depth_resources(scd);
 
 	// Init the trtl Uniform buffers; We have one currently
 	evil_global_uniform = trtl_uniform_init(render, scd->nimages, 1024);

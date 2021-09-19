@@ -391,6 +391,24 @@ pick_physical_device(VkInstance instance, VkSurfaceKHR surface)
 	return candidate;
 }
 
+VkCommandPool
+create_command_pool(VkDevice device, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+{
+	VkCommandPool command_pool;
+	struct queue_family_indices qfi = find_queue_families(physical_device, surface);
+
+	VkCommandPoolCreateInfo pool_info = {0};
+	pool_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+	pool_info.queueFamilyIndex = qfi.graphics_family;
+	pool_info.flags = 0;
+
+	if (vkCreateCommandPool(device, &pool_info, NULL, &command_pool) != VK_SUCCESS) {
+		error("Failed to create command pool");
+	}
+
+	return command_pool;
+}
+
 struct turtle *
 turtle_init(void)
 {
@@ -417,6 +435,9 @@ turtle_init(void)
 
 	turtle->tsc->image_views =
 	    create_image_views(turtle, turtle->tsc->images, turtle->tsc->nimages);
+
+	turtle->tsc->command_pool =
+	    create_command_pool(turtle->device, turtle->physical_device, turtle->surface);
 
 	// trtl_barriers_init();
 
