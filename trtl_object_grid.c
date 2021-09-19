@@ -42,7 +42,7 @@ struct trtl_object_grid {
 };
 
 trtl_alloc static VkDescriptorSet *grid_create_descriptor_sets(struct trtl_object_grid *grid,
-							       struct swap_chain_data *scd);
+							       struct trtl_swap_chain *scd);
 
 struct grid_vertex {
 	struct pos3d pos;
@@ -99,7 +99,7 @@ trtl_object_grid(struct trtl_object *obj)
 
 // Width and height are single values.
 static void
-generate_grid(struct trtl_object_grid *grid, struct swap_chain_data *scd, uint16_t width,
+generate_grid(struct trtl_object_grid *grid, struct trtl_swap_chain *scd, uint16_t width,
 	      uint16_t height)
 {
 	const int tiles = width * height;
@@ -178,7 +178,7 @@ generate_grid(struct trtl_object_grid *grid, struct swap_chain_data *scd, uint16
 VkRenderPass renderpasshack;
 
 static void
-grid_resize(struct trtl_object *obj, struct swap_chain_data *scd, VkExtent2D size)
+grid_resize(struct trtl_object *obj, struct trtl_swap_chain *scd, VkExtent2D size)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	grid->descriptor_set_layout =
@@ -224,7 +224,7 @@ grid_update(struct trtl_object *obj, trtl_arg_unused int frame)
 }
 
 struct trtl_object *
-trtl_grid_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
+trtl_grid_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_pass,
 		 VkExtent2D extent, uint16_t width, uint16_t height)
 {
 	struct trtl_object_grid *grid;
@@ -280,7 +280,7 @@ grid_create_descriptor_set_layout(VkDevice device)
 }
 
 trtl_alloc static VkDescriptorSet *
-grid_create_descriptor_sets(struct trtl_object_grid *grid, struct swap_chain_data *scd)
+grid_create_descriptor_sets(struct trtl_object_grid *grid, struct trtl_swap_chain *scd)
 {
 	VkDescriptorSet *sets = talloc_zero_array(grid, VkDescriptorSet, grid->nframes);
 	VkDescriptorSetLayout *layouts =

@@ -9,8 +9,10 @@
 
 #include "trtl_object.h"
 
+struct trtl_swap_chain;
+
 struct trtl_object *
-trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, 
+trtl_object_mesh_create(void *ctx, struct trtl_swap_chain *scd, 
 		VkRenderPass render_pass, VkExtent2D extent,
 		VkDescriptorSetLayout descriptor_set_layout,
 		const char *path, const char *texture);

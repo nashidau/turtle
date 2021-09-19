@@ -49,7 +49,7 @@ trtl_object_mesh(struct trtl_object *obj)
 }
 
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mesh *mesh,
-							  struct swap_chain_data *scd);
+							  struct trtl_swap_chain *scd);
 
 static void
 trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
@@ -111,7 +111,7 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 }
 
 struct trtl_object *
-trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
+trtl_object_mesh_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_pass,
 			VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout,
 			const char *path, const char *texture)
 {
@@ -165,15 +165,16 @@ trtl_object_mesh_create(void *ctx, struct swap_chain_data *scd, VkRenderPass ren
 }
 
 trtl_alloc static VkDescriptorSet *
-create_descriptor_sets(struct trtl_object_mesh *mesh, struct swap_chain_data *scd)
+create_descriptor_sets(struct trtl_object_mesh *mesh, struct trtl_swap_chain *scd)
 {
 	VkDescriptorSet *sets = talloc_zero_array(mesh, VkDescriptorSet, mesh->nframes);
 	VkDescriptorSetLayout *layouts =
 	    talloc_zero_array(NULL, VkDescriptorSetLayout, mesh->nframes);
 
-	for (uint32_t i = 0; i < mesh->nframes; i++) {
-		layouts[i] = scd->render->descriptor_set_layout;
-	}
+	// FIXME: Allocate own descriptor set
+	//for (uint32_t i = 0; i < mesh->nframes; i++) {
+//		layouts[i] = scd->render->descriptor_set_layout;
+//	}
 
 	VkDescriptorSetAllocateInfo alloc_info = {0};
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;

@@ -25,14 +25,14 @@
 #include "turtle.h"
 
 // FIXME: These should be in some loaded metadata
-static const char *MODEL_PATH = "models/viking_room.obj";
-static const char *TEXTURE_PATH = "textures/viking_room.png";
+static const trtl_arg_unused char *MODEL_PATH = "models/viking_room.obj";
+static const trtl_arg_unused char *TEXTURE_PATH = "textures/viking_room.png";
 // Loads; but wrong size
 // static const char *MODEL_PATH = "models/bulborb/source/TenKochappy.obj";
 // static const char *TEXTURE_PATH = "models/bulborb/textures/kochappy_tex.png";
 
-static const char *MODEL_PATH2 = "models/StreetCouch/Day143.obj";
-static const char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
+static const trtl_arg_unused char *MODEL_PATH2 = "models/StreetCouch/Day143.obj";
+static const trtl_arg_unused char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
 
 struct {
 	void *seer_ctx;
@@ -70,9 +70,9 @@ static struct layer_info layer_info[] = {
 };
 
 static VkRenderPass create_render_pass(struct turtle *turtle, struct layer_info *info);
-VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
+VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct trtl_swap_chain *scd,
 					VkCommandPool command_pool, VkFramebuffer *framebuffers);
-static VkFramebuffer *create_frame_buffers(VkDevice device, struct swap_chain_data *scd,
+static VkFramebuffer *create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd,
 					   VkRenderPass render_pass, VkExtent2D extent);
 
 int
@@ -108,7 +108,7 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
 
 // FIXME: The SCD arg is terrible :
 int
-trtl_seer_resize(VkExtent2D new_size, struct swap_chain_data *scd)
+trtl_seer_resize(VkExtent2D new_size, struct trtl_swap_chain *scd)
 {
 	// recreate pipelines
 
@@ -135,9 +135,9 @@ trtl_seer_resize(VkExtent2D new_size, struct swap_chain_data *scd)
 }
 
 int
-trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_layer_t layerid)
+trtl_seer_object_add(const char *name, struct trtl_swap_chain *scd, trtl_render_layer_t layerid)
 {
-	struct trtl_object *object;
+	struct trtl_object *object = NULL;
 	struct objlayer *layer;
 
 	if (layerid >= seer.nlayers) {
@@ -146,13 +146,15 @@ trtl_seer_object_add(const char *name, struct swap_chain_data *scd, trtl_render_
 
 	// FIXME: This is super unscalable.  Shoudl have a DB or a way to search filesystem
 	if (streq(name, "couch")) {
-		object = trtl_object_mesh_create(
-		    seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
-		    scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
+		printf("Couch diesabled\n");
+		//object = trtl_object_mesh_create(
+		 //   seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		   // scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
 	} else if (streq(name, "room")) {
-		object = trtl_object_mesh_create(
-		    seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
-		    scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
+		printf("room disabled\n");
+		//object = trtl_object_mesh_create(
+		  //  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		    //scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(seer.seer_ctx, scd, seer.layers[layerid].render_pass,
 					    scd->extent);
@@ -220,7 +222,7 @@ trtl_seer_update(uint32_t image_index)
 }
 
 trtl_must_check VkCommandBuffer *
-trtl_seer_create_command_buffers(struct swap_chain_data *scd, VkCommandPool command_pool)
+trtl_seer_create_command_buffers(struct trtl_swap_chain *scd, VkCommandPool command_pool)
 {
 	seer.framebuffers =
 	    create_frame_buffers(seer.turtle->device, scd, seer.layers[1].render_pass, scd->extent);
@@ -228,7 +230,7 @@ trtl_seer_create_command_buffers(struct swap_chain_data *scd, VkCommandPool comm
 }
 
 int
-trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct swap_chain_data *scd,
+trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct trtl_swap_chain *scd,
 	       trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
@@ -357,7 +359,7 @@ create_render_pass(struct turtle *turtle, struct layer_info *layerinfo)
 }
 
 VkCommandBuffer *
-create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
+create_command_buffers(struct turtle *turtle, struct trtl_swap_chain *scd,
 		       VkCommandPool command_pool, VkFramebuffer *framebuffers)
 {
 	VkCommandBuffer *buffers;
@@ -421,7 +423,7 @@ create_command_buffers(struct turtle *turtle, struct swap_chain_data *scd,
 }
 
 static VkFramebuffer *
-create_frame_buffers(VkDevice device, struct swap_chain_data *scd, VkRenderPass render_pass,
+create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd, VkRenderPass render_pass,
 		     VkExtent2D extent)
 {
 	VkFramebuffer *framebuffers;

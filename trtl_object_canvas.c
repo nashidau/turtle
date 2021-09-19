@@ -43,7 +43,7 @@ struct canvas_shader_params {
 };
 
 trtl_alloc static VkDescriptorSet *create_canvas_descriptor_sets(struct trtl_object_canvas *canvas,
-								 struct swap_chain_data *scd);
+								 struct trtl_swap_chain *scd);
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
 // static const struct vertex2d vertices[] = {
@@ -107,7 +107,7 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 static VkRenderPass renderpasshack;
 
 static void
-canvas_resize(struct trtl_object *obj, struct swap_chain_data *scd, trtl_arg_unused VkExtent2D size)
+canvas_resize(struct trtl_object *obj, struct trtl_swap_chain *scd, trtl_arg_unused VkExtent2D size)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
 	canvas->size = size;
@@ -144,7 +144,7 @@ canvas_create_descriptor_set_layout(VkDevice device)
 }
 
 trtl_alloc struct trtl_object *
-trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_pass,
+trtl_canvas_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_pass,
 		   VkExtent2D extent)
 {
 	struct trtl_object_canvas *canvas;
@@ -197,7 +197,7 @@ trtl_canvas_create(void *ctx, struct swap_chain_data *scd, VkRenderPass render_p
 }
 
 trtl_alloc static VkDescriptorSet *
-create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct swap_chain_data *scd)
+create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct trtl_swap_chain *scd)
 {
 	VkDescriptorSet *sets = talloc_zero_array(canvas, VkDescriptorSet, canvas->nframes);
 	VkDescriptorSetLayout *layouts =

@@ -5,22 +5,20 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan_beta.h>
 
-
 #include <talloc.h>
 
-
 #include "helpers.h"
-#include "turtle.h"
 #include "trtl_barriers.h"
 #include "trtl_scribe.h"
 #include "trtl_solo.h"
+#include "trtl_texture.h"
+#include "trtl_vulkan.h"
+#include "turtle.h"
 
 static int turtle_destructor(struct turtle *turtle);
 
-
-
 // FIXME: move into here or shell
-void draw_frame(struct render_context *render, struct swap_chain_data *scd,
+void draw_frame(struct render_context *render, struct trtl_swap_chain *scd,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore, VkFence fence);
 
 extern bool frame_buffer_resized;
@@ -30,8 +28,8 @@ static void window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused
 static void key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode,
 			 int action, trtl_arg_unused int mods);
 
-
-
+struct trtl_swap_chain *create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device,
+					  VkSurfaceKHR surface);
 
 // FIXME: These should be in a nice game state stucture
 int posX = 0;
@@ -43,8 +41,6 @@ static const char *required_extensions[] = {
     VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
 };
 #define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
-
-
 
 // FIXME: Probably need a trtl_window file
 static void
@@ -125,7 +121,6 @@ create_instance(const char *name)
 	memcpy(allExtensions, glfwExtensions, glfwExtensionCount * sizeof(char *));
 	allExtensions[glfwExtensionCount] = strdup("VK_KHR_get_physical_device_properties2");
 
-
 	VkInstanceCreateInfo create_info;
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 	create_info.pApplicationInfo = &appInfo;
@@ -138,7 +133,6 @@ create_instance(const char *name)
 	}
 	return instance;
 }
-
 
 static VkSurfaceKHR
 create_surface(VkInstance instance, GLFWwindow *window)
@@ -195,8 +189,6 @@ find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
 	return indices;
 }
 
-
-
 static VkDevice
 create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQueue *graphicsQueue,
 		      VkQueue *presentQueue)
@@ -248,7 +240,7 @@ create_logical_device(VkPhysicalDevice physicalDevice, VkSurfaceKHR surface, VkQ
 	return device;
 }
 
-	static bool
+static bool
 check_device_extension_support(VkPhysicalDevice device)
 {
 	uint32_t extensionCount;
@@ -366,7 +358,8 @@ create_physical_device(VkInstance instance, VkSurfaceKHR surface)
 }
 
 VkPhysicalDevice
-pick_physical_device(VkInstance instance, VkSurfaceKHR surface) {
+pick_physical_device(VkInstance instance, VkSurfaceKHR surface)
+{
 	uint32_t device_count = 0;
 	VkPhysicalDevice *devices;
 	VkPhysicalDevice candidate;
@@ -383,7 +376,7 @@ pick_physical_device(VkInstance instance, VkSurfaceKHR surface) {
 	vkEnumeratePhysicalDevices(instance, &device_count, devices);
 	candidate = VK_NULL_HANDLE;
 
-	for (uint32_t i = 0 ; i < device_count ; i++) {
+	for (uint32_t i = 0; i < device_count; i++) {
 		if (is_device_suitable(devices[i], surface)) {
 			candidate = devices[i];
 			break;
@@ -403,7 +396,8 @@ turtle_init(void)
 {
 	struct turtle *turtle = talloc(NULL, struct turtle);
 	talloc_set_destructor(turtle, turtle_destructor);
-	printf("Validation Layer Support: %s\n", trtl_scribe_check_validation_layer_support() ? "Yes" : "No");
+	printf("Validation Layer Support: %s\n",
+	       trtl_scribe_check_validation_layer_support() ? "Yes" : "No");
 
 	window_init(turtle, "Turtle");
 
@@ -418,6 +412,12 @@ turtle_init(void)
 					       &turtle->graphicsQueue, &turtle->presentQueue);
 
 	trtl_solo_init(turtle);
+
+	turtle->tsc = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
+
+	turtle->tsc->image_views =
+	    create_image_views(turtle, turtle->tsc->images, turtle->tsc->nimages);
+
 	// trtl_barriers_init();
 
 	return turtle;
@@ -467,8 +467,7 @@ create_buffer(struct turtle *turtle, VkDeviceSize size, VkBufferUsageFlags usage
 	allocInfo.memoryTypeIndex =
 	    findMemoryType(turtle, memRequirements.memoryTypeBits, properties);
 
-	if (vkAllocateMemory(turtle->device, &allocInfo, NULL, bufferMemory) !=
-	    VK_SUCCESS) {
+	if (vkAllocateMemory(turtle->device, &allocInfo, NULL, bufferMemory) != VK_SUCCESS) {
 		error("failed to allocate buffer memory!");
 	}
 
@@ -492,10 +491,105 @@ findMemoryType(struct turtle *turtle, uint32_t typeFilter, VkMemoryPropertyFlags
 }
 
 static int
-turtle_destructor(struct turtle *turtle) {
+turtle_destructor(struct turtle *turtle)
+{
 	printf("destructor for %p\n", turtle);
 
 	vkDestroySurfaceKHR(turtle->instance, turtle->surface, NULL);
 
 	return 0;
+}
+
+static int
+swap_chain_data_destructor(struct trtl_swap_chain *scd)
+{
+	VkDevice device;
+	uint32_t i;
+
+	device = scd->render->turtle->device;
+
+	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
+
+	// FIXME: There are multiple pipelines now
+	// vkDestroyPipeline(device, *scd->pipelines, NULL);
+	// vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
+
+	for (i = 0; i < scd->nimages; i++) {
+		vkDestroyImageView(device, scd->image_views[i], NULL);
+	}
+
+	vkDestroySwapchainKHR(device, scd->swap_chain, NULL);
+
+	vkDestroyDescriptorPool(device, scd->descriptor_pool, NULL);
+
+	return 0;
+}
+
+struct trtl_swap_chain *
+create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
+{
+	struct trtl_swap_chain *scd = talloc_zero(NULL, struct trtl_swap_chain);
+	talloc_set_destructor(scd, swap_chain_data_destructor);
+
+	struct swap_chain_support_details *swapChainSupport =
+	    query_swap_chain_support(physical_device, surface);
+
+	const VkSurfaceFormatKHR *surfaceFormat =
+	    chooseSwapSurfaceFormat(swapChainSupport->formats, swapChainSupport->nformats);
+	VkPresentModeKHR presentMode =
+	    chooseSwapPresentMode(swapChainSupport->presentModes, swapChainSupport->npresentmodes);
+	VkExtent2D extent = chooseSwapExtent(&swapChainSupport->capabilities);
+
+	// FIXME: Why is this '[1]'??  That seems ... wrong
+	uint32_t imageCount = swapChainSupport[0].capabilities.minImageCount + 1;
+	if (swapChainSupport->capabilities.maxImageCount > 0 &&
+	    imageCount > swapChainSupport->capabilities.maxImageCount) {
+		imageCount = swapChainSupport->capabilities.maxImageCount;
+	}
+
+	VkSwapchainCreateInfoKHR createInfo = {0};
+	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+	createInfo.surface = surface;
+
+	createInfo.minImageCount = imageCount;
+	createInfo.imageFormat = surfaceFormat->format;
+	createInfo.imageColorSpace = surfaceFormat->colorSpace;
+	createInfo.imageExtent = extent;
+	createInfo.imageArrayLayers = 1;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+	struct queue_family_indices queue_family_indices;
+	queue_family_indices = find_queue_families(physical_device, surface);
+	uint32_t queueFamilyIndices[2];
+
+	if (queue_family_indices.graphics_family != queue_family_indices.present_family) {
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+		createInfo.queueFamilyIndexCount = 2;
+		queueFamilyIndices[0] = queue_family_indices.graphics_family;
+		queueFamilyIndices[1] = queue_family_indices.present_family;
+		createInfo.pQueueFamilyIndices = queueFamilyIndices;
+	} else {
+		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	}
+
+	createInfo.preTransform = swapChainSupport->capabilities.currentTransform;
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	createInfo.presentMode = presentMode;
+	createInfo.clipped = VK_TRUE;
+
+	createInfo.oldSwapchain = VK_NULL_HANDLE;
+
+	if (vkCreateSwapchainKHR(turtle->device, &createInfo, NULL, &scd->swap_chain) !=
+	    VK_SUCCESS) {
+		error("failed to create swap chain!");
+	}
+
+	vkGetSwapchainImagesKHR(turtle->device, scd->swap_chain, &scd->nimages, NULL);
+	scd->images = talloc_array(scd, VkImage, scd->nimages);
+	vkGetSwapchainImagesKHR(turtle->device, scd->swap_chain, &scd->nimages, scd->images);
+
+	turtle->image_format = surfaceFormat->format;
+	scd->extent = extent;
+
+	return scd;
 }

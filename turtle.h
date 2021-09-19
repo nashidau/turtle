@@ -39,6 +39,7 @@ struct turtle {
 
 	VkInstance instance;
 
+	struct trtl_swap_chain *tsc;
 
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
@@ -48,10 +49,7 @@ struct turtle {
 struct render_context {
 	struct turtle *turtle;
 
-	VkDescriptorSetLayout descriptor_set_layout;
-
-
-	struct swap_chain_data *scd;
+	struct trtl_swap_chain *scd;
 
 	VkFence *images_in_flight;
 
@@ -60,7 +58,7 @@ struct render_context {
 
 };
 
-struct swap_chain_data {
+struct trtl_swap_chain {
 	// Used in the destructor, not deleted in the destructor
 	struct render_context *render;
 

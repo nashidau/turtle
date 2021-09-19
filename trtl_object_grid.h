@@ -1,8 +1,8 @@
 
 #include <vulkan/vulkan.h>
 
-struct swap_chain_data;
+struct trtl_swap_chain;
 
-struct trtl_object *trtl_grid_create(void *ctx, struct swap_chain_data *scd,
+struct trtl_object *trtl_grid_create(void *ctx, struct trtl_swap_chain *scd,
 				     VkRenderPass render_pass, VkExtent2D extent, uint16_t width,
 				     uint16_t height);

@@ -4,7 +4,7 @@
 #include <vulkan/vulkan_beta.h>
 
 struct vertex;
-struct swap_chain_data;
+struct trtl_swap_chain;
 struct trtl_pipeline_info;
 
 // Interface for render objects; implement these methods
@@ -17,6 +17,6 @@ struct trtl_object {
 	// A window resize just happned; update.
 	// This is optional, but will generally be required
 	// FIXME: Need to kill the SCD pointer.
-	void (*resize)(struct trtl_object *obj, struct swap_chain_data *scd, VkExtent2D size);
+	void (*resize)(struct trtl_object *obj, struct trtl_swap_chain *scd, VkExtent2D size);
 };
 

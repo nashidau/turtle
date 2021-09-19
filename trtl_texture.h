@@ -3,7 +3,7 @@
 #include <vulkan/vulkan.h>
 
 struct turtle;
-struct swap_chain_data; // FIXME: Delete this when args to create_image_views changes
+struct trtl_swap_chain; // FIXME: Delete this when args to create_image_views changes
 
 // FIXME: Should be trtl_texure_<something>
 VkImage create_texture_image(struct turtle *turtle, const char *path);

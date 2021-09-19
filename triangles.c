@@ -27,25 +27,19 @@
 #include "trtl_barriers.h"
 #include "trtl_object.h"
 #include "trtl_seer.h"
-#include "trtl_texture.h"
 #include "trtl_solo.h"
+#include "trtl_texture.h"
 #include "trtl_uniform.h"
 
 struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
 struct trtl_uniform *evil_global_uniform;
 
-
 const int MAX_FRAMES_IN_FLIGHT = 2;
 // Belongs in render frame state
 bool frame_buffer_resized = false;
 
-// Context stored with the main window.
-struct window_context {
-};
-static int swap_chain_data_destructor(struct swap_chain_data *scd);
-
-trtl_alloc static VkDescriptorPool create_descriptor_pool(struct swap_chain_data *scd);
+trtl_alloc static VkDescriptorPool create_descriptor_pool(struct trtl_swap_chain *scd);
 
 /** End Generic */
 
@@ -81,138 +75,11 @@ find_depth_format(VkPhysicalDevice physical_device)
 				     VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 }
 
-const VkSurfaceFormatKHR *
-chooseSwapSurfaceFormat(const VkSurfaceFormatKHR *availableFormats, uint32_t nformats)
-{
-
-	// FIXME: THis was VK_COLOR_SPACE_SRGB_NONLINEAR_KHR.
-	// Should have more sophistaiced way of looking and choosing.
-	for (uint32_t i = 0; i < nformats; i++) {
-		if (availableFormats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
-		    availableFormats[i].colorSpace == VK_COLOR_SPACE_EXTENDED_SRGB_LINEAR_EXT) {
-			return availableFormats + i;
-		}
-	}
-
-	return availableFormats;
-}
-
-VkPresentModeKHR
-chooseSwapPresentMode(const VkPresentModeKHR *availablePresentModes, uint32_t npresentmodes)
-{
-	for (uint32_t i = 0; i < npresentmodes; i++) {
-		if (availablePresentModes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
-			return availablePresentModes[i];
-		}
-	}
-
-	return VK_PRESENT_MODE_FIFO_KHR;
-}
-
-VkExtent2D
-chooseSwapExtent(const VkSurfaceCapabilitiesKHR *capabilities)
-{
-	if (capabilities->currentExtent.width != UINT32_MAX) {
-		return capabilities->currentExtent;
-	} else {
-		int width, height;
-		width = 50;
-		height = 50;
-		fprintf(stderr, "Hardcoded size you fools!\n");
-		// glfwGetFramebufferSize(window, &width, &height);
-
-		VkExtent2D actualExtent = {
-		    .width = width,
-		    .height = height,
-		};
-
-		actualExtent.width =
-		    MAX(capabilities->minImageExtent.width,
-			MIN(capabilities->maxImageExtent.width, actualExtent.width));
-		actualExtent.height =
-		    MAX(capabilities->minImageExtent.height,
-			MIN(capabilities->maxImageExtent.height, actualExtent.height));
-
-		return actualExtent;
-	}
-}
-
 // In turtle .c
 struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice device,
 							    VkSurfaceKHR surface);
-
-struct swap_chain_data *
-create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
-{
-	struct swap_chain_data *scd = talloc_zero(NULL, struct swap_chain_data);
-	talloc_set_destructor(scd, swap_chain_data_destructor);
-
-	struct swap_chain_support_details *swapChainSupport =
-	    query_swap_chain_support(physical_device, surface);
-
-	const VkSurfaceFormatKHR *surfaceFormat =
-	    chooseSwapSurfaceFormat(swapChainSupport->formats, swapChainSupport->nformats);
-	VkPresentModeKHR presentMode =
-	    chooseSwapPresentMode(swapChainSupport->presentModes, swapChainSupport->npresentmodes);
-	VkExtent2D extent = chooseSwapExtent(&swapChainSupport->capabilities);
-
-	// FIXME: Why is this '[1]'??  That seems ... wrong
-	uint32_t imageCount = swapChainSupport[0].capabilities.minImageCount + 1;
-	if (swapChainSupport->capabilities.maxImageCount > 0 &&
-	    imageCount > swapChainSupport->capabilities.maxImageCount) {
-		imageCount = swapChainSupport->capabilities.maxImageCount;
-	}
-
-	VkSwapchainCreateInfoKHR createInfo = {0};
-	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-	createInfo.surface = surface;
-
-	createInfo.minImageCount = imageCount;
-	createInfo.imageFormat = surfaceFormat->format;
-	createInfo.imageColorSpace = surfaceFormat->colorSpace;
-	createInfo.imageExtent = extent;
-	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-
-	struct queue_family_indices queue_family_indices;
-	queue_family_indices = find_queue_families(physical_device, surface);
-	uint32_t queueFamilyIndices[2];
-
-	if (queue_family_indices.graphics_family != queue_family_indices.present_family) {
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-		createInfo.queueFamilyIndexCount = 2;
-		queueFamilyIndices[0] = queue_family_indices.graphics_family;
-		queueFamilyIndices[1] = queue_family_indices.present_family;
-		createInfo.pQueueFamilyIndices = queueFamilyIndices;
-	} else {
-		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	}
-
-	createInfo.preTransform = swapChainSupport->capabilities.currentTransform;
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-	createInfo.presentMode = presentMode;
-	createInfo.clipped = VK_TRUE;
-
-	createInfo.oldSwapchain = VK_NULL_HANDLE;
-
-	if (vkCreateSwapchainKHR(turtle->device, &createInfo, NULL, &scd->swap_chain) !=
-	    VK_SUCCESS) {
-		error("failed to create swap chain!");
-	}
-
-	vkGetSwapchainImagesKHR(turtle->device, scd->swap_chain, &scd->nimages, NULL);
-	scd->images = talloc_array(scd, VkImage, scd->nimages);
-	vkGetSwapchainImagesKHR(turtle->device, scd->swap_chain, &scd->nimages, scd->images);
-
-	turtle->image_format = surfaceFormat->format;
-	scd->extent = extent;
-
-	return scd;
-}
-
-
 
 static VkSampler
 create_texture_sampler(struct render_context *render)
@@ -300,7 +167,7 @@ create_command_pool(VkDevice device, VkPhysicalDevice physical_device, VkSurface
  * at a time.
  */
 static void
-create_depth_resources(struct swap_chain_data *scd)
+create_depth_resources(struct trtl_swap_chain *scd)
 {
 	VkFormat depthFormat = find_depth_format(scd->render->turtle->physical_device);
 
@@ -308,32 +175,8 @@ create_depth_resources(struct swap_chain_data *scd)
 		     VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
 		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &scd->depth_image,
 		     &scd->depth_image_memory);
-	scd->depth_image_view = create_image_view(scd->render->turtle, scd->depth_image, depthFormat,
-						  VK_IMAGE_ASPECT_DEPTH_BIT);
-}
-static int
-swap_chain_data_destructor(struct swap_chain_data *scd)
-{
-	VkDevice device;
-	uint32_t i;
-
-	device = scd->render->turtle->device;
-
-	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
-
-	// FIXME: There are multiple pipelines now
-	// vkDestroyPipeline(device, *scd->pipelines, NULL);
-	// vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
-
-	for (i = 0; i < scd->nimages; i++) {
-		vkDestroyImageView(device, scd->image_views[i], NULL);
-	}
-
-	vkDestroySwapchainKHR(device, scd->swap_chain, NULL);
-
-	vkDestroyDescriptorPool(device, scd->descriptor_pool, NULL);
-
-	return 0;
+	scd->depth_image_view = create_image_view(scd->render->turtle, scd->depth_image,
+						  depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT);
 }
 
 void
@@ -341,6 +184,7 @@ recreate_swap_chain(struct render_context *render)
 {
 	int width = 0, height = 0;
 	VkExtent2D size;
+	struct turtle *turtle = render->turtle;
 
 	glfwGetFramebufferSize(render->turtle->window, &width, &height);
 	size.width = width;
@@ -358,9 +202,10 @@ recreate_swap_chain(struct render_context *render)
 
 	talloc_free(render->scd);
 
-	render->scd = create_swap_chain(render->turtle, render->turtle->physical_device,
-					render->turtle->surface);
-	struct swap_chain_data *scd = render->scd;
+	// FIXME: when we resize, I need to fix this
+	//render->turtle->tsc = create_swap_chain(render->turtle, render->turtle->physical_device,
+	//					render->turtle->surface);
+	struct trtl_swap_chain *scd = turtle->tsc;
 	scd->render = render;
 	scd->image_views = create_image_views(render->turtle, scd->images, scd->nimages);
 
@@ -385,7 +230,7 @@ recreate_swap_chain(struct render_context *render)
 }
 
 trtl_alloc static VkDescriptorPool
-create_descriptor_pool(struct swap_chain_data *scd)
+create_descriptor_pool(struct trtl_swap_chain *scd)
 {
 	VkDescriptorPool descriptor_pool;
 	VkDescriptorPoolSize pool_sizes[2];
@@ -483,7 +328,7 @@ copyBufferToImage(trtl_arg_unused struct turtle *turtle,
 }
 
 void
-draw_frame(struct render_context *render, struct swap_chain_data *scd, VkSemaphore image_semaphore,
+draw_frame(struct render_context *render, struct trtl_swap_chain *scd, VkSemaphore image_semaphore,
 	   VkSemaphore renderFinishedSemaphore, VkFence fence)
 {
 	VkResult result;
@@ -608,7 +453,7 @@ parse_arguments(int argc, char **argv)
 }
 
 static int
-load_object_default(struct swap_chain_data *scd)
+load_object_default(struct trtl_swap_chain *scd)
 {
 	printf("Loading default objects: Background 'background', Main: 'grid9'\n");
 	trtl_seer_object_add("background", scd, TRTL_RENDER_LAYER_BACKGROUND);
@@ -617,7 +462,7 @@ load_object_default(struct swap_chain_data *scd)
 }
 
 int
-load_objects(struct swap_chain_data *scd)
+load_objects(struct trtl_swap_chain *scd)
 {
 	int i;
 
@@ -655,11 +500,10 @@ main(int argc, char **argv)
 	turtle = turtle_init();
 	render->turtle = turtle;
 
-	render->scd = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
-	struct swap_chain_data *scd = render->scd;
+	struct trtl_swap_chain *scd = turtle->tsc;
+	render->scd = scd;
 	scd->render = render;
-	scd->image_views = create_image_views(turtle, scd->images, scd->nimages);
-	render->descriptor_set_layout = create_descriptor_set_layout(render);
+	//render->descriptor_set_layout = create_descriptor_set_layout(render);
 
 	scd->command_pool =
 	    create_command_pool(turtle->device, turtle->physical_device, turtle->surface);
