@@ -462,6 +462,7 @@ turtle_init(void)
 
 	turtle->uniforms = trtl_uniform_init(turtle, turtle->tsc->nimages, 1024);
 	// trtl_barriers_init();
+	turtle->texture_sampler = create_texture_sampler(turtle);
 
 	return turtle;
 }

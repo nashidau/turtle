@@ -47,34 +47,6 @@ struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfa
 struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice device,
 							    VkSurfaceKHR surface);
 
-static VkSampler
-create_texture_sampler(struct render_context *render)
-{
-	VkSampler sampler;
-	VkPhysicalDeviceProperties properties = {0};
-	vkGetPhysicalDeviceProperties(render->turtle->physical_device, &properties);
-
-	VkSamplerCreateInfo sampler_info = {0};
-	sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-	sampler_info.magFilter = VK_FILTER_LINEAR;
-	sampler_info.minFilter = VK_FILTER_LINEAR;
-	sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-	sampler_info.anisotropyEnable = VK_TRUE;
-	sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
-	sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
-	sampler_info.unnormalizedCoordinates = VK_FALSE;
-	sampler_info.compareEnable = VK_FALSE;
-	sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
-	sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-
-	if (vkCreateSampler(render->turtle->device, &sampler_info, NULL, &sampler) != VK_SUCCESS) {
-		error("failed to create texture sampler!");
-	}
-	return sampler;
-}
-
 void
 recreate_swap_chain(struct render_context *render)
 {
@@ -400,9 +372,6 @@ main(int argc, char **argv)
 	struct trtl_swap_chain *scd = turtle->tsc;
 	render->scd = scd;
 	scd->render = render;
-
-	// Init the trtl Uniform buffers; We have one currently
-	render->texture_sampler = create_texture_sampler(render);
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 

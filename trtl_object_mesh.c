@@ -49,6 +49,7 @@ trtl_object_mesh(struct trtl_object *obj)
 }
 
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mesh *mesh,
+							  struct turtle *turtle,
 							  struct trtl_swap_chain *scd);
 
 static void
@@ -111,9 +112,10 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 }
 
 struct trtl_object *
-trtl_object_mesh_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass render_pass,
-			VkExtent2D extent, VkDescriptorSetLayout descriptor_set_layout,
-			const char *path, const char *texture)
+trtl_object_mesh_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd,
+			VkRenderPass render_pass, VkExtent2D extent,
+			VkDescriptorSetLayout descriptor_set_layout, const char *path,
+			const char *texture)
 {
 	struct trtl_object_mesh *mesh;
 
@@ -130,14 +132,14 @@ trtl_object_mesh_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass ren
 		return NULL;
 	}
 
-//	mesh->uniform_info =
-//	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
+	//	mesh->uniform_info =
+	//	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
 	// FIXME: So leaky (create_texture_image never freed);
 	mesh->texture_image_view = create_texture_image_view(
 	    scd->render->turtle, create_texture_image(scd->render->turtle, texture));
 
-	mesh->descriptor_set = create_descriptor_sets(mesh, scd);
+	mesh->descriptor_set = create_descriptor_sets(mesh, turtle, scd);
 
 	// FIXME: Need to not leak this; and reuse other function
 	mesh->pipeline_info = trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
@@ -165,16 +167,17 @@ trtl_object_mesh_create(void *ctx, struct trtl_swap_chain *scd, VkRenderPass ren
 }
 
 trtl_alloc static VkDescriptorSet *
-create_descriptor_sets(struct trtl_object_mesh *mesh, struct trtl_swap_chain *scd)
+create_descriptor_sets(struct trtl_object_mesh *mesh, struct turtle *turtle,
+		       struct trtl_swap_chain *scd)
 {
 	VkDescriptorSet *sets = talloc_zero_array(mesh, VkDescriptorSet, mesh->nframes);
 	VkDescriptorSetLayout *layouts =
 	    talloc_zero_array(NULL, VkDescriptorSetLayout, mesh->nframes);
 
 	// FIXME: Allocate own descriptor set
-	//for (uint32_t i = 0; i < mesh->nframes; i++) {
-//		layouts[i] = scd->render->descriptor_set_layout;
-//	}
+	// for (uint32_t i = 0; i < mesh->nframes; i++) {
+	//		layouts[i] = scd->render->descriptor_set_layout;
+	//	}
 
 	VkDescriptorSetAllocateInfo alloc_info = {0};
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
@@ -195,7 +198,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct trtl_swap_chain *sc
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		// This hsould be from the object
 		image_info.imageView = mesh->texture_image_view;
-		image_info.sampler = scd->render->texture_sampler;
+		image_info.sampler = turtle->texture_sampler;
 
 		VkWriteDescriptorSet descriptorWrites[2] = {0};
 

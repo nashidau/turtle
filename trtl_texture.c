@@ -116,6 +116,36 @@ create_texture_image(struct turtle *turtle, const char *path)
 	return image;
 }
 
+VkSampler
+create_texture_sampler(struct turtle *turtle)
+{
+	VkSampler sampler;
+	VkPhysicalDeviceProperties properties = {0};
+	vkGetPhysicalDeviceProperties(turtle->physical_device, &properties);
+
+	VkSamplerCreateInfo sampler_info = {0};
+	sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	sampler_info.magFilter = VK_FILTER_LINEAR;
+	sampler_info.minFilter = VK_FILTER_LINEAR;
+	sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	sampler_info.anisotropyEnable = VK_TRUE;
+	sampler_info.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+	sampler_info.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	sampler_info.unnormalizedCoordinates = VK_FALSE;
+	sampler_info.compareEnable = VK_FALSE;
+	sampler_info.compareOp = VK_COMPARE_OP_ALWAYS;
+	sampler_info.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+
+	if (vkCreateSampler(turtle->device, &sampler_info, NULL, &sampler) != VK_SUCCESS) {
+		error("failed to create texture sampler!");
+	}
+	return sampler;
+}
+
+
+
 VkImageView
 create_texture_image_view(struct turtle *render, VkImage texture_image)
 {

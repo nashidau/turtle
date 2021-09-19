@@ -20,3 +20,5 @@ void create_image(struct turtle *turtle, uint32_t width, uint32_t height, VkForm
 VkImageView create_image_view(struct turtle *turtle, VkImage image, VkFormat format,
 			      VkImageAspectFlags aspect_flags);
 VkImageView *create_image_views(struct turtle *turtle, VkImage *images, uint32_t nimages);
+VkSampler create_texture_sampler(struct turtle *turtle);
+

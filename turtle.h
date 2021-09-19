@@ -46,6 +46,7 @@ struct turtle {
 
 
 	struct trtl_uniform *uniforms;
+	VkSampler texture_sampler;
 };
 
 // All data used to render a frame
@@ -57,7 +58,6 @@ struct render_context {
 	VkFence *images_in_flight;
 
 	// Textures
-	VkSampler texture_sampler;
 
 };
 
@@ -80,6 +80,8 @@ struct trtl_swap_chain {
 	VkImage depth_image;
 	VkDeviceMemory depth_image_memory;
 	VkImageView depth_image_view;
+
+	VkSampler texture_sampler;
 };
 
 struct UniformBufferObject {
