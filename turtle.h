@@ -52,20 +52,9 @@ struct turtle {
 	VkFence *images_in_flight;
 };
 
-// All data used to render a frame
-struct render_context {
-	struct turtle *turtle;
-
-	struct trtl_swap_chain *scd;
-
-
-	// Textures
-
-};
-
 struct trtl_swap_chain {
 	// Used in the destructor, not deleted in the destructor
-	struct render_context *render;
+	struct turtle *turtle;
 
 	VkSwapchainKHR swap_chain;
 	VkImage *images;
@@ -119,7 +108,7 @@ typedef enum {
 } trtl_render_layer_t;
 
 
-int trtl_main_loop(struct turtle *turtle, struct render_context *render);
+int trtl_main_loop(struct turtle *turtle);
 
 struct turtle *turtle_init(void);
 

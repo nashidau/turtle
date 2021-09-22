@@ -9,10 +9,6 @@
 #include "trtl_texture.h"
 #include "turtle.h"
 
-void transitionImageLayout(trtl_arg_unused struct render_context *render, VkImage image,
-			   trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
-			   VkImageLayout newLayout);
-
 VkImageView
 create_image_view(struct turtle *turtle, VkImage image, VkFormat format,
 		  VkImageAspectFlags aspect_flags)

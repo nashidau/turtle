@@ -97,24 +97,24 @@ recreate_swap_chain(struct turtle *turtle)
 }
 
 trtl_alloc static VkDescriptorPool
-create_descriptor_pool(struct trtl_swap_chain *scd)
+create_descriptor_pool(struct trtl_swap_chain *tsc)
 {
 	VkDescriptorPool descriptor_pool;
 	VkDescriptorPoolSize pool_sizes[2];
 
 	// FIXME: Static allocation of '10' here.  Need to amange this correctly
 	pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	pool_sizes[0].descriptorCount = scd->nimages * 10;
+	pool_sizes[0].descriptorCount = tsc->nimages * 10;
 	pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-	pool_sizes[1].descriptorCount = scd->nimages * 10;
+	pool_sizes[1].descriptorCount = tsc->nimages * 10;
 
 	VkDescriptorPoolCreateInfo pool_info = {0};
 	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.poolSizeCount = TRTL_ARRAY_SIZE(pool_sizes);
 	pool_info.pPoolSizes = pool_sizes;
-	pool_info.maxSets = scd->nimages * 10;
+	pool_info.maxSets = tsc->nimages * 10;
 
-	if (vkCreateDescriptorPool(scd->render->turtle->device, &pool_info, NULL,
+	if (vkCreateDescriptorPool(tsc->turtle->device, &pool_info, NULL,
 				   &descriptor_pool) != VK_SUCCESS) {
 		error("failed to create descriptor pool!");
 	}
@@ -124,7 +124,7 @@ create_descriptor_pool(struct trtl_swap_chain *scd)
 
 // FIXME: Fix the args on this.
 void
-transitionImageLayout(trtl_arg_unused struct render_context *render, VkImage image,
+transitionImageLayout(VkImage image,
 		      trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
 		      VkImageLayout newLayout)
 {
@@ -171,8 +171,7 @@ transitionImageLayout(trtl_arg_unused struct render_context *render, VkImage ima
 }
 
 void
-copyBufferToImage(trtl_arg_unused struct turtle *turtle,
-		  trtl_arg_unused struct render_context *render, VkBuffer buffer, VkImage image,
+copyBufferToImage(trtl_arg_unused struct turtle *turtle, VkBuffer buffer, VkImage image,
 		  uint32_t width, uint32_t height)
 {
 	struct trtl_solo *solo = trtl_solo_get();
@@ -360,17 +359,13 @@ load_objects(struct trtl_swap_chain *scd, struct turtle *turtle)
 int
 main(int argc, char **argv)
 {
-	struct render_context *render = talloc_zero(NULL, struct render_context);
 	struct turtle *turtle;
 
 	parse_arguments(argc, argv);
 
 	turtle = turtle_init();
-	render->turtle = turtle;
 
 	struct trtl_swap_chain *scd = turtle->tsc;
-	render->scd = scd;
-	scd->render = render;
 
 	scd->descriptor_pool = create_descriptor_pool(scd);
 
@@ -387,13 +382,13 @@ main(int argc, char **argv)
 	trtl_barriers_init(turtle);
 
 	// This should go into main loop
-	turtle->images_in_flight = talloc_array(render, VkFence, scd->nimages);
+	turtle->images_in_flight = talloc_array(turtle, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
 	for (uint32_t i = 0; i < scd->nimages; i++) {
 		turtle->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
-	trtl_main_loop(turtle, render);
+	trtl_main_loop(turtle);
 
 	//	main_loop(window);
 

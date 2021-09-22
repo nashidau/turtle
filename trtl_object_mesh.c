@@ -136,29 +136,29 @@ trtl_object_mesh_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain
 	//	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
 	// FIXME: So leaky (create_texture_image never freed);
-	mesh->texture_image_view = create_texture_image_view(
-	    scd->render->turtle, create_texture_image(scd->render->turtle, texture));
+	mesh->texture_image_view =
+	    create_texture_image_view(scd->turtle, create_texture_image(turtle, texture));
 
 	mesh->descriptor_set = create_descriptor_sets(mesh, turtle, scd);
 
 	// FIXME: Need to not leak this; and reuse other function
-	mesh->pipeline_info = trtl_pipeline_create(scd->render->turtle->device, render_pass, extent,
-						   descriptor_set_layout, "shaders/vert.spv",
-						   "shaders/frag.spv", NULL, NULL, 0);
+	mesh->pipeline_info =
+	    trtl_pipeline_create(turtle->device, render_pass, extent, descriptor_set_layout,
+				 "shaders/vert.spv", "shaders/frag.spv", NULL, NULL, 0);
 
 	{
 		struct trtl_seer_vertexset vertices;
 		vertices.nvertexes = mesh->model->nvertices;
 		vertices.vertices = mesh->model->vertices;
 
-		mesh->vertex_buffer = create_vertex_buffers(scd->render, &vertices);
+		mesh->vertex_buffer = create_vertex_buffers(scd->turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = mesh->model->nindices;
 		indexes.indexes = mesh->model->indices;
-		mesh->index_buffer = create_index_buffer(scd->render, &indexes);
+		mesh->index_buffer = create_index_buffer(scd->turtle, &indexes);
 	}
 
 	if (strstr(path, "Couch")) mesh->reverse = 1;
@@ -185,8 +185,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct turtle *turtle,
 	alloc_info.descriptorSetCount = mesh->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) !=
-	    VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(turtle->device, &alloc_info, sets) != VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
@@ -218,9 +217,8 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct turtle *turtle,
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &image_info;
 
-		vkUpdateDescriptorSets(scd->render->turtle->device,
-				       TRTL_ARRAY_SIZE(descriptorWrites), descriptorWrites, 0,
-				       NULL);
+		vkUpdateDescriptorSets(turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
+				       descriptorWrites, 0, NULL);
 	}
 
 	talloc_free(layouts);

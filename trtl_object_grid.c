@@ -162,14 +162,14 @@ generate_grid(struct trtl_object_grid *grid, struct trtl_swap_chain *scd, uint16
 		vertices.nvertexes = vcount;
 		vertices.vertices = vertex;
 
-		grid->vertex_buffer = create_vertex_buffers(scd->render, &vertices);
+		grid->vertex_buffer = create_vertex_buffers(scd->turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = icount;
 		indexes.indexes = indices;
-		grid->index_buffer = create_index_buffer(scd->render, &indexes);
+		grid->index_buffer = create_index_buffer(scd->turtle, &indexes);
 	}
 	grid->vcount = vcount;
 	grid->icount = icount;
@@ -182,10 +182,10 @@ grid_resize(struct trtl_object *obj, struct trtl_swap_chain *scd, VkExtent2D siz
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	grid->descriptor_set_layout =
-	    grid_create_descriptor_set_layout(scd->render->turtle->device);
+	    grid_create_descriptor_set_layout(scd->turtle->device);
 	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
 	grid->pipeline_info = trtl_pipeline_create(
-	    scd->render->turtle->device, renderpasshack, size, grid->descriptor_set_layout,
+	    scd->turtle->device, renderpasshack, size, grid->descriptor_set_layout,
 	    "shaders/grid/grid-vertex.spv", FRAG_SHADER, &grid_binding_descriptor,
 	    grid_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS);
 }
@@ -296,7 +296,7 @@ grid_create_descriptor_sets(struct trtl_object_grid *grid, struct trtl_swap_chai
 	alloc_info.descriptorSetCount = grid->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) !=
+	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) !=
 	    VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
@@ -315,7 +315,7 @@ grid_create_descriptor_sets(struct trtl_object_grid *grid, struct trtl_swap_chai
 		descriptorWrites[0].descriptorCount = 1;
 		descriptorWrites[0].pBufferInfo = &buffer_info;
 
-		vkUpdateDescriptorSets(scd->render->turtle->device,
+		vkUpdateDescriptorSets(scd->turtle->device,
 				       TRTL_ARRAY_SIZE(descriptorWrites), descriptorWrites, 0,
 				       NULL);
 	}

@@ -31,7 +31,7 @@ copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 // FIXME: This should be in trtl_seer I'm pretty sure.  It owns the objects, so it
 // should do the allocation for vertex and index buffers.
 VkBuffer
-create_vertex_buffers(struct render_context *render, const struct trtl_seer_vertexset *vertices)
+create_vertex_buffers(struct turtle *turtle, const struct trtl_seer_vertexset *vertices)
 {
 	uint32_t nvertexes;
 	uint32_t nobjects = 1;
@@ -48,25 +48,25 @@ create_vertex_buffers(struct render_context *render, const struct trtl_seer_vert
 	VkDeviceSize bufferSize = vertices->vertex_size * nvertexes;
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	create_buffer(render->turtle, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	create_buffer(turtle, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		      &stagingBuffer, &stagingBufferMemory);
 
 	void *data;
-	vkMapMemory(render->turtle->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+	vkMapMemory(turtle->device, stagingBufferMemory, 0, bufferSize, 0, &data);
 	memcpy(data, vertices->vertices, bufferSize);
-	vkUnmapMemory(render->turtle->device, stagingBufferMemory);
+	vkUnmapMemory(turtle->device, stagingBufferMemory);
 
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;
-	create_buffer(render->turtle, bufferSize,
+	create_buffer(turtle, bufferSize,
 		      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
 		      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &vertex_buffer, &vertex_buffer_memory);
 
 	copyBuffer(stagingBuffer, vertex_buffer, bufferSize);
 
-	vkDestroyBuffer(render->turtle->device, stagingBuffer, NULL);
-	vkFreeMemory(render->turtle->device, stagingBufferMemory, NULL);
+	vkDestroyBuffer(turtle->device, stagingBuffer, NULL);
+	vkFreeMemory(turtle->device, stagingBufferMemory, NULL);
 
 	return vertex_buffer;
 }
@@ -94,7 +94,7 @@ copy_indexes(uint32_t *restrict dest, const uint32_t *restrict base, uint32_t co
 }
 
 VkBuffer
-create_index_buffer(struct render_context *render, const struct trtl_seer_indexset *indexes)
+create_index_buffer(struct turtle *turtle, const struct trtl_seer_indexset *indexes)
 {
 	// FIXME: Hardcoded indice size
 	uint32_t nindexes = indexes->nindexes; // total number of indexes
@@ -109,14 +109,14 @@ create_index_buffer(struct render_context *render, const struct trtl_seer_indexs
 
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
-	create_buffer(render->turtle, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+	create_buffer(turtle, buffer_size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		      &stagingBuffer, &stagingBufferMemory);
 
 	uint32_t *dest;
 	{
 		void *data;
-		vkMapMemory(render->turtle->device, stagingBufferMemory, 0, buffer_size, 0, &data);
+		vkMapMemory(turtle->device, stagingBufferMemory, 0, buffer_size, 0, &data);
 		dest = data;
 	}
 	// This ugly; update the index by the current poistion as we copy it accross
@@ -128,17 +128,17 @@ create_index_buffer(struct render_context *render, const struct trtl_seer_indexs
 		offset += indexes[i].indexrange;
 	}
 
-	vkUnmapMemory(render->turtle->device, stagingBufferMemory);
+	vkUnmapMemory(turtle->device, stagingBufferMemory);
 
 	VkBuffer index_buffer;
-	create_buffer(render->turtle, buffer_size,
+	create_buffer(turtle, buffer_size,
 		      VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
 		      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &index_buffer, &memory);
 
 	copyBuffer(stagingBuffer, index_buffer, buffer_size);
 
-	vkDestroyBuffer(render->turtle->device, stagingBuffer, NULL);
-	vkFreeMemory(render->turtle->device, stagingBufferMemory, NULL);
+	vkDestroyBuffer(turtle->device, stagingBuffer, NULL);
+	vkFreeMemory(turtle->device, stagingBufferMemory, NULL);
 
 	return index_buffer;
 }

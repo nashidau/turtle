@@ -113,7 +113,7 @@ canvas_resize(struct trtl_object *obj, struct trtl_swap_chain *scd, trtl_arg_unu
 	canvas->size = size;
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, scd);
 	canvas->pipeline_info = trtl_pipeline_create(
-	    scd->render->turtle->device, renderpasshack, size, canvas->descriptor_set_layout,
+	    scd->turtle->device, renderpasshack, size, canvas->descriptor_set_layout,
 	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
 }
 
@@ -173,7 +173,7 @@ trtl_canvas_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd
 	// in trtl_pipeline -> it should have differe get_attribute_description_pair
 	// and vertex_binding_description_get.
 	canvas->pipeline_info = trtl_pipeline_create(
-	    scd->render->turtle->device, render_pass, extent, canvas->descriptor_set_layout,
+	    scd->turtle->device, render_pass, extent, canvas->descriptor_set_layout,
 	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
 
 	{
@@ -182,14 +182,14 @@ trtl_canvas_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd
 		vertices.vertices = canvas_vertices;
 		vertices.vertex_size = sizeof(struct vertex);
 
-		canvas->vertex_buffer = create_vertex_buffers(scd->render, &vertices);
+		canvas->vertex_buffer = create_vertex_buffers(scd->turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = CANVAS_OBJECT_NINDEXES;
 		indexes.indexes = canvas_indices;
-		canvas->index_buffer = create_index_buffer(scd->render, &indexes);
+		canvas->index_buffer = create_index_buffer(scd->turtle, &indexes);
 	}
 
 	return (struct trtl_object *)canvas;
@@ -212,7 +212,7 @@ create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct trtl_swa
 	alloc_info.descriptorSetCount = canvas->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->render->turtle->device, &alloc_info, sets) !=
+	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) !=
 	    VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
@@ -231,7 +231,7 @@ create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct trtl_swa
 		descriptorWrites[0].descriptorCount = 1;
 		descriptorWrites[0].pBufferInfo = &buffer_info;
 
-		vkUpdateDescriptorSets(scd->render->turtle->device,
+		vkUpdateDescriptorSets(scd->turtle->device,
 				       TRTL_ARRAY_SIZE(descriptorWrites), descriptorWrites, 0,
 				       NULL);
 	}
