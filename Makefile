@@ -23,7 +23,9 @@ WARNINGS= \
 	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive \
 	-fstack-protector-strong
 
-CFLAGS+=-g -O2 ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
+OPTIMIZATION=-O2
+
+CFLAGS+=-g ${OPTIMIZATION} ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
 	-iframework /Library/Frameworks  -Icglm/include -fsanitize=address
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
 	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
