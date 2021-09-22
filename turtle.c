@@ -19,7 +19,7 @@
 static int turtle_destructor(struct turtle *turtle);
 
 // FIXME: move into here or shell
-void draw_frame(struct render_context *render, struct trtl_swap_chain *scd,
+void draw_frame(struct turtle *turtle, struct trtl_swap_chain *scd,
 		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore, VkFence fence);
 
 extern bool frame_buffer_resized;
@@ -468,18 +468,18 @@ turtle_init(void)
 }
 
 int
-trtl_main_loop(struct turtle *turtle, struct render_context *render)
+trtl_main_loop(struct turtle *turtle)
 {
 	int currentFrame = 0;
-	while (!glfwWindowShouldClose(render->turtle->window)) {
+	while (!glfwWindowShouldClose(turtle->window)) {
 		glfwPollEvents();
-		draw_frame(render, render->scd, turtle->barriers.image_ready_sem[currentFrame],
+		draw_frame(turtle, turtle->tsc, turtle->barriers.image_ready_sem[currentFrame],
 			   turtle->barriers.render_done_sem[currentFrame],
 			   turtle->barriers.in_flight_fences[currentFrame]);
 		currentFrame++;
 		currentFrame %= TRTL_MAX_FRAMES_IN_FLIGHT;
 	}
-	vkDeviceWaitIdle(render->turtle->device);
+	vkDeviceWaitIdle(turtle->device);
 
 	return 0;
 }
@@ -550,7 +550,7 @@ swap_chain_data_destructor(struct trtl_swap_chain *scd)
 	VkDevice device;
 	uint32_t i;
 
-	device = scd->render->turtle->device;
+	device = scd->turtle->device;
 
 	vkFreeCommandBuffers(device, scd->command_pool, scd->nbuffers, scd->command_buffers);
 

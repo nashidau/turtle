@@ -46,7 +46,7 @@ create_image_views(struct turtle *turtle, VkImage *images, uint32_t nimages)
 }
 
 static void
-copy_buffer_to_image(trtl_arg_unused struct render_context *render, VkBuffer buffer, VkImage image,
+copy_buffer_to_image(trtl_arg_unused struct turtle *turtle, VkBuffer buffer, VkImage image,
 		     uint32_t width, uint32_t height)
 {
 	struct trtl_solo *solo = trtl_solo_get();
@@ -99,11 +99,10 @@ create_texture_image(struct turtle *turtle, const char *path)
 		     VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
 		     VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &image, &imageMemory);
 
-	transitionImageLayout(NULL, image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
+	transitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED,
 			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
 	copy_buffer_to_image(NULL, staging_buffer, image, width, height);
-	transitionImageLayout(NULL, image, VK_FORMAT_R8G8B8A8_SRGB,
-			      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	transitionImageLayout(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
 			      VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	vkDestroyBuffer(turtle->device, staging_buffer, NULL);
@@ -139,8 +138,6 @@ create_texture_sampler(struct turtle *turtle)
 	}
 	return sampler;
 }
-
-
 
 VkImageView
 create_texture_image_view(struct turtle *render, VkImage texture_image)

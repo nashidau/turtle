@@ -44,7 +44,6 @@ struct turtle {
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;
 
-
 	struct trtl_uniform *uniforms;
 	VkSampler texture_sampler;
 
@@ -98,8 +97,6 @@ struct queue_family_indices {
 	bool has_present;
 };
 
-
-
 typedef enum {
 	TRTL_RENDER_LAYER_BACKGROUND = 0,
 	TRTL_RENDER_LAYER_MAIN = 1,
@@ -107,11 +104,9 @@ typedef enum {
 	TRTL_RENDER_LAYER_TOTAL
 } trtl_render_layer_t;
 
-
 int trtl_main_loop(struct turtle *turtle);
 
 struct turtle *turtle_init(void);
-
 
 // FIXME: Should be turtle_create() and render_context should be a struct turtle.
 void create_buffer(struct turtle *turtle, VkDeviceSize size, VkBufferUsageFlags usage,
@@ -121,3 +116,7 @@ void create_buffer(struct turtle *turtle, VkDeviceSize size, VkBufferUsageFlags 
 // FIXME: This name style
 uint32_t findMemoryType(struct turtle *turtle, uint32_t typeFilter,
 			VkMemoryPropertyFlags properties);
+
+// FIXME: This doesn't belong here
+void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
+			   VkImageLayout newLayout);
