@@ -451,6 +451,7 @@ turtle_init(void)
 	trtl_solo_init(turtle);
 
 	turtle->tsc = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
+	tsc->turtle = turtle;
 
 	turtle->tsc->image_views =
 	    create_image_views(turtle, turtle->tsc->images, turtle->tsc->nimages);

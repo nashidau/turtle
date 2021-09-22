@@ -366,7 +366,6 @@ main(int argc, char **argv)
 	turtle = turtle_init();
 
 	struct trtl_swap_chain *tsc = turtle->tsc;
-	tsc->turtle = turtle;
 
 	tsc->descriptor_pool = create_descriptor_pool(tsc);
 
