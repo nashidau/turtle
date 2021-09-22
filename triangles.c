@@ -34,8 +34,6 @@
 struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
-// Belongs in render frame state
-bool frame_buffer_resized = false;
 
 trtl_alloc VkDescriptorPool create_descriptor_pool(struct trtl_swap_chain *scd);
 

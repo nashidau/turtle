@@ -17,13 +17,15 @@
 #include "trtl_vulkan.h"
 #include "turtle.h"
 
+// FIXME: Belongs in render frame state
+static bool frame_buffer_resized = false;
+
+
 static int turtle_destructor(struct turtle *turtle);
 
 // FIXME: move into here or shell
 void draw_frame(struct turtle *turtle, struct trtl_swap_chain *scd, VkSemaphore image_semaphore,
 		VkSemaphore renderFinishedSemaphore, VkFence fence);
-
-extern bool frame_buffer_resized;
 
 static void window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
 			     trtl_arg_unused int height);
