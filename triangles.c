@@ -48,13 +48,12 @@ struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice dev
 							    VkSurfaceKHR surface);
 
 void
-recreate_swap_chain(struct render_context *render)
+recreate_swap_chain(struct turtle *turtle)
 {
 	int width = 0, height = 0;
 	VkExtent2D size;
-	struct turtle *turtle = render->turtle;
 
-	glfwGetFramebufferSize(render->turtle->window, &width, &height);
+	glfwGetFramebufferSize(turtle->window, &width, &height);
 	size.width = width;
 	size.height = height;
 
@@ -63,27 +62,26 @@ recreate_swap_chain(struct render_context *render)
 	while (width == 0 || height == 0) {
 		printf("Size 0, wait\n");
 		glfwWaitEvents();
-		glfwGetFramebufferSize(render->turtle->window, &width, &height);
+		glfwGetFramebufferSize(turtle->window, &width, &height);
 	}
 
-	vkDeviceWaitIdle(render->turtle->device);
+	vkDeviceWaitIdle(turtle->device);
 
-	talloc_free(render->scd);
+	talloc_free(turtle->tsc);
 
 	// FIXME: when we resize, I need to fix this
 	// render->turtle->tsc = create_swap_chain(render->turtle, render->turtle->physical_device,
 	//					render->turtle->surface);
-	struct trtl_swap_chain *scd = turtle->tsc;
-	scd->render = render;
-	scd->image_views = create_image_views(render->turtle, scd->images, scd->nimages);
+	struct trtl_swap_chain *tsc = turtle->tsc;
+	tsc->image_views = create_image_views(turtle, tsc->images, tsc->nimages);
 
-	scd->descriptor_pool = create_descriptor_pool(scd);
+	tsc->descriptor_pool = create_descriptor_pool(tsc);
 	//
 	//	scd->command_pool = create_command_pool(
 	//	    render->turtle->device, render->turtle->physical_device,
-	//render->turtle->surface);
+	// render->turtle->surface);
 
-	trtl_seer_resize(size, scd);
+	trtl_seer_resize(size, tsc);
 	// info =trtl_pipeline_create(render->turtle->device, scd);
 
 	// FIXME: Call object to update it's descriptor sets
@@ -91,10 +89,10 @@ recreate_swap_chain(struct render_context *render)
 	// create_depth_resources(scd);
 	//	scd->framebuffers = create_frame_buffers(render->turtle->device, scd,
 	//			);
-	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
+	tsc->command_buffers = trtl_seer_create_command_buffers(tsc, tsc->command_pool);
 
-	for (uint32_t i = 0; i < scd->nimages; i++) {
-		render->images_in_flight[i] = VK_NULL_HANDLE;
+	for (uint32_t i = 0; i < tsc->nimages; i++) {
+		turtle->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 }
 
@@ -197,20 +195,21 @@ copyBufferToImage(trtl_arg_unused struct turtle *turtle,
 }
 
 void
-draw_frame(struct render_context *render, struct trtl_swap_chain *scd, VkSemaphore image_semaphore,
+draw_frame(struct turtle *turtle, struct trtl_swap_chain *tsc, VkSemaphore image_semaphore,
 	   VkSemaphore renderFinishedSemaphore, VkFence fence)
 {
+
 	VkResult result;
-	VkDevice device = render->turtle->device;
+	VkDevice device = turtle->device;
 
 	// Make sure this frame was completed
-	vkWaitForFences(render->turtle->device, 1, &fence, VK_TRUE, UINT64_MAX);
+	vkWaitForFences(turtle->device, 1, &fence, VK_TRUE, UINT64_MAX);
 
 	uint32_t imageIndex;
-	result = vkAcquireNextImageKHR(device, scd->swap_chain, UINT64_MAX, image_semaphore,
+	result = vkAcquireNextImageKHR(device, tsc->swap_chain, UINT64_MAX, image_semaphore,
 				       VK_NULL_HANDLE, &imageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-		recreate_swap_chain(render);
+		recreate_swap_chain(turtle);
 		return;
 	} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
 		error("Failed to get swap chain image");
@@ -219,15 +218,15 @@ draw_frame(struct render_context *render, struct trtl_swap_chain *scd, VkSemapho
 	trtl_seer_update(imageIndex);
 
 	// FIXME: Device should be some sort of global context
-	trtl_uniform_update(render->turtle->uniforms, imageIndex);
+	trtl_uniform_update(turtle->uniforms, imageIndex);
 
 	// Check the system has finished with this image before we start
 	// scribbling over the top of it.
-	if (render->images_in_flight[imageIndex] != VK_NULL_HANDLE) {
-		vkWaitForFences(device, 1, &render->images_in_flight[imageIndex], VK_TRUE,
+	if (turtle->images_in_flight[imageIndex] != VK_NULL_HANDLE) {
+		vkWaitForFences(device, 1, &turtle->images_in_flight[imageIndex], VK_TRUE,
 				UINT64_MAX);
 	}
-	render->images_in_flight[imageIndex] = fence;
+	turtle->images_in_flight[imageIndex] = fence;
 
 	VkSubmitInfo submitInfo = {0};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -239,7 +238,7 @@ draw_frame(struct render_context *render, struct trtl_swap_chain *scd, VkSemapho
 	submitInfo.pWaitSemaphores = waitSemaphores;
 	submitInfo.pWaitDstStageMask = waitStages;
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &scd->command_buffers[imageIndex];
+	submitInfo.pCommandBuffers = &tsc->command_buffers[imageIndex];
 
 	VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
 	submitInfo.signalSemaphoreCount = 1;
@@ -247,10 +246,10 @@ draw_frame(struct render_context *render, struct trtl_swap_chain *scd, VkSemapho
 
 	vkResetFences(device, 1, &fence);
 
-	result = vkQueueSubmit(render->turtle->graphicsQueue, 1, &submitInfo, fence);
+	result = vkQueueSubmit(turtle->graphicsQueue, 1, &submitInfo, fence);
 	if (result != VK_SUCCESS) {
 		printf("failed to submit draw command buffer %d! %p %p %p\n", result,
-		       render->turtle->graphicsQueue, &submitInfo, fence);
+		       turtle->graphicsQueue, &submitInfo, fence);
 		exit(1);
 	}
 
@@ -259,18 +258,18 @@ draw_frame(struct render_context *render, struct trtl_swap_chain *scd, VkSemapho
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = signalSemaphores;
 
-	VkSwapchainKHR swapChains[] = {scd->swap_chain};
+	VkSwapchainKHR swapChains[] = {tsc->swap_chain};
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains = swapChains;
 
 	presentInfo.pImageIndices = &imageIndex;
 
-	result = vkQueuePresentKHR(render->turtle->presentQueue, &presentInfo);
+	result = vkQueuePresentKHR(turtle->presentQueue, &presentInfo);
 
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
 	    frame_buffer_resized) {
 		frame_buffer_resized = false;
-		recreate_swap_chain(render);
+		recreate_swap_chain(turtle);
 	} else if (result != VK_SUCCESS) {
 		error("Failed to present swap chain image");
 	}
@@ -388,10 +387,10 @@ main(int argc, char **argv)
 	trtl_barriers_init(turtle);
 
 	// This should go into main loop
-	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);
+	turtle->images_in_flight = talloc_array(render, VkFence, scd->nimages);
 	// FIXME: Should do this when creating the Scd structure
 	for (uint32_t i = 0; i < scd->nimages; i++) {
-		render->images_in_flight[i] = VK_NULL_HANDLE;
+		turtle->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
 	trtl_main_loop(turtle, render);

@@ -47,6 +47,9 @@ struct turtle {
 
 	struct trtl_uniform *uniforms;
 	VkSampler texture_sampler;
+
+	// FIXME: This should be in the swap chain
+	VkFence *images_in_flight;
 };
 
 // All data used to render a frame
@@ -55,7 +58,6 @@ struct render_context {
 
 	struct trtl_swap_chain *scd;
 
-	VkFence *images_in_flight;
 
 	// Textures
 
