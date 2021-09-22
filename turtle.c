@@ -20,8 +20,8 @@
 static int turtle_destructor(struct turtle *turtle);
 
 // FIXME: move into here or shell
-void draw_frame(struct turtle *turtle, struct trtl_swap_chain *scd,
-		VkSemaphore image_semaphore, VkSemaphore renderFinishedSemaphore, VkFence fence);
+void draw_frame(struct turtle *turtle, struct trtl_swap_chain *scd, VkSemaphore image_semaphore,
+		VkSemaphore renderFinishedSemaphore, VkFence fence);
 
 extern bool frame_buffer_resized;
 
@@ -485,6 +485,12 @@ turtle_init(void)
 int
 trtl_main_loop(struct turtle *turtle)
 {
+
+	// FIXME: This is a hack, this shoudl be managed by seer,
+	// and shoukd be done dynamically as the state of the worlld changes.
+	turtle->tsc->command_buffers =
+	    trtl_seer_create_command_buffers(turtle->tsc, turtle->tsc->command_pool);
+
 	int currentFrame = 0;
 	while (!glfwWindowShouldClose(turtle->window)) {
 		glfwPollEvents();
@@ -552,8 +558,8 @@ create_descriptor_pool(struct trtl_swap_chain *tsc)
 	pool_info.pPoolSizes = pool_sizes;
 	pool_info.maxSets = tsc->nimages * 10;
 
-	if (vkCreateDescriptorPool(tsc->turtle->device, &pool_info, NULL,
-				   &descriptor_pool) != VK_SUCCESS) {
+	if (vkCreateDescriptorPool(tsc->turtle->device, &pool_info, NULL, &descriptor_pool) !=
+	    VK_SUCCESS) {
 		error("failed to create descriptor pool!");
 	}
 

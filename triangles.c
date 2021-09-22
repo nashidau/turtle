@@ -347,14 +347,7 @@ main(int argc, char **argv)
 
 	load_objects(tsc, turtle);
 
-	// FIXME: This is a hack, this shoudl be managed by seer,
-	// and shoukd be done dynamically as the state of the worlld changes.
-	tsc->command_buffers = trtl_seer_create_command_buffers(tsc, tsc->command_pool);
-
-
 	trtl_main_loop(turtle);
-
-	//	main_loop(window);
 
 	return 0;
 }
