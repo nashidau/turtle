@@ -47,54 +47,7 @@ struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfa
 struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice device,
 							    VkSurfaceKHR surface);
 
-void
-recreate_swap_chain(struct turtle *turtle)
-{
-	int width = 0, height = 0;
-	VkExtent2D size;
 
-	glfwGetFramebufferSize(turtle->window, &width, &height);
-	size.width = width;
-	size.height = height;
-
-	// a width/height of 0 is minimised, just wait for
-	// events to recover (for now);
-	while (width == 0 || height == 0) {
-		printf("Size 0, wait\n");
-		glfwWaitEvents();
-		glfwGetFramebufferSize(turtle->window, &width, &height);
-	}
-
-	vkDeviceWaitIdle(turtle->device);
-
-	talloc_free(turtle->tsc);
-
-	// FIXME: when we resize, I need to fix this
-	// render->turtle->tsc = create_swap_chain(render->turtle, render->turtle->physical_device,
-	//					render->turtle->surface);
-	struct trtl_swap_chain *tsc = turtle->tsc;
-	tsc->image_views = create_image_views(turtle, tsc->images, tsc->nimages);
-
-	tsc->descriptor_pool = create_descriptor_pool(tsc);
-	//
-	//	scd->command_pool = create_command_pool(
-	//	    render->turtle->device, render->turtle->physical_device,
-	// render->turtle->surface);
-
-	trtl_seer_resize(size, tsc);
-	// info =trtl_pipeline_create(render->turtle->device, scd);
-
-	// FIXME: Call object to update it's descriptor sets
-	// scd->descriptor_sets = create_descriptor_sets(scd);
-	// create_depth_resources(scd);
-	//	scd->framebuffers = create_frame_buffers(render->turtle->device, scd,
-	//			);
-	tsc->command_buffers = trtl_seer_create_command_buffers(tsc, tsc->command_pool);
-
-	for (uint32_t i = 0; i < tsc->nimages; i++) {
-		turtle->images_in_flight[i] = VK_NULL_HANDLE;
-	}
-}
 
 
 
@@ -169,86 +122,7 @@ copyBufferToImage(trtl_arg_unused struct turtle *turtle, VkBuffer buffer, VkImag
 	talloc_free(solo);
 }
 
-void
-draw_frame(struct turtle *turtle, struct trtl_swap_chain *tsc, VkSemaphore image_semaphore,
-	   VkSemaphore renderFinishedSemaphore, VkFence fence)
-{
 
-	VkResult result;
-	VkDevice device = turtle->device;
-
-	// Make sure this frame was completed
-	vkWaitForFences(turtle->device, 1, &fence, VK_TRUE, UINT64_MAX);
-
-	uint32_t imageIndex;
-	result = vkAcquireNextImageKHR(device, tsc->swap_chain, UINT64_MAX, image_semaphore,
-				       VK_NULL_HANDLE, &imageIndex);
-	if (result == VK_ERROR_OUT_OF_DATE_KHR) {
-		recreate_swap_chain(turtle);
-		return;
-	} else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) {
-		error("Failed to get swap chain image");
-	}
-
-	trtl_seer_update(imageIndex);
-
-	// FIXME: Device should be some sort of global context
-	trtl_uniform_update(turtle->uniforms, imageIndex);
-
-	// Check the system has finished with this image before we start
-	// scribbling over the top of it.
-	if (turtle->images_in_flight[imageIndex] != VK_NULL_HANDLE) {
-		vkWaitForFences(device, 1, &turtle->images_in_flight[imageIndex], VK_TRUE,
-				UINT64_MAX);
-	}
-	turtle->images_in_flight[imageIndex] = fence;
-
-	VkSubmitInfo submitInfo = {0};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-
-	VkSemaphore waitSemaphores[] = {image_semaphore};
-	VkPipelineStageFlags waitStages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-	submitInfo.waitSemaphoreCount = 1;
-	submitInfo.pWaitSemaphores = waitSemaphores;
-	submitInfo.pWaitDstStageMask = waitStages;
-	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers = &tsc->command_buffers[imageIndex];
-
-	VkSemaphore signalSemaphores[] = {renderFinishedSemaphore};
-	submitInfo.signalSemaphoreCount = 1;
-	submitInfo.pSignalSemaphores = signalSemaphores;
-
-	vkResetFences(device, 1, &fence);
-
-	result = vkQueueSubmit(turtle->graphicsQueue, 1, &submitInfo, fence);
-	if (result != VK_SUCCESS) {
-		printf("failed to submit draw command buffer %d! %p %p %p\n", result,
-		       turtle->graphicsQueue, &submitInfo, fence);
-		exit(1);
-	}
-
-	VkPresentInfoKHR presentInfo = {0};
-	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pWaitSemaphores = signalSemaphores;
-
-	VkSwapchainKHR swapChains[] = {tsc->swap_chain};
-	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains = swapChains;
-
-	presentInfo.pImageIndices = &imageIndex;
-
-	result = vkQueuePresentKHR(turtle->presentQueue, &presentInfo);
-
-	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR ||
-	    frame_buffer_resized) {
-		frame_buffer_resized = false;
-		recreate_swap_chain(turtle);
-	} else if (result != VK_SUCCESS) {
-		error("Failed to present swap chain image");
-	}
-}
 
 static void
 show_usage(const char *binary)
