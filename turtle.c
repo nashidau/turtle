@@ -10,6 +10,7 @@
 #include "helpers.h"
 #include "trtl_barriers.h"
 #include "trtl_scribe.h"
+#include "trtl_seer.h"
 #include "trtl_solo.h"
 #include "trtl_texture.h"
 #include "trtl_uniform.h"
@@ -464,6 +465,10 @@ turtle_init(void)
 	turtle->uniforms = trtl_uniform_init(turtle, turtle->tsc->nimages, 1024);
 	// trtl_barriers_init();
 	turtle->texture_sampler = create_texture_sampler(turtle);
+
+	turtle->tsc->descriptor_pool = create_descriptor_pool(turtle->tsc);
+
+	trtl_seer_init(turtle, turtle->tsc->extent);
 
 	return turtle;
 }

@@ -343,9 +343,6 @@ main(int argc, char **argv)
 
 	struct trtl_swap_chain *tsc = turtle->tsc;
 
-	tsc->descriptor_pool = create_descriptor_pool(tsc);
-
-	trtl_seer_init(turtle, tsc->extent);
 
 	// Above here shold be in turtle_init.
 
