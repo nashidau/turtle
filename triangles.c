@@ -385,7 +385,7 @@ main(int argc, char **argv)
 	// and shoukd be done dynamically as the state of the worlld changes.
 	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
 
-	trtl_barriers_init(turtle, MAX_FRAMES_IN_FLIGHT);
+	trtl_barriers_init(turtle);
 
 	// This should go into main loop
 	render->images_in_flight = talloc_array(render, VkFence, scd->nimages);

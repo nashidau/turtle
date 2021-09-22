@@ -34,9 +34,9 @@ create_fences(VkDevice device)
 }
 
 int
-trtl_barriers_init(struct turtle *turtle, int nimages)
+trtl_barriers_init(struct turtle *turtle)
 {
-	for (int i = 0; i < nimages; i++) {
+	for (int i = 0; i < TRTL_MAX_FRAMES_IN_FLIGHT; i++) {
 		turtle->barriers.image_ready_sem[i] = create_semaphores(turtle->device);
 		turtle->barriers.render_done_sem[i] = create_semaphores(turtle->device);
 		turtle->barriers.in_flight_fences[i] = create_fences(turtle->device);
