@@ -470,6 +470,15 @@ turtle_init(void)
 
 	trtl_seer_init(turtle, turtle->tsc->extent);
 
+	trtl_barriers_init(turtle);
+
+	// This should go into main loop
+	turtle->images_in_flight = talloc_array(turtle, VkFence, turtle->tsc->nimages);
+	// FIXME: Should do this when creating the Scd structure
+	for (uint32_t i = 0; i < turtle->tsc->nimages; i++) {
+		turtle->images_in_flight[i] = VK_NULL_HANDLE;
+	}
+
 	return turtle;
 }
 

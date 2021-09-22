@@ -343,7 +343,6 @@ main(int argc, char **argv)
 
 	struct trtl_swap_chain *tsc = turtle->tsc;
 
-
 	// Above here shold be in turtle_init.
 
 	load_objects(tsc, turtle);
@@ -352,14 +351,6 @@ main(int argc, char **argv)
 	// and shoukd be done dynamically as the state of the worlld changes.
 	tsc->command_buffers = trtl_seer_create_command_buffers(tsc, tsc->command_pool);
 
-	trtl_barriers_init(turtle);
-
-	// This should go into main loop
-	turtle->images_in_flight = talloc_array(turtle, VkFence, tsc->nimages);
-	// FIXME: Should do this when creating the Scd structure
-	for (uint32_t i = 0; i < tsc->nimages; i++) {
-		turtle->images_in_flight[i] = VK_NULL_HANDLE;
-	}
 
 	trtl_main_loop(turtle);
 
