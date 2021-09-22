@@ -365,26 +365,27 @@ main(int argc, char **argv)
 
 	turtle = turtle_init();
 
-	struct trtl_swap_chain *scd = turtle->tsc;
+	struct trtl_swap_chain *tsc = turtle->tsc;
+	tsc->turtle = turtle;
 
-	scd->descriptor_pool = create_descriptor_pool(scd);
+	tsc->descriptor_pool = create_descriptor_pool(tsc);
 
-	trtl_seer_init(turtle, scd->extent);
+	trtl_seer_init(turtle, tsc->extent);
 
 	// Above here shold be in turtle_init.
 
-	load_objects(scd, turtle);
+	load_objects(tsc, turtle);
 
 	// FIXME: This is a hack, this shoudl be managed by seer,
 	// and shoukd be done dynamically as the state of the worlld changes.
-	scd->command_buffers = trtl_seer_create_command_buffers(scd, scd->command_pool);
+	tsc->command_buffers = trtl_seer_create_command_buffers(tsc, tsc->command_pool);
 
 	trtl_barriers_init(turtle);
 
 	// This should go into main loop
-	turtle->images_in_flight = talloc_array(turtle, VkFence, scd->nimages);
+	turtle->images_in_flight = talloc_array(turtle, VkFence, tsc->nimages);
 	// FIXME: Should do this when creating the Scd structure
-	for (uint32_t i = 0; i < scd->nimages; i++) {
+	for (uint32_t i = 0; i < tsc->nimages; i++) {
 		turtle->images_in_flight[i] = VK_NULL_HANDLE;
 	}
 
