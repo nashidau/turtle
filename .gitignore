@@ -5,3 +5,5 @@ triangles
 *.dSYM
 tags
 trtl_check
+.cache
+.deps
