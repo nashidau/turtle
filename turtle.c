@@ -451,7 +451,7 @@ turtle_init(void)
 	trtl_solo_init(turtle);
 
 	turtle->tsc = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
-	tsc->turtle = turtle;
+	turtle->tsc->turtle = turtle;
 
 	turtle->tsc->image_views =
 	    create_image_views(turtle, turtle->tsc->images, turtle->tsc->nimages);
@@ -517,6 +517,33 @@ create_buffer(struct turtle *turtle, VkDeviceSize size, VkBufferUsageFlags usage
 	}
 
 	vkBindBufferMemory(turtle->device, *buffer, *bufferMemory, 0);
+}
+
+// FIXME: Definition in the triangle.h
+trtl_alloc VkDescriptorPool
+create_descriptor_pool(struct trtl_swap_chain *tsc)
+{
+	VkDescriptorPool descriptor_pool;
+	VkDescriptorPoolSize pool_sizes[2];
+
+	// FIXME: Static allocation of '10' here.  Need to amange this correctly
+	pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	pool_sizes[0].descriptorCount = tsc->nimages * 10;
+	pool_sizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	pool_sizes[1].descriptorCount = tsc->nimages * 10;
+
+	VkDescriptorPoolCreateInfo pool_info = {0};
+	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_info.poolSizeCount = TRTL_ARRAY_SIZE(pool_sizes);
+	pool_info.pPoolSizes = pool_sizes;
+	pool_info.maxSets = tsc->nimages * 10;
+
+	if (vkCreateDescriptorPool(tsc->turtle->device, &pool_info, NULL,
+				   &descriptor_pool) != VK_SUCCESS) {
+		error("failed to create descriptor pool!");
+	}
+
+	return descriptor_pool;
 }
 
 uint32_t

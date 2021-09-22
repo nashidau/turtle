@@ -18,6 +18,8 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 
+#include "helpers.h"
+
 #define TRTL_MAX_FRAMES_IN_FLIGHT 2
 
 // Global structure for frequently used global state.
@@ -120,3 +122,8 @@ uint32_t findMemoryType(struct turtle *turtle, uint32_t typeFilter,
 // FIXME: This doesn't belong here
 void transitionImageLayout(VkImage image, VkFormat format, VkImageLayout oldLayout,
 			   VkImageLayout newLayout);
+
+// FIXME Temp hack
+trtl_alloc VkDescriptorPool
+create_descriptor_pool(struct trtl_swap_chain *tsc);
+
