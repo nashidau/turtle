@@ -40,7 +40,6 @@ TESTS=	\
 	trtl_uniform_check.o
 
 SOURCES= \
-	triangles.c	\
 	vertex.c	\
 	images.c	\
 	stringlist.c	\
@@ -61,6 +60,11 @@ SOURCES= \
 	trtl_texture.c	\
 	trtl_vulkan.c	\
 	turtle.c
+
+APPS=triangles.c
+
+
+
 
 SHADERS= \
 	shaders/frag.spv \
@@ -114,11 +118,11 @@ shaders/vert.spv: shaders/shader.vert
 
 trtl_check: trtl_check.o ${TESTS}
 
-triangles.o: triangles.c vertex.h
+libturtle.a: ${OBJECTS}
+	ar ru $@ $^
+	ranlib $@
 
-vertex.o: vertex.c vertex.h
-
-triangles: ${OBJECTS}
+triangles: triangles.o libturtle.a
 
 .PHONY: clean
 clean:
