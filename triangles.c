@@ -35,8 +35,6 @@ struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
-trtl_alloc VkDescriptorPool create_descriptor_pool(struct trtl_swap_chain *scd);
-
 /** End Generic */
 
 // In turtle .c
@@ -49,76 +47,7 @@ struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice dev
 
 
 
-// FIXME: Fix the args on this.
-void
-transitionImageLayout(VkImage image,
-		      trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
-		      VkImageLayout newLayout)
-{
-	struct trtl_solo *solo = trtl_solo_get();
 
-	VkImageMemoryBarrier barrier = {0};
-	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-	barrier.oldLayout = oldLayout;
-	barrier.newLayout = newLayout;
-	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrier.image = image;
-	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseMipLevel = 0;
-	barrier.subresourceRange.levelCount = 1;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount = 1;
-
-	VkPipelineStageFlags sourceStage;
-	VkPipelineStageFlags destinationStage;
-
-	if (oldLayout == VK_IMAGE_LAYOUT_UNDEFINED &&
-	    newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL) {
-		barrier.srcAccessMask = 0;
-		barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-		sourceStage = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-		destinationStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-	} else if (oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL &&
-		   newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) {
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		sourceStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		destinationStage = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-	} else {
-		error("unsupported layout transition!");
-	}
-
-	vkCmdPipelineBarrier(solo->command_buffer, sourceStage, destinationStage, 0, 0, NULL, 0,
-			     NULL, 1, &barrier);
-
-	talloc_free(solo);
-}
-
-void
-copyBufferToImage(trtl_arg_unused struct turtle *turtle, VkBuffer buffer, VkImage image,
-		  uint32_t width, uint32_t height)
-{
-	struct trtl_solo *solo = trtl_solo_get();
-
-	VkBufferImageCopy region = {0};
-	region.bufferOffset = 0;
-	region.bufferRowLength = 0;
-	region.bufferImageHeight = 0;
-	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	region.imageSubresource.mipLevel = 0;
-	region.imageSubresource.baseArrayLayer = 0;
-	region.imageSubresource.layerCount = 1;
-	region.imageOffset = (VkOffset3D){0};
-	region.imageExtent = (VkExtent3D){width, height, 1};
-
-	vkCmdCopyBufferToImage(solo->command_buffer, buffer, image,
-			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-	talloc_free(solo);
-}
 
 
 
