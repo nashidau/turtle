@@ -33,24 +33,6 @@
 
 struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
-const int MAX_FRAMES_IN_FLIGHT = 2;
-
-/** End Generic */
-
-// In turtle .c
-struct queue_family_indices find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface);
-
-struct swap_chain_support_details *query_swap_chain_support(VkPhysicalDevice device,
-							    VkSurfaceKHR surface);
-
-
-
-
-
-
-
-
-
 static void
 show_usage(const char *binary)
 {
