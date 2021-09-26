@@ -80,10 +80,7 @@ SHADERS= \
 OBJECTS := $(SOURCES:%.c=%.o)
 
 
-#ALL: triangles trtl_check ${SHADERS} 
-# FIXME: trtl_check doesn't link at the moment.
-ALL: triangles ${SHADERS} 
-
+ALL: triangles trtl_check ${SHADERS} 
 
 # Dependancies (from http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#tldr)
 DEPDIR := .deps
@@ -104,23 +101,27 @@ $(DEPFILES):
 include $(wildcard $(DEPFILES))
 
 %.spv : %.frag
-	${SHADERCC} -o $@ $<
+	@echo Shader Compile $<
+	@${SHADERCC} -o $@ $<
 
 %.spv : %.vert
-	${SHADERCC} -o $@ $<
+	@echo Shader Compile $<
+	@${SHADERCC} -o $@ $<
 
 # FIXME: Fix this dependancy
 shaders/frag.spv: shaders/shader.frag
-	${SHADERCC} -o $@ $<
+	@echo Shader Compile $<
+	@${SHADERCC} -o $@ $<
 	
 shaders/vert.spv: shaders/shader.vert
 	${SHADERCC} -o $@ $<
 
-trtl_check: trtl_check.o ${TESTS}
+trtl_check: trtl_check.o ${TESTS} ${OBJECTS}
 
 libturtle.a: ${OBJECTS}
-	ar ru $@ $^
-	ranlib $@
+	@echo Link #<
+	@ar ru $@ $^
+	@ranlib $@
 
 triangles: triangles.o libturtle.a
 
