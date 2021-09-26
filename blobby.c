@@ -77,7 +77,6 @@ blobby_binary(const char *path)
 
 	char *start = dlsym(RTLD_SELF, blob_start);
 	char *end = dlsym(RTLD_SELF, blob_end);
-	printf("Blobby: %p %s %p %s %p\n", RTLD_SELF, blob_start, start, blob_end, end);
 
 	struct blobby *blobby = talloc(NULL, struct blobby);
 	blobby->len = end - start;
