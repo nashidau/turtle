@@ -27,9 +27,10 @@ OPTIMIZATION=-O2
 
 CFLAGS+=-g ${OPTIMIZATION} ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
 	-iframework /Library/Frameworks  -Icglm/include -fsanitize=address
+# -all_load is only needed for a static library; move to dynamicl and it goes away
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
 	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
-	 -fsanitize=address
+	 -fsanitize=address -rdynamic -all_load
 
 SHADERCC=glslc
 
@@ -78,6 +79,7 @@ SHADERS= \
 	shaders/grid/red.spv
 
 OBJECTS := $(SOURCES:%.c=%.o)
+SHADER_OBJECTS := $(SHADERS:%.spv=%.o)
 
 
 ALL: triangles trtl_check ${SHADERS} 
@@ -108,6 +110,16 @@ include $(wildcard $(DEPFILES))
 	@echo Shader Compile $<
 	@${SHADERCC} -o $@ $<
 
+%.s: SYMBOLNAME=$(subst -,_,$(subst .,_,$(subst /,_,$<)))
+%.s: %.spv
+	@echo Generate SPV binary $@
+	@echo "\t.global _data_start_${SYMBOLNAME}" > $@
+	@echo "\t.global _data_end_${SYMBOLNAME}" >> $@
+	@echo "\t.align 2" >> $@
+	@echo "_data_start_${SYMBOLNAME}:" >> $@
+	@echo "\t.incbin \"$<\"" >> $@
+	@echo "_data_end_${SYMBOLNAME}:" >> $@
+
 # FIXME: Fix this dependancy
 shaders/frag.spv: shaders/shader.frag
 	@echo Shader Compile $<
@@ -118,7 +130,7 @@ shaders/vert.spv: shaders/shader.vert
 
 trtl_check: trtl_check.o ${TESTS} ${OBJECTS}
 
-libturtle.a: ${OBJECTS}
+libturtle.a: ${OBJECTS} ${SHADER_OBJECTS}
 	@echo Link #<
 	@ar ru $@ $^
 	@ranlib $@
@@ -127,7 +139,7 @@ triangles: triangles.o libturtle.a
 
 .PHONY: clean
 clean:
-	rm -f ${OBJECTS} triangles ${SHADERS}
+	rm -f ${OBJECTS} triangles ${SHADERS} ${SHADER_OBJECTS}
 
 .PHONY: fixme
 fixme:

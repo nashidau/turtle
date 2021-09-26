@@ -77,7 +77,7 @@ trtl_shader_get(const char *path)
 	node->next = shaders;
 	shaders = node;
 	node->count = 1;
-	node->shader = create_shader(device, blobby_from_file(path));
+	node->shader = create_shader(device, blobby_binary(path));
 
 	return shader_create(node);
 }
