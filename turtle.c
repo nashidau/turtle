@@ -98,6 +98,8 @@ create_instance(const char *name)
 	if (vkCreateInstance(&create_info, NULL, &instance) != VK_SUCCESS) {
 		error("Unable to create instance");
 	}
+
+	talloc_free(allExtensions);
 	return instance;
 }
 
