@@ -552,13 +552,23 @@ findMemoryType(struct turtle *turtle, uint32_t typeFilter, VkMemoryPropertyFlags
 static int
 turtle_destructor(struct turtle *turtle)
 {
-	printf("destructor for %p\n", turtle);
+	// we need to free the swap chain first
+	talloc_free(turtle->tsc);
+	turtle->tsc = NULL;
 
 	vkDestroySurfaceKHR(turtle->instance, turtle->surface, NULL);
 
 	return 0;
 }
 
+/**
+ * Destructor for the swap chain.
+ *
+ * It must be called _before_ turtle is destroyed.  Otherwise it can be called at any time.
+ *
+ * @param tsc The swap chain to delete.
+ * @return 0 always.
+ */
 static int
 swap_chain_data_destructor(struct trtl_swap_chain *scd)
 {
@@ -587,7 +597,7 @@ swap_chain_data_destructor(struct trtl_swap_chain *scd)
 struct trtl_swap_chain *
 create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device, VkSurfaceKHR surface)
 {
-	struct trtl_swap_chain *scd = talloc_zero(NULL, struct trtl_swap_chain);
+	struct trtl_swap_chain *scd = talloc_zero(turtle, struct trtl_swap_chain);
 	talloc_set_destructor(scd, swap_chain_data_destructor);
 
 	struct swap_chain_support_details *swapChainSupport =
