@@ -23,7 +23,6 @@ int posY = 0;
 int zoom = 128;
 bool frame_buffer_resized = false;
 
-
 static int turtle_destructor(struct turtle *turtle);
 
 // FIXME: move into here or shell
@@ -53,7 +52,6 @@ window_init(struct turtle *turtle, const char *title)
 
 	turtle->window = glfwCreateWindow(800, 600, title, NULL, NULL);
 	glfwSetFramebufferSizeCallback(turtle->window, window_resize_cb);
-
 }
 
 static void
@@ -87,7 +85,8 @@ create_instance(const char *name)
 
 	allExtensions = talloc_zero_array(NULL, char *, glfwExtensionCount + 1);
 	memcpy(allExtensions, glfwExtensions, glfwExtensionCount * sizeof(char *));
-	allExtensions[glfwExtensionCount] = strdup("VK_KHR_get_physical_device_properties2");
+	allExtensions[glfwExtensionCount] =
+	    talloc_strdup(allExtensions, "VK_KHR_get_physical_device_properties2");
 
 	VkInstanceCreateInfo create_info;
 	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -678,7 +677,7 @@ recreate_swap_chain(struct turtle *turtle)
 
 	tsc->command_pool =
 	    create_command_pool(turtle->device, turtle->physical_device, turtle->surface);
-	
+
 	create_depth_resources(turtle);
 
 	turtle->tsc->descriptor_pool = create_descriptor_pool(turtle->tsc);
