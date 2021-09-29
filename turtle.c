@@ -242,7 +242,7 @@ check_device_extension_support(VkPhysicalDevice device)
 }
 
 // FIXME: Should be static, but currently in swap chain
-struct swap_chain_support_details *
+static struct swap_chain_support_details *
 query_swap_chain_support(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
 	struct swap_chain_support_details *details;
