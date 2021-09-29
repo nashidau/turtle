@@ -236,6 +236,8 @@ check_device_extension_support(VkPhysicalDevice device)
 			return false;
 		}
 	}
+
+	talloc_free(available_extensions);
 	return true;
 }
 
