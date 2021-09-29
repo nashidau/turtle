@@ -154,6 +154,8 @@ find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
 		}
 	}
 
+	talloc_free(properties);
+
 	return indices;
 }
 
