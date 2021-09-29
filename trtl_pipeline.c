@@ -241,6 +241,7 @@ trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D exten
 	}
 
 	if (tofree) talloc_free(tofree);
+	talloc_free(specialisationInfo);
 
 	return info;
 }
