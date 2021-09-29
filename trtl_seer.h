@@ -21,7 +21,7 @@ struct trtl_seer_indexset {
 
 int trtl_seer_init(struct turtle *turtle, VkExtent2D extent);
 
-int trtl_seer_object_add(const char *name, struct turtle *turtle, struct trtl_swap_chain *scd,
+int trtl_seer_predefined_object_add(const char *name, struct turtle *turtle, struct trtl_swap_chain *scd,
 			 trtl_render_layer_t layer);
 
 int trtl_seer_resize(VkExtent2D new_size, struct trtl_swap_chain *scd);

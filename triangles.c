@@ -82,8 +82,8 @@ static int
 load_object_default(struct trtl_swap_chain *scd, struct turtle *turtle)
 {
 	printf("Loading default objects: Background 'background', Main: 'grid9'\n");
-	trtl_seer_object_add("background", turtle, scd, TRTL_RENDER_LAYER_BACKGROUND);
-	trtl_seer_object_add("grid9", turtle, scd, TRTL_RENDER_LAYER_MAIN);
+	trtl_seer_predefined_object_add("background", turtle, scd, TRTL_RENDER_LAYER_BACKGROUND);
+	trtl_seer_predefined_object_add("grid9", turtle, scd, TRTL_RENDER_LAYER_MAIN);
 	return 2;
 }
 
@@ -107,7 +107,7 @@ load_objects(struct trtl_swap_chain *scd, struct turtle *turtle)
 	for (i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		struct trtl_stringlist *load = objs_to_load[i];
 		while (load != NULL) {
-			trtl_seer_object_add(load->string, turtle, scd, i);
+			trtl_seer_predefined_object_add(load->string, turtle, scd, i);
 			load = load->next;
 		}
 		talloc_free(objs_to_load[i]);

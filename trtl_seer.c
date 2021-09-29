@@ -135,7 +135,7 @@ trtl_seer_resize(VkExtent2D new_size, struct trtl_swap_chain *scd)
 }
 
 int
-trtl_seer_object_add(const char *name, struct turtle *turtle, struct trtl_swap_chain *scd,
+trtl_seer_predefined_object_add(const char *name, struct turtle *turtle, struct trtl_swap_chain *scd,
 		     trtl_render_layer_t layerid)
 {
 	struct trtl_object *object = NULL;
