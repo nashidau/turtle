@@ -116,8 +116,7 @@ create_surface(VkInstance instance, GLFWwindow *window)
 	return surface;
 }
 
-// FIXME: Should be static
-struct queue_family_indices
+static struct queue_family_indices
 find_queue_families(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
 	struct queue_family_indices indices = {0, 0, false, false};
