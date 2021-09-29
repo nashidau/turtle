@@ -660,6 +660,8 @@ create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device, VkSur
 	turtle->image_format = surfaceFormat->format;
 	scd->extent = extent;
 
+	talloc_free(swapChainSupport);
+
 	return scd;
 }
 
