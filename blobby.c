@@ -70,15 +70,13 @@ make_safe_str(const char *prefix, const char *path)
 struct blobby *
 blobby_binary(const char *path)
 {
-	// FIXME: Don't keep calling dlopen
-//	void *handle = dlopen(NULL, RTLD_LAZY);
-	char *blob_start = make_safe_str("start", path);
-	char *blob_end = make_safe_str("end", path);
+	struct blobby *blobby = talloc(NULL, struct blobby);
+	char *blob_start = talloc_steal(blobby, make_safe_str("start", path));
+	char *blob_end = talloc_steal(blobby, make_safe_str("end", path));
 
 	char *start = dlsym(RTLD_SELF, blob_start);
 	char *end = dlsym(RTLD_SELF, blob_end);
 
-	struct blobby *blobby = talloc(NULL, struct blobby);
 	blobby->len = end - start;
 	blobby->data = start;
 
