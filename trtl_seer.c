@@ -134,47 +134,32 @@ trtl_seer_resize(VkExtent2D new_size, struct trtl_swap_chain *scd)
 	return 0;
 }
 
+/**
+ * Add a trtl_object into the seer system.
+ *
+ * Adds a single object into seer at the specfied layer.
+ * To remove the object, either delete it, or call trtl_seer_object_remove().
+ *
+ * @param turtle Turtle system.
+ * @param object Object to add.
+ * @param layerid trtl_render_layer_t to add too.
+ * @return 0 on success, -1 on error.
+ */
 int
-trtl_seer_predefined_object_add(const char *name, struct turtle *turtle, struct trtl_swap_chain *scd,
-		     trtl_render_layer_t layerid)
+trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_render_layer_t layerid)
 {
-	struct trtl_object *object = NULL;
+
 	struct objlayer *layer;
 
-	if (layerid >= seer.nlayers) {
-		error("Invalid layer for %s", name);
+	if (turtle == NULL || object == NULL) {
+		return -1;
 	}
 
-	// FIXME: This is super unscalable.  Shoudl have a DB or a way to search filesystem
-	if (streq(name, "couch")) {
-		printf("Couch diesabled\n");
-		// object = trtl_object_mesh_create(
-		//   seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
-		// scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
-	} else if (streq(name, "room")) {
-		printf("room disabled\n");
-		// object = trtl_object_mesh_create(
-		//  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
-		// scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
-	} else if (streq(name, "background")) {
-		object = trtl_canvas_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
-					    scd->extent);
-	} else if (streq(name, "grid")) {
-		object = trtl_grid_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
-					  scd->extent, 3, 3);
-	} else if (streq(name, "grid1")) {
-		object = trtl_grid_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
-					  scd->extent, 1, 1);
-	} else if (streq(name, "grid9")) {
-		object = trtl_grid_create(seer.seer_ctx, turtle, scd, seer.layers[layerid].render_pass,
-					  scd->extent, 9, 9);
-
-	} else {
-		error("Unknown object %s\n", name);
+	if (layerid >= seer.nlayers) {
+		error("Invalid layer for %p", object);
 	}
 
 	seer.nobjects++;
-
 	layer = seer.layers + layerid;
 
 	if (layer->nobjects >= layer->nalloced) {
@@ -194,6 +179,49 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle, struct 
 	layer->objects[layer->nobjects++] = object;
 
 	return 0;
+}
+
+int
+trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
+				struct trtl_swap_chain *scd, trtl_render_layer_t layerid)
+{
+	struct trtl_object *object = NULL;
+
+	if (layerid >= seer.nlayers) {
+		error("Invalid layer for %s", name);
+	}
+
+	// FIXME: This is super unscalable.  Shoudl have a DB or a way to search filesystem
+	if (streq(name, "couch")) {
+		printf("Couch diesabled\n");
+		// object = trtl_object_mesh_create(
+		//   seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		// scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
+	} else if (streq(name, "room")) {
+		printf("room disabled\n");
+		// object = trtl_object_mesh_create(
+		//  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
+		// scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
+	} else if (streq(name, "background")) {
+		object = trtl_canvas_create(seer.seer_ctx, turtle, scd,
+					    seer.layers[layerid].render_pass, scd->extent);
+	} else if (streq(name, "grid")) {
+		object = trtl_grid_create(seer.seer_ctx, turtle, scd,
+					  seer.layers[layerid].render_pass, scd->extent, 3, 3);
+	} else if (streq(name, "grid1")) {
+		object = trtl_grid_create(seer.seer_ctx, turtle, scd,
+					  seer.layers[layerid].render_pass, scd->extent, 1, 1);
+	} else if (streq(name, "grid9")) {
+		object = trtl_grid_create(seer.seer_ctx, turtle, scd,
+					  seer.layers[layerid].render_pass, scd->extent, 9, 9);
+
+	} else {
+		error("Unknown object %s\n", name);
+	}
+
+	if (!object) return -1;
+
+	return trtl_seer_object_add(turtle, object, layerid);
 }
 
 /**
