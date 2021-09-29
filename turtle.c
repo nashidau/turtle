@@ -18,7 +18,10 @@
 #include "turtle.h"
 
 // FIXME: Belongs in render frame state
-static bool frame_buffer_resized = false;
+int posX = 0;
+int posY = 0;
+int zoom = 128;
+bool frame_buffer_resized = false;
 
 
 static int turtle_destructor(struct turtle *turtle);
@@ -29,16 +32,9 @@ void draw_frame(struct turtle *turtle, struct trtl_swap_chain *scd, VkSemaphore 
 
 static void window_resize_cb(trtl_arg_unused GLFWwindow *window, trtl_arg_unused int width,
 			     trtl_arg_unused int height);
-static void key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode,
-			 int action, trtl_arg_unused int mods);
 
 struct trtl_swap_chain *create_swap_chain(struct turtle *turtle, VkPhysicalDevice physical_device,
 					  VkSurfaceKHR surface);
-
-// FIXME: These should be in a nice game state stucture
-int posX = 0;
-int posY = 0;
-int zoom = 128;
 
 static const char *required_extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -58,38 +54,6 @@ window_init(struct turtle *turtle, const char *title)
 	turtle->window = glfwCreateWindow(800, 600, title, NULL, NULL);
 	glfwSetFramebufferSizeCallback(turtle->window, window_resize_cb);
 
-	glfwSetKeyCallback(turtle->window, key_callback);
-}
-
-void
-key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
-	     trtl_arg_unused int mods)
-{
-	if (action == GLFW_PRESS) {
-		switch (key) {
-		case GLFW_KEY_RIGHT:
-			if (posX < 8) posX++;
-			break;
-		case GLFW_KEY_LEFT:
-			if (posX > 0) posX--;
-			break;
-		case GLFW_KEY_DOWN:
-			if (posY < 8) posY++;
-			break;
-		case GLFW_KEY_UP:
-			if (posY > 0) posY--;
-			break;
-		case GLFW_KEY_EQUAL:
-			zoom *= 2;
-			// FIXME: This is a terrible way to regen everything
-			frame_buffer_resized = true;
-			break;
-		case GLFW_KEY_MINUS:
-			if (zoom > 32) zoom /= 2;
-			frame_buffer_resized = true;
-			break;
-		}
-	}
 }
 
 static void

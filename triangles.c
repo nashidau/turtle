@@ -33,6 +33,45 @@
 
 struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
 
+// FIXME: These should be in a nice game state stucture
+extern int posX;
+extern int posY;
+extern int zoom;
+extern bool frame_buffer_resized;
+
+void
+key_callback(trtl_arg_unused GLFWwindow *window, int key, trtl_arg_unused int scancode, int action,
+	     trtl_arg_unused int mods)
+{
+	if (action == GLFW_PRESS) {
+		switch (key) {
+		case GLFW_KEY_RIGHT:
+			if (posX < 8) posX++;
+			break;
+		case GLFW_KEY_LEFT:
+			if (posX > 0) posX--;
+			break;
+		case GLFW_KEY_DOWN:
+			if (posY < 8) posY++;
+			break;
+		case GLFW_KEY_UP:
+			if (posY > 0) posY--;
+			break;
+		case GLFW_KEY_EQUAL:
+			zoom *= 2;
+			// FIXME: This is a terrible way to regen everything
+			frame_buffer_resized = true;
+			break;
+		case GLFW_KEY_MINUS:
+			if (zoom > 32) zoom /= 2;
+			frame_buffer_resized = true;
+			break;
+		}
+	}
+}
+
+
+
 static void
 show_usage(const char *binary)
 {
@@ -125,6 +164,8 @@ main(int argc, char **argv)
 	turtle = turtle_init();
 
 	struct trtl_swap_chain *tsc = turtle->tsc;
+	
+	glfwSetKeyCallback(turtle->window, key_callback);
 
 	// Above here shold be in turtle_init.
 
