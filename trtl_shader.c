@@ -25,35 +25,41 @@ struct shader_node {
 	int count;
 };
 
-static struct shader_node *shaders;
-VkDevice device;
+struct trtl_shader_cache {
+	struct shader_node *shaders;
+	VkDevice device;
+};
 
-int
-trtl_shader_init(struct turtle *turtle)
-{
-	shaders = NULL;
-	device = turtle->device;
-	return 0;
+struct trtl_shader_cache *
+trtl_shader_cache_init(struct turtle *turtle){
+	struct trtl_shader_cache *shader_cache;
+
+	shader_cache = talloc_zero(turtle, struct trtl_shader_cache);
+
+	shader_cache->shaders = NULL;
+	shader_cache->device = turtle->device;
+
+	return shader_cache;
 }
 
 static int
 shader_destory(struct trtl_shader *shader) {
-	for (struct shader_node *node = shaders ; node ; node = node->next) {
-		if (streq(node->path, shader->path)) {
-			// found it:
-			node->count --;
-		}
-	}
+	struct shader_node *node = shader->internal;
+	
+	node->count --;
+
+	// FIXME: Free the shader module
 	return 0;
 }
 
 // given a shader node create a shader object and set it's destructor
 static struct trtl_shader *
 shader_create(struct shader_node *node) {
-	// Ownwe should go to the parent object.
+	// Owner should go to the parent object.
 	struct trtl_shader *shader = talloc_zero(NULL, struct trtl_shader);
 	shader->shader = node->shader;
 	shader->path = node->path;
+	shader->internal = shader;
 
 	node->count ++;
 	
@@ -63,9 +69,11 @@ shader_create(struct shader_node *node) {
 }
 
 struct trtl_shader *
-trtl_shader_get(const char *path)
+trtl_shader_get(struct turtle *turtle, const char *path)
 {
-	for (struct shader_node *node = shaders ; node ; node = node->next) {
+	struct trtl_shader_cache *shader_cache = turtle->shader_cache;
+
+	for (struct shader_node *node = shader_cache->shaders ; node ; node = node->next) {
 		if (streq(node->path, path)) {
 			return shader_create(node);	
 		}
@@ -74,10 +82,10 @@ trtl_shader_get(const char *path)
 	// Allocate and return
 	struct shader_node *node = talloc_zero(NULL, struct shader_node);
 	node->path = talloc_strdup(node, path);
-	node->next = shaders;
-	shaders = node;
+	node->next = shader_cache->shaders;
+	shader_cache->shaders = node;
 	node->count = 1;
-	node->shader = create_shader(device, blobby_binary(path));
+	node->shader = create_shader(turtle->device, blobby_binary(path));
 
 	return shader_create(node);
 }

@@ -113,7 +113,7 @@ canvas_resize(struct trtl_object *obj, struct trtl_swap_chain *scd, trtl_arg_unu
 	canvas->size = size;
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, scd);
 	canvas->pipeline_info = trtl_pipeline_create(
-	    scd->turtle->device, renderpasshack, size, canvas->descriptor_set_layout,
+	    scd->turtle, renderpasshack, size, canvas->descriptor_set_layout,
 	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
 }
 
@@ -173,7 +173,7 @@ trtl_canvas_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd
 	// in trtl_pipeline -> it should have differe get_attribute_description_pair
 	// and vertex_binding_description_get.
 	canvas->pipeline_info = trtl_pipeline_create(
-	    scd->turtle->device, render_pass, extent, canvas->descriptor_set_layout,
+	    scd->turtle, render_pass, extent, canvas->descriptor_set_layout,
 	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
 
 	{

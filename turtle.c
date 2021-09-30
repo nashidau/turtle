@@ -11,6 +11,7 @@
 #include "trtl_barriers.h"
 #include "trtl_scribe.h"
 #include "trtl_seer.h"
+#include "trtl_shader.h"
 #include "trtl_solo.h"
 #include "trtl_texture.h"
 #include "trtl_uniform.h"
@@ -419,6 +420,7 @@ turtle_init(void)
 	turtle->device = create_logical_device(turtle->physical_device, turtle->surface,
 					       &turtle->graphicsQueue, &turtle->presentQueue);
 
+	turtle->shader_cache = trtl_shader_cache_init(turtle);
 	trtl_solo_init(turtle);
 
 	turtle->tsc = create_swap_chain(turtle, turtle->physical_device, turtle->surface);

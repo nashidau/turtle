@@ -6,11 +6,10 @@ struct turtle;
 struct trtl_shader {
 	const char *path;
 	VkShaderModule shader;
+
+	void *internal;
 };
 
-int trtl_shader_init(struct turtle *turtle);
+struct trtl_shader_cache *trtl_shader_cache_init(struct turtle *turtle);
 
-struct trtl_shader*
-trtl_shader_get(const char *path);
-
-
+struct trtl_shader *trtl_shader_get(struct turtle *turtle, const char *path);

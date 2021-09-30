@@ -75,6 +75,7 @@ VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct trtl_swap_
 static VkFramebuffer *create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd,
 					   VkRenderPass render_pass, VkExtent2D extent);
 
+
 int
 trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
 {
@@ -90,6 +91,7 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
 	}
 
 	seer.seer_ctx = talloc_init("Turtle Seer Context");
+	talloc_steal(turtle, seer.seer_ctx);
 
 	seer.layers = talloc_zero_array(seer.seer_ctx, struct objlayer, nlayers);
 	seer.nlayers = nlayers;
@@ -99,9 +101,6 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
 	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		seer.layers[i].render_pass = create_render_pass(turtle, layer_info + i);
 	}
-
-	// FIXME: Should be part of turtle init;
-	trtl_shader_init(turtle);
 
 	return 0;
 }

@@ -42,6 +42,7 @@ struct turtle {
 	VkInstance instance;
 
 	struct trtl_swap_chain *tsc;
+	struct trtl_shader_cache *shader_cache;
 
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;

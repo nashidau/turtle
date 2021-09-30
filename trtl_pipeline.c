@@ -65,7 +65,7 @@ set_specialise_info(VkExtent2D *extent)
 }
 
 struct trtl_pipeline_info
-trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D extent,
+trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D extent,
 		     VkDescriptorSetLayout descriptor_set_layout, const char *vertex_shader,
 		     const char *fragment_shader,
 		     const VkVertexInputBindingDescription *binding_description,
@@ -74,8 +74,8 @@ trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D exten
 {
 	struct trtl_pipeline_info info;
 
-	struct trtl_shader *vert = trtl_shader_get(vertex_shader);
-	struct trtl_shader *frag = trtl_shader_get(fragment_shader);
+	struct trtl_shader *vert = trtl_shader_get(turtle, vertex_shader);
+	struct trtl_shader *frag = trtl_shader_get(turtle, fragment_shader);
 
 	VkSpecializationInfo *specialisationInfo = set_specialise_info(&extent);
 	VkVertexInputAttributeDescription *tofree = NULL;
@@ -212,8 +212,8 @@ trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D exten
 	pipeline_layout_info.pushConstantRangeCount = 0; // Optional
 	pipeline_layout_info.pPushConstantRanges = NULL; // Optional
 
-	if (vkCreatePipelineLayout(device, &pipeline_layout_info, NULL, &info.pipeline_layout) !=
-	    VK_SUCCESS) {
+	if (vkCreatePipelineLayout(turtle->device, &pipeline_layout_info, NULL,
+				   &info.pipeline_layout) != VK_SUCCESS) {
 		error("failed to create pipeline layout!");
 	}
 
@@ -235,7 +235,7 @@ trtl_pipeline_create(VkDevice device, VkRenderPass render_pass, VkExtent2D exten
 	pipelineInfo.subpass = TRTL_RENDER_LAYER_BACKGROUND;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-	if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL,
+	if (vkCreateGraphicsPipelines(turtle->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL,
 				      &info.pipeline) != VK_SUCCESS) {
 		error("failed to create graphics pipeline!");
 	}

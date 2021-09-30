@@ -185,7 +185,7 @@ grid_resize(struct trtl_object *obj, struct trtl_swap_chain *scd, VkExtent2D siz
 	    grid_create_descriptor_set_layout(scd->turtle->device);
 	grid->descriptor_set = grid_create_descriptor_sets(grid, scd);
 	grid->pipeline_info = trtl_pipeline_create(
-	    scd->turtle->device, renderpasshack, size, grid->descriptor_set_layout,
+	    scd->turtle, renderpasshack, size, grid->descriptor_set_layout,
 	    "shaders/grid/grid-vertex.spv", FRAG_SHADER, &grid_binding_descriptor,
 	    grid_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS);
 }
