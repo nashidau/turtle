@@ -554,7 +554,11 @@ findMemoryType(struct turtle *turtle, uint32_t typeFilter, VkMemoryPropertyFlags
 static int
 turtle_destructor(struct turtle *turtle)
 {
-	// we need to free the swap chain first
+	// This is obivoulsy no longer useful, free early
+	talloc_free(turtle->shader_cache);
+	turtle->shader_cache = NULL;
+
+	// we need to free the swap before local clean ups
 	talloc_free(turtle->tsc);
 	turtle->tsc = NULL;
 
@@ -700,11 +704,8 @@ recreate_swap_chain(struct turtle *turtle)
 	create_depth_resources(turtle);
 
 	turtle->tsc->descriptor_pool = create_descriptor_pool(turtle->tsc);
-	trtl_seer_resize(size, tsc);
+	trtl_seer_resize(size, turtle);
 
-	// FIXME: Call object to update it's descriptor sets
-	//	scd->framebuffers = create_frame_buffers(render->turtle->device, scd,
-	//			);
 	tsc->command_buffers = trtl_seer_create_command_buffers(tsc, tsc->command_pool);
 
 	for (uint32_t i = 0; i < tsc->nimages; i++) {

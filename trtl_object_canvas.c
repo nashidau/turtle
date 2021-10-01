@@ -104,16 +104,15 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	return true;
 }
 
-static VkRenderPass renderpasshack;
-
 static void
-canvas_resize(struct trtl_object *obj, struct trtl_swap_chain *scd, trtl_arg_unused VkExtent2D size)
+canvas_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
+	      VkExtent2D size)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
 	canvas->size = size;
-	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, scd);
+	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 	canvas->pipeline_info = trtl_pipeline_create(
-	    scd->turtle, renderpasshack, size, canvas->descriptor_set_layout,
+	    turtle, renderpass, size, canvas->descriptor_set_layout,
 	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
 }
 
@@ -144,14 +143,11 @@ canvas_create_descriptor_set_layout(VkDevice device)
 }
 
 trtl_alloc struct trtl_object *
-trtl_canvas_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd,
-		   VkRenderPass render_pass, VkExtent2D extent)
+trtl_canvas_create(struct turtle *turtle)
 {
 	struct trtl_object_canvas *canvas;
 
-	canvas = talloc_zero(ctx, struct trtl_object_canvas);
-
-	renderpasshack = render_pass;
+	canvas = talloc_zero(NULL, struct trtl_object_canvas);
 
 	// FIXME: Set a destructor and cleanup
 
@@ -159,22 +155,13 @@ trtl_canvas_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd
 	canvas->parent.update = canvas_update;
 	canvas->parent.resize = canvas_resize;
 
-	canvas->nframes = scd->nimages;
-	canvas->size = extent;
+	canvas->nframes = turtle->tsc->nimages;
 
 	canvas->uniform_info =
 	    trtl_uniform_alloc_type(turtle->uniforms, struct canvas_shader_params);
 
 	canvas->descriptor_set_layout = canvas_create_descriptor_set_layout(turtle->device);
-	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, scd);
-
-	// FIXME: this pipeline includes verteex, color and texture coords.
-	// We need basically none - we should have some customisation
-	// in trtl_pipeline -> it should have differe get_attribute_description_pair
-	// and vertex_binding_description_get.
-	canvas->pipeline_info = trtl_pipeline_create(
-	    scd->turtle, render_pass, extent, canvas->descriptor_set_layout,
-	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
+	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 
 	{
 		struct trtl_seer_vertexset vertices;
@@ -182,14 +169,14 @@ trtl_canvas_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd
 		vertices.vertices = canvas_vertices;
 		vertices.vertex_size = sizeof(struct vertex);
 
-		canvas->vertex_buffer = create_vertex_buffers(scd->turtle, &vertices);
+		canvas->vertex_buffer = create_vertex_buffers(turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = CANVAS_OBJECT_NINDEXES;
 		indexes.indexes = canvas_indices;
-		canvas->index_buffer = create_index_buffer(scd->turtle, &indexes);
+		canvas->index_buffer = create_index_buffer(turtle, &indexes);
 	}
 
 	return (struct trtl_object *)canvas;
@@ -212,8 +199,7 @@ create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct trtl_swa
 	alloc_info.descriptorSetCount = canvas->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) !=
-	    VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
@@ -231,9 +217,8 @@ create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct trtl_swa
 		descriptorWrites[0].descriptorCount = 1;
 		descriptorWrites[0].pBufferInfo = &buffer_info;
 
-		vkUpdateDescriptorSets(scd->turtle->device,
-				       TRTL_ARRAY_SIZE(descriptorWrites), descriptorWrites, 0,
-				       NULL);
+		vkUpdateDescriptorSets(scd->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
+				       descriptorWrites, 0, NULL);
 	}
 
 	talloc_free(layouts);

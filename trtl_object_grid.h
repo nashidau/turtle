@@ -4,6 +4,8 @@
 struct trtl_swap_chain;
 struct turtle;
 
-struct trtl_object *trtl_grid_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd,
-				     VkRenderPass render_pass, VkExtent2D extent, uint16_t width,
-				     uint16_t height);
+struct trtl_object *trtl_grid_create(struct turtle *turtle);
+
+int trtl_grid_fill_rectangle(struct trtl_object *grid, int width, int height);
+
+// grid_set_square(use a square)

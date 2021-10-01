@@ -45,6 +45,7 @@ struct {
 	trtl_render_layer_t nlayers;
 	struct objlayer *layers;
 
+	VkExtent2D size;
 	VkFramebuffer *framebuffers;
 } seer = {0};
 
@@ -75,9 +76,8 @@ VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct trtl_swap_
 static VkFramebuffer *create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd,
 					   VkRenderPass render_pass, VkExtent2D extent);
 
-
 int
-trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
+trtl_seer_init(struct turtle *turtle, VkExtent2D extent)
 {
 	int nlayers = TRTL_RENDER_LAYER_TOTAL;
 
@@ -95,6 +95,7 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
 
 	seer.layers = talloc_zero_array(seer.seer_ctx, struct objlayer, nlayers);
 	seer.nlayers = nlayers;
+	seer.size = extent;
 
 	seer.turtle = turtle;
 
@@ -105,17 +106,19 @@ trtl_seer_init(struct turtle *turtle, trtl_arg_unused VkExtent2D extent)
 	return 0;
 }
 
-// FIXME: The SCD arg is terrible :
 int
-trtl_seer_resize(VkExtent2D new_size, struct trtl_swap_chain *scd)
+trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 {
+	seer.size = new_size;
+
 	// recreate pipelines
 
 	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		struct objlayer *layer = seer.layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			if (layer->objects[obj]->resize) {
-				layer->objects[obj]->resize(layer->objects[obj], scd, new_size);
+				layer->objects[obj]->resize(layer->objects[obj], turtle,
+							    layer->render_pass, new_size);
 			}
 		}
 	}
@@ -147,7 +150,6 @@ trtl_seer_resize(VkExtent2D new_size, struct trtl_swap_chain *scd)
 int
 trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_render_layer_t layerid)
 {
-
 	struct objlayer *layer;
 
 	if (turtle == NULL || object == NULL) {
@@ -177,12 +179,14 @@ trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_ren
 
 	layer->objects[layer->nobjects++] = object;
 
+	talloc_steal(seer.seer_ctx, object);
+	object->resize(object, turtle, layer->render_pass, seer.size);
+
 	return 0;
 }
 
 int
-trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
-				struct trtl_swap_chain *scd, trtl_render_layer_t layerid)
+trtl_seer_predefined_object_add(const char *name, struct turtle *turtle, trtl_render_layer_t layerid)
 {
 	struct trtl_object *object = NULL;
 
@@ -202,18 +206,16 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		//  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
 		// scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "background")) {
-		object = trtl_canvas_create(seer.seer_ctx, turtle, scd,
-					    seer.layers[layerid].render_pass, scd->extent);
+		object = trtl_canvas_create(turtle);
 	} else if (streq(name, "grid")) {
-		object = trtl_grid_create(seer.seer_ctx, turtle, scd,
-					  seer.layers[layerid].render_pass, scd->extent, 3, 3);
+		object = trtl_grid_create(turtle);
+		trtl_grid_fill_rectangle(object, 3, 5);
 	} else if (streq(name, "grid1")) {
-		object = trtl_grid_create(seer.seer_ctx, turtle, scd,
-					  seer.layers[layerid].render_pass, scd->extent, 1, 1);
+		object = trtl_grid_create(turtle);
+		trtl_grid_fill_rectangle(object, 1, 1);
 	} else if (streq(name, "grid9")) {
-		object = trtl_grid_create(seer.seer_ctx, turtle, scd,
-					  seer.layers[layerid].render_pass, scd->extent, 9, 9);
-
+		object = trtl_grid_create(turtle);
+		trtl_grid_fill_rectangle(object, 9, 9);
 	} else {
 		error("Unknown object %s\n", name);
 	}
