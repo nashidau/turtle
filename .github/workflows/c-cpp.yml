@@ -7,10 +7,9 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  linux:
 
-    runs-on: macos-11
-    compiler: clang  
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v2
@@ -24,5 +23,21 @@ jobs:
       run: sudo apt-get install -y check
     - name: make
       run: make
+      env:
+        CC: clang
     - name: make check
       run: make check
+
+  mac:
+    runs-on: macosx-latest
+
+    steps:
+      - name: install dependancies
+        run: brew install talloc glfw3 check
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: make
+        run: make
+      - name: make check
+        run: make check
