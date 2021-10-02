@@ -39,7 +39,7 @@ START_TEST(test_uniform_alloc_too_much) {
 } END_TEST
 
 Suite *
-trtl_uniform_suite(void *ctx) {
+trtl_uniform_suite(trtl_arg_unused void *ctx) {
 	Suite *s = suite_create("Uniform");
 	TCase *tc_alloc = tcase_create("Allocation");
 
