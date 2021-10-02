@@ -62,9 +62,7 @@ SOURCES= \
 	trtl_vulkan.c	\
 	turtle.c
 
-APPS=triangles.c
-
-
+APPS=triangles
 
 
 SHADERS= \
@@ -82,7 +80,7 @@ OBJECTS := $(SOURCES:%.c=%.o)
 SHADER_OBJECTS := $(SHADERS:%.spv=%.o)
 
 
-ALL: triangles trtl_check ${SHADERS} 
+ALL: triangles libturtle.a trtl_check ${SHADERS} 
 
 # Dependancies (from http://make.mad-scientist.net/papers/advanced-auto-dependency-generation/#tldr)
 DEPDIR := .deps
@@ -90,7 +88,6 @@ DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.d
 
 COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
 
-%.o : %.c
 %.o : %.c $(DEPDIR)/%.d | $(DEPDIR)
 	@echo Compile $<
 	@$(COMPILE.c) $(OUTPUT_OPTION) $<
