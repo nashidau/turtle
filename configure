@@ -2,4 +2,3 @@
 
 echo "Configure"
 
-git submodule update --init
