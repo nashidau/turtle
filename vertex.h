@@ -1,5 +1,7 @@
 #include <assert.h>
-
+#include <stdint.h>
+#include "cglm/cglm.h"
+#include "vulkan/vulkan_core.h"
 
 struct color {
 	float r, g, b;
@@ -34,6 +36,13 @@ struct trtl_model {
 	uint32_t *indices;
 	struct vertex *vertices;
 	uint32_t nvertices;
+};
+
+
+struct UniformBufferObject {
+	mat4 model;
+	mat4 view;
+	mat4 proj;
 };
 
 static_assert(sizeof(struct pos2d) == sizeof(float) * 2, "Urk");

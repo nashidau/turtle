@@ -5,13 +5,14 @@
 
 #pragma once
 
+
 // c++, there is a C library at https://github.com/recp/cglm
 //#include <glm/glm.hpp>
 // This is the C version of glm; so these don't work
+#include <stdbool.h>
 #define CGLM_DEFINE_PRINTS
 #define CGLM_FORCE_RADIANS
 #define CGLM_FORCE_DEPTH_ZERO_TO_ONE
-#include "cglm/cglm.h" /* for inline */
 //#include <cglm/call.h>   /* for library call (this also includes cglm.h) */
 
 #define GLFW_INCLUDE_VULKAN
@@ -77,11 +78,7 @@ struct trtl_swap_chain {
 	VkSampler texture_sampler;
 };
 
-struct UniformBufferObject {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
-};
+
 
 // FIXME: SHoudl move into the turtle.h (or a make device.h)
 // once the swap chain code has moved across
