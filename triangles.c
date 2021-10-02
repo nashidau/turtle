@@ -118,16 +118,16 @@ parse_arguments(int argc, char **argv)
 }
 
 static int
-load_object_default(struct trtl_swap_chain *scd, struct turtle *turtle)
+load_object_default(struct turtle *turtle)
 {
 	printf("Loading default objects: Background 'background', Main: 'grid9'\n");
-	trtl_seer_predefined_object_add("background", turtle, scd, TRTL_RENDER_LAYER_BACKGROUND);
-	trtl_seer_predefined_object_add("grid9", turtle, scd, TRTL_RENDER_LAYER_MAIN);
+	trtl_seer_predefined_object_add("background", turtle, TRTL_RENDER_LAYER_BACKGROUND);
+	trtl_seer_predefined_object_add("grid9", turtle, TRTL_RENDER_LAYER_MAIN);
 	return 2;
 }
 
 int
-load_objects(struct trtl_swap_chain *scd, struct turtle *turtle)
+load_objects(struct turtle *turtle)
 {
 	int i;
 
@@ -139,14 +139,14 @@ load_objects(struct trtl_swap_chain *scd, struct turtle *turtle)
 		}
 	}
 	if (i == TRTL_RENDER_LAYER_TOTAL) {
-		return load_object_default(scd, turtle);
+		return load_object_default(turtle);
 	}
 
 	// For each layer, load it
 	for (i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
 		struct trtl_stringlist *load = objs_to_load[i];
 		while (load != NULL) {
-			trtl_seer_predefined_object_add(load->string, turtle, scd, i);
+			trtl_seer_predefined_object_add(load->string, turtle, i);
 			load = load->next;
 		}
 		talloc_free(objs_to_load[i]);
@@ -162,14 +162,12 @@ main(int argc, char **argv)
 	parse_arguments(argc, argv);
 
 	turtle = turtle_init();
-
-	struct trtl_swap_chain *tsc = turtle->tsc;
 	
 	glfwSetKeyCallback(turtle->window, key_callback);
 
 	// Above here shold be in turtle_init.
 
-	load_objects(tsc, turtle);
+	load_objects(turtle);
 
 	trtl_main_loop(turtle);
 
