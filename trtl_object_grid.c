@@ -255,7 +255,7 @@ trtl_grid_create(struct turtle *turtle)
  * @return 0 on success, -1 otherwise.
  */
 int
-trtl_grid_fill_rectangle(struct trtl_object *obj, int width, int height)
+trtl_grid_fill_rectangle(struct trtl_object *obj, uint32_t width, uint32_t height)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	generate_grid(grid, width, height);

@@ -6,6 +6,6 @@ struct turtle;
 
 struct trtl_object *trtl_grid_create(struct turtle *turtle);
 
-int trtl_grid_fill_rectangle(struct trtl_object *grid, int width, int height);
+int trtl_grid_fill_rectangle(struct trtl_object *grid, uint32_t width, uint32_t height);
 
 // grid_set_square(use a square)
