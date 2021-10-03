@@ -404,7 +404,7 @@ create_depth_resources(struct turtle *turtle)
 struct turtle *
 turtle_init(void)
 {
-	struct turtle *turtle = talloc(NULL, struct turtle);
+	struct turtle *turtle = talloc_zero(NULL, struct turtle);
 	talloc_set_destructor(turtle, turtle_destructor);
 	printf("Validation Layer Support: %s\n",
 	       trtl_scribe_check_validation_layer_support() ? "Yes" : "No");
@@ -441,7 +441,8 @@ turtle_init(void)
 
 	turtle->tsc->descriptor_pool = create_descriptor_pool(turtle->tsc);
 
-	trtl_seer_init(turtle, turtle->tsc->extent);
+	turtle->seer = trtl_seer_init(turtle, turtle->tsc->extent);
+	assert(turtle->seer);
 
 	trtl_barriers_init(turtle);
 
@@ -459,7 +460,7 @@ int
 trtl_main_loop(struct turtle *turtle)
 {
 	turtle->tsc->command_buffers =
-	    trtl_seer_create_command_buffers(turtle->tsc, turtle->tsc->command_pool);
+	    trtl_seer_create_command_buffers(turtle, turtle->tsc->command_pool);
 
 	int currentFrame = 0;
 	while (!glfwWindowShouldClose(turtle->window)) {
@@ -707,7 +708,7 @@ recreate_swap_chain(struct turtle *turtle)
 	turtle->tsc->descriptor_pool = create_descriptor_pool(turtle->tsc);
 	trtl_seer_resize(size, turtle);
 
-	tsc->command_buffers = trtl_seer_create_command_buffers(tsc, tsc->command_pool);
+	tsc->command_buffers = trtl_seer_create_command_buffers(turtle, tsc->command_pool);
 
 	for (uint32_t i = 0; i < tsc->nimages; i++) {
 		turtle->images_in_flight[i] = VK_NULL_HANDLE;
@@ -735,7 +736,7 @@ draw_frame(struct turtle *turtle, struct trtl_swap_chain *tsc, VkSemaphore image
 		error("Failed to get swap chain image");
 	}
 
-	trtl_seer_update(imageIndex);
+	trtl_seer_update(turtle, imageIndex);
 
 	// FIXME: Device should be some sort of global context
 	trtl_uniform_update(turtle->uniforms, imageIndex);

@@ -44,6 +44,7 @@ struct turtle {
 
 	struct trtl_swap_chain *tsc;
 	struct trtl_shader_cache *shader_cache;
+	struct trtl_seer *seer;
 
 	VkQueue graphicsQueue;
 	VkQueue presentQueue;

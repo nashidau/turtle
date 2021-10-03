@@ -34,9 +34,7 @@ static const trtl_arg_unused char *TEXTURE_PATH = "textures/viking_room.png";
 static const trtl_arg_unused char *MODEL_PATH2 = "models/StreetCouch/Day143.obj";
 static const trtl_arg_unused char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
 
-struct {
-	void *seer_ctx;
-
+struct trtl_seer {
 	struct turtle *turtle;
 
 	// Number of objects across all layers
@@ -47,7 +45,7 @@ struct {
 
 	VkExtent2D size;
 	VkFramebuffer *framebuffers;
-} seer = {0};
+};
 
 struct objlayer {
 	uint32_t nobjects;
@@ -76,13 +74,22 @@ VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct trtl_swap_
 static VkFramebuffer *create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd,
 					   VkRenderPass render_pass, VkExtent2D extent);
 
-int
+static int
+seer_destroy(struct trtl_seer *seer)
+{
+
+	seer->framebuffers = 0;
+	return 0;
+}
+
+struct trtl_seer *
 trtl_seer_init(struct turtle *turtle, VkExtent2D extent)
 {
+	struct trtl_seer *seer;
 	int nlayers = TRTL_RENDER_LAYER_TOTAL;
 
-	if (seer.turtle) {
-		warning("Multiple init of trtl_seer");
+	if (turtle->seer) {
+		warning("Multiple init of trtl_seer\n");
 		return 0;
 	}
 
@@ -90,31 +97,32 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent)
 		error("Invalid layers param");
 	}
 
-	seer.seer_ctx = talloc_init("Turtle Seer Context");
-	talloc_steal(turtle, seer.seer_ctx);
+	seer = talloc_zero(turtle, struct trtl_seer);
+	talloc_set_destructor(seer, seer_destroy);
 
-	seer.layers = talloc_zero_array(seer.seer_ctx, struct objlayer, nlayers);
-	seer.nlayers = nlayers;
-	seer.size = extent;
+	seer->layers = talloc_zero_array(seer, struct objlayer, nlayers);
+	seer->nlayers = nlayers;
+	seer->size = extent;
 
-	seer.turtle = turtle;
+	seer->turtle = turtle;
 
 	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
-		seer.layers[i].render_pass = create_render_pass(turtle, layer_info + i);
+		seer->layers[i].render_pass = create_render_pass(turtle, layer_info + i);
 	}
 
-	return 0;
+	return seer;
 }
 
 int
 trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 {
-	seer.size = new_size;
+	struct trtl_seer *seer = turtle->seer;
+	seer->size = new_size;
 
 	// recreate pipelines
 
 	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
-		struct objlayer *layer = seer.layers + i;
+		struct objlayer *layer = seer->layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			if (layer->objects[obj]->resize) {
 				layer->objects[obj]->resize(layer->objects[obj], turtle,
@@ -150,18 +158,20 @@ trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 int
 trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_render_layer_t layerid)
 {
+	struct trtl_seer *seer;
 	struct objlayer *layer;
 
 	if (turtle == NULL || object == NULL) {
 		return -1;
 	}
+	seer = turtle->seer;
 
-	if (layerid >= seer.nlayers) {
+	if (layerid >= seer->nlayers) {
 		error("Invalid layer for %p", object);
 	}
 
-	seer.nobjects++;
-	layer = seer.layers + layerid;
+	seer->nobjects++;
+	layer = seer->layers + layerid;
 
 	if (layer->nobjects >= layer->nalloced) {
 		struct trtl_object **objs;
@@ -179,18 +189,23 @@ trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_ren
 
 	layer->objects[layer->nobjects++] = object;
 
-	talloc_steal(seer.seer_ctx, object);
-	object->resize(object, turtle, layer->render_pass, seer.size);
+	talloc_steal(seer, object);
+	object->resize(object, turtle, layer->render_pass, seer->size);
 
 	return 0;
 }
 
 int
-trtl_seer_predefined_object_add(const char *name, struct turtle *turtle, trtl_render_layer_t layerid)
+trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
+				trtl_render_layer_t layerid)
 {
 	struct trtl_object *object = NULL;
+	struct trtl_seer *seer;
 
-	if (layerid >= seer.nlayers) {
+	seer = turtle->seer;
+	assert(turtle->seer);
+
+	if (layerid >= seer->nlayers) {
 		error("Invalid layer for %s", name);
 	}
 
@@ -237,11 +252,11 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle, trtl_re
  * @retuen Number of objects updated.
  */
 int
-trtl_seer_update(uint32_t image_index)
+trtl_seer_update(struct turtle *turtle, uint32_t image_index)
 {
 	int count = 0;
 	for (trtl_render_layer_t layerid = 0; layerid < TRTL_RENDER_LAYER_TOTAL; layerid++) {
-		struct objlayer *layer = seer.layers + layerid;
+		struct objlayer *layer = turtle->seer->layers + layerid;
 		for (uint32_t i = 0; i < layer->nobjects; i++) {
 			layer->objects[i]->update(layer->objects[i], image_index);
 			count++;
@@ -252,27 +267,25 @@ trtl_seer_update(uint32_t image_index)
 }
 
 trtl_must_check VkCommandBuffer *
-trtl_seer_create_command_buffers(struct trtl_swap_chain *scd, VkCommandPool command_pool)
+trtl_seer_create_command_buffers(struct turtle *turtle, VkCommandPool command_pool)
 {
-	seer.framebuffers =
-	    create_frame_buffers(seer.turtle->device, scd, seer.layers[1].render_pass, scd->extent);
-	return create_command_buffers(seer.turtle, scd, command_pool, seer.framebuffers);
+	struct trtl_seer *seer = turtle->seer;
+	seer->framebuffers = create_frame_buffers(turtle->device, turtle->tsc,
+						  seer->layers[1].render_pass, seer->size);
+	return create_command_buffers(turtle, turtle->tsc, command_pool, seer->framebuffers);
 }
 
 int
-trtl_seer_draw(VkCommandBuffer buffer, trtl_arg_unused struct trtl_swap_chain *scd,
-	       trtl_render_layer_t layerid)
+trtl_seer_draw(struct turtle *turtle, VkCommandBuffer buffer, trtl_render_layer_t layerid)
 {
 	uint32_t offset = 0;
+	struct trtl_seer *seer;
 
-	assert(layerid < seer.nlayers);
+	seer = turtle->seer;
 
-	/*
-	seer.command_buffers = create_command_buffers(render, scd, scd->render_pass,
-						      scd->command_pool, scd->framebuffers);
-*/
+	assert(layerid < seer->nlayers);
 
-	struct objlayer *layer = seer.layers + layerid;
+	struct objlayer *layer = seer->layers + layerid;
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 		layer->objects[obj]->draw(layer->objects[obj], buffer, offset);
@@ -432,14 +445,14 @@ create_command_buffers(struct turtle *turtle, struct trtl_swap_chain *scd,
 
 		// FIXME: Should get render pass for each layer here
 		for (trtl_render_layer_t li = 0; li < TRTL_RENDER_LAYER_TOTAL; li++) {
-			if (seer.layers[li].nobjects == 0) continue;
+			if (turtle->seer->layers[li].nobjects == 0) continue;
 
-			renderPassInfo.renderPass = seer.layers[li].render_pass;
+			renderPassInfo.renderPass = turtle->seer->layers[li].render_pass;
 
 			vkCmdBeginRenderPass(buffers[i], &renderPassInfo,
 					     VK_SUBPASS_CONTENTS_INLINE);
 			{
-				trtl_seer_draw(buffers[i], scd, li);
+				trtl_seer_draw(turtle, buffers[i], li);
 			}
 			vkCmdEndRenderPass(buffers[i]);
 		}
