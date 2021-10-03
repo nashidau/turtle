@@ -22,7 +22,7 @@ jobs:
     - name: Install check
       run: sudo apt-get install -y check
     - name: Vulkan Dev
-      run: sudo apt-get install -y libvulkan-dev
+      run: sudo apt-get install -y libvulkan-dev vulkan-validationlayers-dev
     - name: make
       run: make
       env:
