@@ -280,15 +280,11 @@ trtl_grid_fill_pattern(struct trtl_object *obj, uint32_t width, uint32_t height,
 	total = width * height;
 
 	for (uint32_t i = 0; i < total; i++) {
-		int row = i / width;
-		int col = i % width;
 		if (pattern[i] != presentchar) {
-			printf("Skip %d,%d (%d != %d)\n", row, col, pattern[i], presentchar);
 			continue;
 		}
 		filled++;
 	}
-	printf("%d tiles are filed\n", filled);
 
 	// So we need 6 indices, and 4 vertexes for each tile
 	uint32_t vcount = filled * 4;
@@ -302,7 +298,6 @@ trtl_grid_fill_pattern(struct trtl_object *obj, uint32_t width, uint32_t height,
 		int row = i / width;
 		int col = i % width;
 		if (pattern[i] != presentchar) {
-			printf("Skip %d,%d (%d != %d)\n", row, col, pattern[i], presentchar);
 			continue;
 		}
 		fill_tile(vertex, indices, filled++, row, col);
