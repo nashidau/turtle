@@ -5,7 +5,7 @@
  */
 #include <string.h>
 
-#include <vulkan/vulkan_core.h>
+#include <vulkan/vulkan.h>
 
 #include <talloc.h>
 
