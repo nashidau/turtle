@@ -7,5 +7,7 @@ struct turtle;
 struct trtl_object *trtl_grid_create(struct turtle *turtle);
 
 int trtl_grid_fill_rectangle(struct trtl_object *grid, uint32_t width, uint32_t height);
+int trtl_grid_fill_pattern(struct trtl_object *grid, uint32_t width, uint32_t height,
+		uint8_t *pattern, uint8_t presentchar);
 
 // grid_set_square(use a square)

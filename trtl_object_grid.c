@@ -99,6 +99,53 @@ trtl_object_grid(struct trtl_object *obj)
 	return grid;
 }
 
+static void
+fill_tile(struct grid_vertex *vertex, uint32_t *indices, int i, int row, int col)
+{
+	vertex[i * 4].pos.x = col;
+	vertex[i * 4].pos.y = row;
+	vertex[i * 4].tex_coord.x = 0;
+	vertex[i * 4].tex_coord.y = 0;
+
+	vertex[i * 4 + 1].pos.x = col + 1;
+	vertex[i * 4 + 1].pos.y = row;
+	vertex[i * 4 + 1].tex_coord.x = 1;
+	vertex[i * 4 + 1].tex_coord.y = 0;
+
+	vertex[i * 4 + 2].pos.x = col;
+	vertex[i * 4 + 2].pos.y = row + 1;
+	vertex[i * 4 + 2].tex_coord.x = 0;
+	vertex[i * 4 + 2].tex_coord.y = 1;
+
+	vertex[i * 4 + 3].pos.x = col + 1;
+	vertex[i * 4 + 3].pos.y = row + 1;
+	vertex[i * 4 + 3].tex_coord.x = 1;
+	vertex[i * 4 + 3].tex_coord.y = 1;
+
+	vertex[i * 4].tile.x = col;
+	vertex[i * 4 + 1].tile.x = col;
+	vertex[i * 4 + 2].tile.x = col;
+	vertex[i * 4 + 3].tile.x = col;
+
+	vertex[i * 4].tile.y = row;
+	vertex[i * 4 + 1].tile.y = row;
+	vertex[i * 4 + 2].tile.y = row;
+	vertex[i * 4 + 3].tile.y = row;
+
+	uint8_t seed = ((row + col * 87) * 48271) >> 4;
+	vertex[i * 4].tile.seed = seed;
+	vertex[i * 4 + 1].tile.seed = seed;
+	vertex[i * 4 + 2].tile.seed = seed;
+	vertex[i * 4 + 3].tile.seed = seed;
+
+	indices[i * 6] = i * 4;
+	indices[i * 6 + 1] = i * 4 + 2;
+	indices[i * 6 + 2] = i * 4 + 1;
+	indices[i * 6 + 3] = i * 4 + 1;
+	indices[i * 6 + 4] = i * 4 + 2;
+	indices[i * 6 + 5] = i * 4 + 3;
+}
+
 // Width and height are single values.
 static void
 generate_grid(struct trtl_object_grid *grid, uint16_t width, uint16_t height)
@@ -113,48 +160,7 @@ generate_grid(struct trtl_object_grid *grid, uint16_t width, uint16_t height)
 	for (int i = 0; i < tiles; i++) {
 		int row = i / width;
 		int col = i % width;
-		vertex[i * 4].pos.x = col;
-		vertex[i * 4].pos.y = row;
-		vertex[i * 4].tex_coord.x = 0;
-		vertex[i * 4].tex_coord.y = 0;
-
-		vertex[i * 4 + 1].pos.x = col + 1;
-		vertex[i * 4 + 1].pos.y = row;
-		vertex[i * 4 + 1].tex_coord.x = 1;
-		vertex[i * 4 + 1].tex_coord.y = 0;
-
-		vertex[i * 4 + 2].pos.x = col;
-		vertex[i * 4 + 2].pos.y = row + 1;
-		vertex[i * 4 + 2].tex_coord.x = 0;
-		vertex[i * 4 + 2].tex_coord.y = 1;
-
-		vertex[i * 4 + 3].pos.x = col + 1;
-		vertex[i * 4 + 3].pos.y = row + 1;
-		vertex[i * 4 + 3].tex_coord.x = 1;
-		vertex[i * 4 + 3].tex_coord.y = 1;
-
-		vertex[i * 4].tile.x = col;
-		vertex[i * 4 + 1].tile.x = col;
-		vertex[i * 4 + 2].tile.x = col;
-		vertex[i * 4 + 3].tile.x = col;
-
-		vertex[i * 4].tile.y = row;
-		vertex[i * 4 + 1].tile.y = row;
-		vertex[i * 4 + 2].tile.y = row;
-		vertex[i * 4 + 3].tile.y = row;
-
-		uint8_t seed = ((row + col * 87) * 48271) >> 4;
-		vertex[i * 4].tile.seed = seed;
-		vertex[i * 4 + 1].tile.seed = seed;
-		vertex[i * 4 + 2].tile.seed = seed;
-		vertex[i * 4 + 3].tile.seed = seed;
-
-		indices[i * 6] = i * 4;
-		indices[i * 6 + 1] = i * 4 + 2;
-		indices[i * 6 + 2] = i * 4 + 1;
-		indices[i * 6 + 3] = i * 4 + 1;
-		indices[i * 6 + 4] = i * 4 + 2;
-		indices[i * 6 + 5] = i * 4 + 3;
+		fill_tile(vertex, indices, i, row, col);
 	}
 
 	{
@@ -184,9 +190,9 @@ grid_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderp
 	grid->descriptor_set_layout = grid_create_descriptor_set_layout(turtle->device);
 	grid->descriptor_set = grid_create_descriptor_sets(grid, turtle->tsc);
 	grid->pipeline_info = trtl_pipeline_create(
-	    turtle, renderpass, size, grid->descriptor_set_layout,
-	    "shaders/grid/grid-vertex.spv", FRAG_SHADER, &grid_binding_descriptor,
-	    grid_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS);
+	    turtle, renderpass, size, grid->descriptor_set_layout, "shaders/grid/grid-vertex.spv",
+	    FRAG_SHADER, &grid_binding_descriptor, grid_vertex_description,
+	    N_VERTEX_ATTRIBUTE_DESCRIPTORS);
 }
 
 static void
@@ -244,6 +250,84 @@ trtl_grid_create(struct turtle *turtle)
 	    trtl_uniform_alloc_type(turtle->uniforms, struct UniformBufferObject);
 
 	return (struct trtl_object *)grid;
+}
+
+/**
+ * Fill the grid with a pattern.
+ *
+ * The width * height map is filled if the appropriate position in the grid is the same as
+ * presentchar, or skipped otherwsei.
+ *
+ * @param obj Grid object to fill.
+ * @param width The width of the map.
+ * @param height The height of the map.
+ * @param pattern The (width * height) array of items.
+ * @param presentchar The character which indicates a visible tile.
+ * @return 0 on success, -1 otherwise.
+ */
+int
+trtl_grid_fill_pattern(struct trtl_object *obj, uint32_t width, uint32_t height,
+		       uint8_t pattern[width * height], uint8_t presentchar)
+{
+	struct trtl_object_grid *grid = trtl_object_grid(obj);
+	uint32_t total;
+	int filled = 0;
+
+	if (grid->vcount > 0) {
+		error("Already confgiured this grid object");
+	}
+
+	total = width * height;
+
+	for (uint32_t i = 0; i < total; i++) {
+		int row = i / width;
+		int col = i % width;
+		if (pattern[i] != presentchar) {
+			printf("Skip %d,%d (%d != %d)\n", row, col, pattern[i], presentchar);
+			continue;
+		}
+		filled++;
+	}
+	printf("%d tiles are filed\n", filled);
+
+	// So we need 6 indices, and 4 vertexes for each tile
+	uint32_t vcount = filled * 4;
+	uint32_t icount = filled * 6;
+	struct grid_vertex *vertex = talloc_zero_array(grid, struct grid_vertex, vcount);
+	uint32_t *indices = talloc_zero_array(grid, uint32_t, icount);
+
+	// Now fill it
+	filled = 0;
+	for (uint32_t i = 0; i < total; i++) {
+		int row = i / width;
+		int col = i % width;
+		if (pattern[i] != presentchar) {
+			printf("Skip %d,%d (%d != %d)\n", row, col, pattern[i], presentchar);
+			continue;
+		}
+		fill_tile(vertex, indices, filled++, row, col);
+	}
+
+	// FIXME: grid_rectangle has the same code
+	{
+		struct trtl_seer_vertexset vertices;
+		vertices.vertex_size = sizeof(struct grid_vertex);
+		vertices.nvertexes = vcount;
+		vertices.vertices = vertex;
+
+		grid->vertex_buffer = create_vertex_buffers(grid->turtle, &vertices);
+	}
+	{
+		struct trtl_seer_indexset indexes;
+
+		indexes.nindexes = icount;
+		indexes.indexes = indices;
+		grid->index_buffer = create_index_buffer(grid->turtle, &indexes);
+	}
+	grid->vcount = vcount;
+	grid->icount = icount;
+
+	return 0;
 }
 
 /**
