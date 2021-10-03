@@ -3,6 +3,7 @@
  *
  * Free the trtl_shader to relaeas info.
  */
+#include <assert.h>
 #include <string.h>
 
 #include <vulkan/vulkan.h>
@@ -20,6 +21,7 @@ static VkShaderModule create_shader(VkDevice device, struct blobby *blobby);
 struct shader_node {
 	struct shader_node *next;
 	const char *path;
+	struct trtl_shader_cache *cache;
 	VkShaderModule shader;
 
 	int count;
@@ -45,12 +47,41 @@ trtl_shader_cache_init(struct turtle *turtle){
 static int
 shader_destory(struct trtl_shader *shader) {
 	struct shader_node *node = shader->internal;
+	printf("Shader destroy: %s Count %d\n", node->path, node->count);
 	
 	node->count --;
 
-	// FIXME: Free the shader module
+	if (node->count > 1) {
+		return 0;
+	}
+
+	// FIXME: Should do this lazily; make sure it doesn't get resusd in 1 minute or something
+	talloc_free(node);
+
 	return 0;
 }
+
+static int
+shader_node_destroy(struct shader_node *node) {
+	// Remove it from the list
+	// Urgh; singly linked
+	struct trtl_shader_cache *cache = node->cache;
+	if (cache->shaders == node) {
+		// first item
+		cache->shaders = node->next;
+	} else {
+		struct shader_node *ntmp;
+		for (ntmp = cache->shaders ; ntmp && ntmp->next != node ; ntmp = ntmp->next) {
+			;
+		}
+		assert(ntmp); // We should always find it
+		ntmp->next = node->next;
+	}
+
+	vkDestroyShaderModule(cache->device, node->shader, NULL);
+	return 0;
+}
+
 
 // given a shader node create a shader object and set it's destructor
 static struct trtl_shader *
@@ -81,9 +112,11 @@ trtl_shader_get(struct turtle *turtle, const char *path)
 
 	// Allocate and return
 	struct shader_node *node = talloc_zero(NULL, struct shader_node);
+	talloc_set_destructor(node, shader_node_destroy);
 	node->path = talloc_strdup(node, path);
 	node->next = shader_cache->shaders;
 	shader_cache->shaders = node;
+	node->cache = shader_cache;
 	node->count = 1;
 	node->shader = create_shader(turtle->device, blobby_binary(path));
 

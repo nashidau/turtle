@@ -4,7 +4,7 @@
  * Manages a group of objects.   Functions as a factor as well as keeping track of
  * resources used by objects.
  *
- * Created as a singleton.  Has an evil global.
+ * Created as a singleton.
  *
  * FIXME: Needs to holder the rendering pipeline
  * FIXME: Should hold the trtl_uniform objects.
@@ -44,6 +44,8 @@ struct trtl_seer {
 	struct objlayer *layers;
 
 	VkExtent2D size;
+
+	uint32_t nframebuffers;
 	VkFramebuffer *framebuffers;
 };
 
@@ -77,6 +79,19 @@ static VkFramebuffer *create_frame_buffers(VkDevice device, struct trtl_swap_cha
 static int
 seer_destroy(struct trtl_seer *seer)
 {
+	printf("Seer destroy %p %p \n", seer, seer->turtle);
+
+	// For each layer; destroy our objects
+	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+		struct objlayer *layer = seer->layers + i;
+		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
+			talloc_free(layer->objects[obj]);
+		}
+	}
+
+	for (uint32_t i = 0 ; i < seer->nframebuffers ; i ++) {
+		vkDestroyFramebuffer(seer->turtle->device, seer->framebuffers[i], NULL);
+	}
 
 	seer->framebuffers = 0;
 	return 0;
@@ -272,6 +287,7 @@ trtl_seer_create_command_buffers(struct turtle *turtle, VkCommandPool command_po
 	struct trtl_seer *seer = turtle->seer;
 	seer->framebuffers = create_frame_buffers(turtle->device, turtle->tsc,
 						  seer->layers[1].render_pass, seer->size);
+	seer->nframebuffers = turtle->tsc->nimages;
 	return create_command_buffers(turtle, turtle->tsc, command_pool, seer->framebuffers);
 }
 

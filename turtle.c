@@ -556,7 +556,10 @@ findMemoryType(struct turtle *turtle, uint32_t typeFilter, VkMemoryPropertyFlags
 static int
 turtle_destructor(struct turtle *turtle)
 {
+	talloc_free(turtle->seer);
+
 	// This is obivoulsy no longer useful, free early
+	printf("free shader cache\n");
 	talloc_free(turtle->shader_cache);
 	turtle->shader_cache = NULL;
 
