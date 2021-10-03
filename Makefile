@@ -30,7 +30,8 @@ WARNINGS= \
 OPTIMIZATION=-O2
 
 CFLAGS+=-g ${OPTIMIZATION} ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
-	-iframework /Library/Frameworks  -Ithird-party/cglm/include -fsanitize=address
+	-iframework /Library/Frameworks  -Ithird-party/cglm/include -fsanitize=address \
+	-I/usr/local/include
 # -all_load is only needed for a static library; move to dynamicl and it goes away
 LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
 	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
@@ -149,4 +150,4 @@ fixme:
 
 .PHONY: tags
 tags:
-	${CTAGS} *.c *.h cglm/include/cglm/*.h
+	${CTAGS} *.c *.h
