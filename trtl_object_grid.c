@@ -21,13 +21,16 @@
 #define FRAG_SHADER "shaders/grid/lines.spv"
 //#define FRAG_SHADER "shaders/grid/browns.spv"
 
-extern int posX;
-extern int posY;
-
 struct trtl_object_grid {
 	struct trtl_object parent;
 
 	struct turtle *turtle;
+
+	// This is the current active 'title'
+	struct {
+		float x;
+		float y;
+	} pos;
 
 	uint32_t nframes;
 	VkDescriptorSetLayout descriptor_set_layout;
@@ -214,15 +217,15 @@ grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused i
 }
 
 static bool
-grid_update(struct trtl_object *obj, trtl_arg_unused int frame)
+grid_update(struct trtl_object *obj, int frame)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	struct pos2d *pos;
 
 	pos = trtl_uniform_info_address(grid->uniform_info, frame);
 
-	pos->x = posX;
-	pos->y = posY;
+	pos->x = grid->pos.x;
+	pos->y = grid->pos.y;
 
 	// We updated
 	return true;
@@ -339,6 +342,28 @@ trtl_grid_fill_rectangle(struct trtl_object *obj, uint32_t width, uint32_t heigh
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	generate_grid(grid, width, height);
 
+	return 0;
+}
+
+/**
+ * Set the active (center) square.
+ *
+ * Sets the active square for the grid.  Will snap the to the center of the that square in the
+ * middle of the screen.  It can be a partial square to show the middle.
+ *
+ * @param obj Grid object to update.
+ * @param x X position of the center square.
+ * @param y Y position of the center square.
+ * @return 0 on success.
+ */
+int
+trtl_grid_set_active_tile(struct trtl_object *obj, float x, float y)
+{
+	struct trtl_object_grid *grid = trtl_object_grid(obj);
+
+	grid->pos.x = x;
+	grid->pos.y = y;
+		
 	return 0;
 }
 
