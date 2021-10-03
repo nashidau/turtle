@@ -3,6 +3,7 @@
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
+// Needed for portabllity extensions
 #include <vulkan/vulkan_beta.h>
 
 #include <talloc.h>

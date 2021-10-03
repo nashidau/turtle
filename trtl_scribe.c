@@ -5,7 +5,6 @@
 
 #include <talloc.h>
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_beta.h>
 
 #include "helpers.h"
 #include "trtl_scribe.h"

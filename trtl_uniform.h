@@ -3,7 +3,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 #include <vulkan/vulkan.h>
-#include <vulkan/vulkan_beta.h>
 
 struct trtl_uniform *trtl_uniform_init(struct turtle *turtle, uint8_t nframes, size_t size);
 void *trtl_uniform_buffer_base_get(struct trtl_uniform *uniforms, uint8_t nframes);
