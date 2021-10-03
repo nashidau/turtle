@@ -20,7 +20,7 @@ jobs:
     - name: Install Vulkan
       run: sudo apt-get install -y libvulkan-dev vulkan-validationlayers-dev
     - name: configure
-      run: configure
+      run: ./configure
     - name: make
       run: make
       env:
@@ -38,7 +38,7 @@ jobs:
         with:
           submodules: recursive
       - name: configure
-        run: configure
+        run: ./configure
       - name: make
         run: make
       - name: make check
