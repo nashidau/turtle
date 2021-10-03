@@ -9,19 +9,23 @@ CTAGS=/opt/homebrew/bin/ctags
 # Removed: -Wfloat-equal <- too many floats
 # Removed: -Wcast-qual <- stb image is super unhappy about this
 # Not yet: -Wconversion; many of them
+# Not yet: -Wvla; detects the function param one, which is annoying
+# Not yet: -Wvla-larger-than=0 ; gcc only
 # Not yet: -Wimplicit-fallthrough
 # Not yet; built in is set to '0'; -D_FORTIFY_SOURCE=2
 WARNINGS= \
 	-Werror \
 	-Wall -Wextra \
 	-Walloca -Wformat=2 -Wformat-security -Wnull-dereference \
-	-Wstack-protector -Wstrict-overflow=3 -Wvla -Warray-bounds \
+	-Wstack-protector -Wstrict-overflow=3 -Warray-bounds \
 	-Warray-bounds-pointer-arithmetic -Wassign-enum -Wbad-function-cast \
 	-Wconditional-uninitialized  -Wformat-type-confusion \
 	-Widiomatic-parentheses -Wloop-analysis -Wpointer-arith \
 	-Wshift-sign-overflow -Wshorten-64-to-32 -Wswitch-enum \
 	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive \
-	-fstack-protector-strong
+	-fstack-protector-strong \
+
+
 
 OPTIMIZATION=-O2
 
@@ -90,6 +94,7 @@ COMPILE.c = $(CC) $(DEPFLAGS) $(CFLAGS) $(CPPFLAGS) $(TARGET_ARCH) -c
 
 %.o : %.c $(DEPDIR)/%.d | $(DEPDIR)
 	@echo Compile $<
+	@mkdir -p $(DEPDIR)
 	@$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 $(DEPDIR): ; @mkdir -p $@
