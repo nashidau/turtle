@@ -23,7 +23,7 @@ WARNINGS= \
 	-Widiomatic-parentheses -Wloop-analysis -Wpointer-arith \
 	-Wshift-sign-overflow -Wshorten-64-to-32 -Wswitch-enum \
 	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive \
-	-fstack-protector-strong \
+	-fstack-protector-strong
 
 
 
