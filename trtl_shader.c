@@ -59,7 +59,7 @@ shader_create(struct shader_node *node) {
 	struct trtl_shader *shader = talloc_zero(NULL, struct trtl_shader);
 	shader->shader = node->shader;
 	shader->path = node->path;
-	shader->internal = shader;
+	shader->internal = node;
 
 	node->count ++;
 	
