@@ -25,6 +25,7 @@ jobs:
       run: make
       env:
         CC: clang
+        GITHUB: true
     - name: make check
       run: make check
 
