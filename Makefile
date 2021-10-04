@@ -37,6 +37,10 @@ LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurf
 	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
 	 -fsanitize=address -rdynamic -all_load
 
+ifdef GITHUB
+CFLAGS+=-DGITHUB=1
+endif
+
 SHADERCC=glslc
 
 TESTS=	\
