@@ -1,3 +1,6 @@
 [submodule "third-party/cglm"]
 	path = third-party/cglm
 	url = https://github.com/recp/cglm.git 
+[submodule "third-party/tinyobjloader-c"]
+	path = third-party/tinyobjloader-c
+	url = https://github.com/syoyo/tinyobjloader-c.git
