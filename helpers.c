@@ -1,14 +1,14 @@
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 
 #include "vulkan/vulkan.h"
 
 #include "helpers.h"
 
-__attribute__((format(printf, 1, 2)))
-trtl_noreturn int
-error(const char *msg, ...) {
+__attribute__((format(printf, 1, 2))) trtl_noreturn int
+error(const char *msg, ...)
+{
 	va_list ap;
 	va_start(ap, msg);
 	vfprintf(stderr, msg, ap);
@@ -20,9 +20,9 @@ error(const char *msg, ...) {
  * FIXME: Should have (runtime) option to exit on warning
  * FIXME: Should print line number and file of the caller
  */
-__attribute__((format(printf, 1, 2)))
-int
-warning(const char *msg, ...) {
+__attribute__((format(printf, 1, 2))) int
+warning(const char *msg, ...)
+{
 	va_list ap;
 	va_start(ap, msg);
 	vfprintf(stderr, msg, ap);
@@ -31,16 +31,19 @@ warning(const char *msg, ...) {
 }
 
 trtl_noreturn int
-error_msg(VkResult result, const char *msg) {
+error_msg(VkResult result, const char *msg)
+{
 	fprintf(stderr, "Error: %s Return: %s\n", msg, vk_err_msg(result));
 	exit(1);
 }
 
 const char *
-vk_err_msg(VkResult errorCode) {
-	switch (errorCode)
-	{
-#define STR(r) case VK_ ##r: return #r
+vk_err_msg(VkResult errorCode)
+{
+	switch (errorCode) {
+#define STR(r)                                                                                     \
+	case VK_##r:                                                                               \
+		return #r
 		STR(SUCCESS);
 		STR(NOT_READY);
 		STR(TIMEOUT);
@@ -74,15 +77,16 @@ vk_err_msg(VkResult errorCode) {
 		STR(ERROR_OUT_OF_POOL_MEMORY);
 		STR(ERROR_UNKNOWN);
 		STR(ERROR_FRAGMENTED_POOL);
+#ifdef VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
 		STR(THREAD_IDLE_KHR);
 		STR(THREAD_DONE_KHR);
 		STR(OPERATION_DEFERRED_KHR);
 		STR(OPERATION_NOT_DEFERRED_KHR);
 		STR(PIPELINE_COMPILE_REQUIRED_EXT);
+#endif
 		STR(RESULT_MAX_ENUM);
 	default:
 		return "Unknown error code";
 #undef STR
 	}
 }
-
