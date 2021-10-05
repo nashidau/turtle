@@ -84,6 +84,9 @@ vk_err_msg(VkResult errorCode)
 		STR(OPERATION_NOT_DEFERRED_KHR);
 		STR(PIPELINE_COMPILE_REQUIRED_EXT);
 #endif
+#if VK_HEADER_VERSION < 140
+		STR(RESULT_RANGE_SIZE);
+#endif
 		STR(RESULT_MAX_ENUM);
 	default:
 		return "Unknown error code";
