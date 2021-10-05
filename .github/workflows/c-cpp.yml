@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: install dependancies
         run: brew install talloc glfw3 check vulkan-headers
+      - name: get glslc
+        run: curl https://storage.googleapis.com/shaderc/badges/build_link_macos_clang_release.html
       - uses: actions/checkout@v2
         with:
           submodules: recursive
