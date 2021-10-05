@@ -22,7 +22,7 @@ jobs:
     - name: configure
       run: ./configure
     - name: make
-      run: make
+      run: make -k
       env:
         CC: clang
         GITHUB: true
