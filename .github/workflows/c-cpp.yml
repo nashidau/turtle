@@ -35,8 +35,12 @@ jobs:
     steps:
       - name: install dependancies
         run: brew install talloc glfw3 check vulkan-headers
-      - name: get glslc
-        run: curl https://storage.googleapis.com/shaderc/badges/build_link_macos_clang_release.html
+      - name: Checkout private tools
+        uses: actions/checkout@v2
+        with:
+          repository: nashidau/turtle-support
+          token: ${{ secrets.actions_pat }} # `GitHub_PAT` is a secret that contains your PAT
+          path: third-party/turtle-support
       - uses: actions/checkout@v2
         with:
           submodules: recursive
@@ -46,5 +50,6 @@ jobs:
         run: make
         env:
           GITHUB: true
+          SHADERCC:./third-party/turtle-support/mac/glslc
       - name: make check
         run: make check
