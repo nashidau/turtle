@@ -74,8 +74,13 @@ blobby_binary(const char *path)
 	char *blob_start = talloc_steal(blobby, make_safe_str("start", path));
 	char *blob_end = talloc_steal(blobby, make_safe_str("end", path));
 
+#ifdef __APPLE__
 	char *start = dlsym(RTLD_SELF, blob_start);
 	char *end = dlsym(RTLD_SELF, blob_end);
+#else
+	char *start = dlsym(RTLD_DEFAULT, blob_start);
+	char *end = dlsym(RTLD_DEFAULT, blob_end);
+#endf
 
 	blobby->len = end - start;
 	blobby->data = start;
