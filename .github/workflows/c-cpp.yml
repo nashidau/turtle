@@ -35,15 +35,16 @@ jobs:
     steps:
       - name: install dependancies
         run: brew install talloc glfw3 check vulkan-headers
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
       - name: Checkout private tools
         uses: actions/checkout@v2
         with:
           repository: nashidau/turtle-support
           token: ${{ secrets.GITHUB_TOKEN }} # `GitHub_PAT` is a secret that contains your PAT
           path: third-party/turtle-support
-      - uses: actions/checkout@v2
-        with:
-          submodules: recursive
       - name: configure
         run: ./configure
       - name: make
