@@ -41,7 +41,7 @@ ifdef GITHUB
 CFLAGS+=-DGITHUB=1
 endif
 
-SHADERCC=glslc
+SHADERCC?=glslc
 
 TESTS=	\
 	trtl_uniform.o \
