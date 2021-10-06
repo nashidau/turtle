@@ -15,6 +15,11 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
+    - name: Checkout private tools
+      uses: actions/checkout@v2
+      with:
+        repository: nashidau/turtle-support
+        path: third-party/turtle-support
     - name: Install Dependances
       run: sudo apt-get install -y libtalloc-dev libglfw3-dev check
     - name: Install Vulkan
