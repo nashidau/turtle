@@ -80,7 +80,7 @@ blobby_binary(const char *path)
 #else
 	char *start = dlsym(RTLD_DEFAULT, blob_start);
 	char *end = dlsym(RTLD_DEFAULT, blob_end);
-#endf
+#endif
 
 	blobby->len = end - start;
 	blobby->data = start;
