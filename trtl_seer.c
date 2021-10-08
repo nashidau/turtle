@@ -57,20 +57,14 @@ struct objlayer {
 	VkRenderPass render_pass;
 };
 
-// This belongs outside and should be passed in
-struct layer_info {
-	bool has_depth;
-	bool clear_on_load;
-};
-
-static struct layer_info layer_info[] = {
+static struct trtl_layer_info layer_info[] = {
     // Background:  No depth, clear on load
     {.has_depth = true, .clear_on_load = true},
     // Next layer; has depth, but dont' clear it
     {.has_depth = true, .clear_on_load = false},
 };
 
-static VkRenderPass create_render_pass(struct turtle *turtle, struct layer_info *info);
+static VkRenderPass create_render_pass(struct turtle *turtle, struct trtl_layer_info *info);
 VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct trtl_swap_chain *scd,
 					VkCommandPool command_pool, VkFramebuffer *framebuffers);
 static VkFramebuffer *create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd,
@@ -89,7 +83,7 @@ seer_destroy(struct trtl_seer *seer)
 		}
 	}
 
-	for (uint32_t i = 0 ; i < seer->nframebuffers ; i ++) {
+	for (uint32_t i = 0; i < seer->nframebuffers; i++) {
 		vkDestroyFramebuffer(seer->turtle->device, seer->framebuffers[i], NULL);
 	}
 
@@ -314,7 +308,7 @@ trtl_seer_draw(struct turtle *turtle, VkCommandBuffer buffer, trtl_render_layer_
 VkFormat find_depth_format(VkPhysicalDevice physical_device);
 
 static VkRenderPass
-create_render_pass(struct turtle *turtle, struct layer_info *layerinfo)
+create_render_pass(struct turtle *turtle, struct trtl_layer_info *layerinfo)
 {
 	VkRenderPass render_pass;
 
