@@ -25,8 +25,12 @@ struct trtl_layer_info {
 	bool clear_on_load;
 };
 
+typedef uint16_t trtl_render_layer_t;
+
 
 struct trtl_object;
+
+
 
 struct trtl_seer *trtl_seer_init(struct turtle *turtle, VkExtent2D extent);
 

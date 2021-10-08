@@ -76,7 +76,7 @@ seer_destroy(struct trtl_seer *seer)
 	printf("Seer destroy %p %p \n", seer, seer->turtle);
 
 	// For each layer; destroy our objects
-	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
 		struct objlayer *layer = seer->layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			talloc_free(layer->objects[obj]);
@@ -95,7 +95,7 @@ struct trtl_seer *
 trtl_seer_init(struct turtle *turtle, VkExtent2D extent)
 {
 	struct trtl_seer *seer;
-	int nlayers = TRTL_RENDER_LAYER_TOTAL;
+	int nlayers = 2; // FIXME: magic here is evil
 
 	if (turtle->seer) {
 		warning("Multiple init of trtl_seer\n");
@@ -115,7 +115,7 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent)
 
 	seer->turtle = turtle;
 
-	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
 		seer->layers[i].render_pass = create_render_pass(turtle, layer_info + i);
 	}
 
@@ -130,7 +130,7 @@ trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 
 	// recreate pipelines
 
-	for (trtl_render_layer_t i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
 		struct objlayer *layer = seer->layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			if (layer->objects[obj]->resize) {
@@ -264,8 +264,10 @@ int
 trtl_seer_update(struct turtle *turtle, uint32_t image_index)
 {
 	int count = 0;
-	for (trtl_render_layer_t layerid = 0; layerid < TRTL_RENDER_LAYER_TOTAL; layerid++) {
-		struct objlayer *layer = turtle->seer->layers + layerid;
+	struct trtl_seer *seer = turtle->seer;
+
+	for (trtl_render_layer_t layerid = 0; layerid < seer->nlayers; layerid++) {
+		struct objlayer *layer = seer->layers + layerid;
 		for (uint32_t i = 0; i < layer->nobjects; i++) {
 			layer->objects[i]->update(layer->objects[i], image_index);
 			count++;
@@ -279,6 +281,7 @@ trtl_must_check VkCommandBuffer *
 trtl_seer_create_command_buffers(struct turtle *turtle, VkCommandPool command_pool)
 {
 	struct trtl_seer *seer = turtle->seer;
+	// FIXME: What the hell is this 1
 	seer->framebuffers = create_frame_buffers(turtle->device, turtle->tsc,
 						  seer->layers[1].render_pass, seer->size);
 	seer->nframebuffers = turtle->tsc->nimages;
@@ -454,7 +457,7 @@ create_command_buffers(struct turtle *turtle, struct trtl_swap_chain *scd,
 		renderPassInfo.pClearValues = clearValues;
 
 		// FIXME: Should get render pass for each layer here
-		for (trtl_render_layer_t li = 0; li < TRTL_RENDER_LAYER_TOTAL; li++) {
+		for (trtl_render_layer_t li = 0; li < turtle->seer->nlayers; li++) {
 			if (turtle->seer->layers[li].nobjects == 0) continue;
 
 			renderPassInfo.renderPass = turtle->seer->layers[li].render_pass;

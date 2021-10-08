@@ -232,7 +232,7 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 
 	pipelineInfo.layout = info.pipeline_layout;
 	pipelineInfo.renderPass = render_pass;
-	pipelineInfo.subpass = TRTL_RENDER_LAYER_BACKGROUND;
+	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 	if (vkCreateGraphicsPipelines(turtle->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL,

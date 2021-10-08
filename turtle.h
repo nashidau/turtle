@@ -98,13 +98,6 @@ struct queue_family_indices {
 	bool has_present;
 };
 
-typedef enum {
-	TRTL_RENDER_LAYER_BACKGROUND = 0,
-	TRTL_RENDER_LAYER_MAIN = 1,
-	// Last counter
-	TRTL_RENDER_LAYER_TOTAL
-} trtl_render_layer_t;
-
 int trtl_main_loop(struct turtle *turtle);
 
 struct turtle *turtle_init(void);
