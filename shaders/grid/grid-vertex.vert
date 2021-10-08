@@ -50,6 +50,7 @@ void main() {
     pos *= tileSize;
     pos /= screenSize;
 
+    // That's our (2d) position
     gl_Position = vec4(pos, 0.0, 1.0);
     if (inPosition.x == centerPos.x && inPosition.y == centerPos.y) {
 	    fragColor = vec3(1.0, 0.0, 0.0);

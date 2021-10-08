@@ -80,7 +80,7 @@ void main(){
  
     vec3 tileColor = mix(brown2, darkbrown, n);
 
-    color = mix(black, tileColor, pct);
+    color = mix(color, tileColor, pct);
 
     outColor = vec4(color,1.0);
 }
