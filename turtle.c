@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <time.h>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -454,20 +455,53 @@ turtle_init(void)
 	return turtle;
 }
 
+static void
+calculate_target_time(struct timespec *ts) {
+	static const long frametime_ns = 1000000000 / 30;
+	ts->tv_nsec += frametime_ns;
+	if (ts->tv_nsec > 1000000000)
+		ts->tv_nsec = 0;
+	ts->tv_sec += 1;
+}
+
+static double
+get_sleep_time(struct timespec *target) {
+	struct timespec now;
+	time_t diff_sec;
+	long diff_nsec;
+	clock_gettime(CLOCK_UPTIME_RAW_APPROX, &now);
+
+	diff_sec = target->tv_sec - now.tv_sec;
+	diff_nsec = target->tv_nsec - now.tv_nsec;
+	return (double)diff_sec + (double)diff_nsec / 1000000000;
+}
+
 int
 trtl_main_loop(struct turtle *turtle)
 {
+	struct timespec targettime, now;
+
+	// Calculate a target time for rendering, 
+	clock_gettime(CLOCK_UPTIME_RAW_APPROX, &targettime);
+
+	calculate_target_time(&targettime);
+
 	turtle->tsc->command_buffers =
 	    trtl_seer_create_command_buffers(turtle, turtle->tsc->command_pool);
+	// No wait the first time
+	double timeout = 0;
 
 	int currentFrame = 0;
 	while (!glfwWindowShouldClose(turtle->window)) {
-		glfwPollEvents();
+		glfwWaitEventsTimeout(timeout);
 		draw_frame(turtle, turtle->tsc, turtle->barriers.image_ready_sem[currentFrame],
 			   turtle->barriers.render_done_sem[currentFrame],
 			   turtle->barriers.in_flight_fences[currentFrame]);
 		currentFrame++;
 		currentFrame %= TRTL_MAX_FRAMES_IN_FLIGHT;
+
+		clock_gettime(CLOCK_UPTIME_RAW_APPROX, &now);
+		timeout = get_sleep_time(&targettime);
 	}
 	vkDeviceWaitIdle(turtle->device);
 
