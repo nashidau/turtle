@@ -20,8 +20,6 @@
 #include "turtle.h"
 
 // FIXME: Belongs in render frame state
-int posX = 0;
-int posY = 0;
 int zoom = 128;
 bool frame_buffer_resized = false;
 
