@@ -1,13 +1,15 @@
-Handle resize for mesh.
+Add a proper event rendering loop
+	- so timers, deferred work
+	messages from threads
 
-Free resources on:
-	- grid resize
-	- canvas resize
-	- grid exit
+Add animated zoom to quest
+
+Handle resize for mesh.
 
 Finish moving VkPipeline{Layout} out of trtl.
 	- need a pipeline cache
 Maybe add pushconstant support through trtl_uniform
+	- so bind then push the cosntant at draw tim
 
 Fix resize.
 
@@ -16,8 +18,6 @@ Add trtl_crier -> message system
 	when it happens.
 
 Make it possible to add and remove objects at run time.
-
-Load a map from ancng
 
 There needs to be a generic buffer library to allocate vertexes and indexes.
 This should also probably handle updating the data and sending to the engine.
