@@ -30,12 +30,10 @@
 #include "trtl_texture.h"
 #include "trtl_uniform.h"
 
-struct trtl_stringlist *objs_to_load[TRTL_RENDER_LAYER_TOTAL] = {NULL};
+struct trtl_stringlist *objs_to_load[2] = {NULL};
 
 extern int zoom;
 extern bool frame_buffer_resized;
-
-
 
 static void
 show_usage(const char *binary)
@@ -68,12 +66,10 @@ parse_arguments(int argc, char **argv)
 			// debug = 1;
 			continue;
 		case 'b':
-			objs_to_load[TRTL_RENDER_LAYER_BACKGROUND] =
-			    trtl_stringlist_add(objs_to_load[TRTL_RENDER_LAYER_BACKGROUND], optarg);
+			objs_to_load[0] = trtl_stringlist_add(objs_to_load[0], optarg);
 			continue;
 		case 'o':
-			objs_to_load[TRTL_RENDER_LAYER_MAIN] =
-			    trtl_stringlist_add(objs_to_load[TRTL_RENDER_LAYER_MAIN], optarg);
+			objs_to_load[1] = trtl_stringlist_add(objs_to_load[1], optarg);
 			continue;
 		default:
 			show_usage(argv[0]);
@@ -86,8 +82,8 @@ static int
 load_object_default(struct turtle *turtle)
 {
 	printf("Loading default objects: Background 'background', Main: 'grid9'\n");
-	trtl_seer_predefined_object_add("background", turtle, TRTL_RENDER_LAYER_BACKGROUND);
-	trtl_seer_predefined_object_add("grid9", turtle, TRTL_RENDER_LAYER_MAIN);
+	trtl_seer_predefined_object_add("background", turtle, 0);
+	trtl_seer_predefined_object_add("grid9", turtle, 1);
 	return 2;
 }
 
@@ -97,18 +93,18 @@ load_objects(struct turtle *turtle)
 	int i;
 
 	// Do we have a least one object
-	for (i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+	for (i = 0; i < 2; i++) {
 		if (objs_to_load[i] != NULL) {
 			// Found something;
 			break;
 		}
 	}
-	if (i == TRTL_RENDER_LAYER_TOTAL) {
+	if (i == 2) {
 		return load_object_default(turtle);
 	}
 
 	// For each layer, load it
-	for (i = 0; i < TRTL_RENDER_LAYER_TOTAL; i++) {
+	for (i = 0; i < 2; i++) {
 		struct trtl_stringlist *load = objs_to_load[i];
 		while (load != NULL) {
 			trtl_seer_predefined_object_add(load->string, turtle, i);
@@ -127,7 +123,7 @@ main(int argc, char **argv)
 	parse_arguments(argc, argv);
 
 	turtle = turtle_init();
-	
+
 	load_objects(turtle);
 
 	trtl_main_loop(turtle);
