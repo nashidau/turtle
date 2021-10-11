@@ -55,7 +55,7 @@ struct turtle {
 	// FIXME: This should be in the swap chain
 	VkFence *images_in_flight;
 
-	struct turtle_timer *timers;
+	struct trtl_timer *timers;
 };
 
 struct trtl_swap_chain {
