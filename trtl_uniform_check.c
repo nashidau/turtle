@@ -7,11 +7,14 @@
 
 
 START_TEST(test_uniform_init) {
+	struct turtle *turtle;
 	struct trtl_uniform *uniforms;
 
-	uniforms = trtl_uniform_init(NULL, 2, 100);
+	turtle = talloc_zero(NULL, struct turtle);
+	uniforms = trtl_uniform_init(turtle, 2, 100);
 	ck_assert_ptr_ne(uniforms, NULL);
 	talloc_free(uniforms);
+	talloc_free(turtle);
 } END_TEST
 
 START_TEST(test_uniform_alloc) {
