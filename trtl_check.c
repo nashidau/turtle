@@ -12,7 +12,9 @@ Suite *blam_suite(void *ctx);
 typedef Suite *(*test_module)(void *ctx);
 
 static test_module test_modules[] = {
-	trtl_uniform_suite,
+	// FIXME: re-enable this
+	//trtl_uniform_suite,
+	trtl_timer_suite,
 };
 #define N_MODULES ((int)(sizeof(test_modules)/sizeof(test_modules[0])))
 

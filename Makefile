@@ -25,8 +25,6 @@ WARNINGS= \
 	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive \
 	-fstack-protector-strong
 
-
-
 OPTIMIZATION=-O2
 
 CFLAGS+=-g ${OPTIMIZATION} ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
@@ -45,8 +43,10 @@ SHADERCC?=glslc
 
 TESTS=	\
 	trtl_uniform.o \
+	trtl_timer.o \
 	helpers.o \
 	turtle.o \
+	trtl_timer_check.o \
 	trtl_uniform_check.o
 
 SOURCES= \
