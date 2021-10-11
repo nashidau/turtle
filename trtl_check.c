@@ -4,6 +4,9 @@
 #include "trtl_check.h"
 #include "helpers.h"
 
+// FFF needs to inserted somewhere; lets do it here
+DEFINE_FFF_GLOBALS;
+
 Suite *blam_suite(void *ctx);
 
 typedef Suite *(*test_module)(void *ctx);
