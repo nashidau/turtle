@@ -147,7 +147,7 @@ triangles: triangles.o libturtle.a
 
 .PHONY: clean
 clean:
-	rm -f ${OBJECTS} triangles ${SHADERS} ${SHADER_OBJECTS}
+	rm -f ${OBJECTS} triangles triangles.o ${SHADERS} ${SHADER_OBJECTS}
 
 .PHONY: fixme
 fixme:
