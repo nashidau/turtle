@@ -56,6 +56,8 @@ struct turtle {
 	VkFence *images_in_flight;
 
 	struct trtl_timer *timers;
+
+	struct trtl_timer *render_timer;
 };
 
 struct trtl_swap_chain {

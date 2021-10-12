@@ -15,6 +15,9 @@ struct trtl_timer {
 
 	struct timespec due;
 	struct timespec period;
+
+	int (*cb)(void *opaque, struct turtle *turtle, struct trtl_timer *timer);
+	void *opaque;
 };
 
 #define NS_IN_S ((long)1e9)
@@ -64,7 +67,9 @@ trtl_timer_timespec_before(struct timespec *a, struct timespec *b)
 #define trtl_timer_timespec_after(a, b) trtl_timer_timespec_before(b, a)
 
 struct trtl_timer *
-trtl_timer_add(const char *name, double peroid)
+trtl_timer_add(const char *name, double peroid,
+	       int (*timer_cb)(void *opaque, struct turtle *, struct trtl_timer *timer),
+	       void *opaque)
 {
 	struct trtl_timer *timer;
 
@@ -72,6 +77,9 @@ trtl_timer_add(const char *name, double peroid)
 	timer->name = talloc_strdup(timer, name);
 
 	trtl_timer_double_to_timespec(peroid, &timer->period);
+
+        timer->cb = timer_cb;
+	timer->opaque = opaque;
 
 	return timer;
 }
@@ -101,7 +109,8 @@ trtl_timer_schedule(struct turtle *turtle, struct trtl_timer *timer)
  * Like trtl_timer_schedule, except the due time is already set.
  */
 int
-trtl_timer_reschedule(struct turtle *turtle, struct trtl_timer *timer) {
+trtl_timer_reschedule(struct turtle *turtle, struct trtl_timer *timer)
+{
 
 	if (turtle->timers == NULL) {
 		timer->next = NULL;
@@ -134,6 +143,69 @@ trtl_timer_reschedule(struct turtle *turtle, struct trtl_timer *timer) {
 	if (timer->next) timer->next->prev = timer;
 
 	return 0;
+}
+
+// FIXME: Handle someone deletign the timer during the callback
+int
+trtl_timer_invoke_first(struct turtle *turtle, struct timespec *now)
+{
+	struct trtl_timer *timer;
+
+	if (trtl_timer_timespec_before(now, &turtle->timers->due)) {
+		// Not due yet; just return
+		return 0;
+	}
+
+	// Remove it from the list
+	timer = turtle->timers;
+	turtle->timers = timer->next;
+	if (turtle->timers) {
+		turtle->timers->prev = NULL;
+	}
+
+	// FIXME: A loop is a terrible way to increment, should use some maths.
+	do {
+		trtl_timer_add_timespecs(&timer->due, &timer->period);
+	} while (trtl_timer_timespec_after(now, &timer->due));
+
+	int rv = timer->cb(timer->opaque, turtle, timer);
+
+	// fixme: unconditional reading this.  It may have been free.
+	// Need to do something in the destructor to handle it being deleted.
+	if (rv != 0) {
+		trtl_timer_reschedule(turtle, timer);
+	}
+
+	return 1;
+}
+
+/**
+ * Call any due timer callbacks.
+ *
+ * Check to see if any timers have reached their trigger time, if so invoke the
+ * callback.
+ *
+ * If a timer is triggered, and restarted it is reinserted in the list with the appropriate time
+ * out.
+ *
+ * @param turtle Turtle pointer
+ * @return Number of timer that were invoked
+ */
+int
+trtl_timer_invoke(struct turtle *turtle)
+{
+	struct timespec now;
+	if (!turtle->timers) return 0;
+
+	// Get 'now' once.  So we always make progress
+	clock_gettime(CLOCK_UPTIME_RAW, &now);
+	//clock_gettime(CLOCK_UPTIME_RAW_APPROX, &now);
+
+	while (trtl_timer_invoke_first(turtle, &now) && turtle->timers != NULL) {
+		// Call again basically ;-)
+	}
+
+	return 1;
 }
 
 int

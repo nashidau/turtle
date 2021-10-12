@@ -7,6 +7,8 @@
 #include "trtl_timer.h"
 #include "turtle.h"
 
+FAKE_VALUE_FUNC(int, callback, void *, struct turtle *, struct trtl_timer *);
+
 FAKE_VALUE_FUNC(int, clock_gettime, clockid_t, struct timespec *);
 
 static struct timespec saved_timespec;
@@ -105,16 +107,45 @@ START_TEST(test_timer_create)
 {
 	struct trtl_timer *timer;
 
-	timer = trtl_timer_add("Timer", 1);
+	timer = trtl_timer_add("Timer", 1, callback, NULL);
 	ck_assert_ptr_ne(timer, NULL);
 	talloc_free(timer);
+}
+END_TEST
+
+START_TEST(test_timer_invoke)
+{
+	struct turtle *turtle = talloc_zero(NULL, struct turtle);
+	struct trtl_timer *timer = trtl_timer_add("test", 1, callback, NULL);
+	trtl_timer_schedule(turtle, timer);
+	clock_gettime_fake.custom_fake = custom_clock_gettime;
+	saved_timespec = (struct timespec){.tv_sec = 2, .tv_nsec = 0};
+	trtl_timer_invoke(turtle);
+	ck_assert_int_eq(callback_fake.call_count, 1);
+}
+END_TEST
+
+START_TEST(test_timer_invoke_recurring)
+{
+	saved_timespec = (struct timespec){.tv_sec = 0, .tv_nsec = 0};
+	struct turtle *turtle = talloc_zero(NULL, struct turtle);
+	struct trtl_timer *timer = trtl_timer_add("test", 1, callback, NULL);
+	trtl_timer_schedule(turtle, timer);
+	clock_gettime_fake.custom_fake = custom_clock_gettime;
+	callback_fake.return_val = 1;
+	saved_timespec = (struct timespec){.tv_sec = 1, .tv_nsec = 5};
+	trtl_timer_invoke(turtle);
+	saved_timespec = (struct timespec){.tv_sec = 2, .tv_nsec = 5};
+	trtl_timer_invoke(turtle);
+
+	ck_assert_int_eq(callback_fake.call_count, 2);
 }
 END_TEST
 
 START_TEST(test_timer_schedule_one)
 {
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timer = trtl_timer_add("test", 1);
+	struct trtl_timer *timer = trtl_timer_add("test", 1, callback, NULL);
 	trtl_timer_schedule(turtle, timer);
 	ck_assert_ptr_eq(turtle->timers, timer);
 	talloc_free(turtle);
@@ -128,8 +159,8 @@ START_TEST(test_timer_schedule_later)
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1);
-	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2);
+	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1, callback, NULL);
+	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2, callback, NULL);
 	trtl_timer_schedule(turtle, timerA);
 	trtl_timer_schedule(turtle, timerB);
 	ck_assert_ptr_eq(turtle->timers, timerA);
@@ -142,8 +173,8 @@ START_TEST(test_timer_schedule_earlier)
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1);
-	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2);
+	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1, callback, NULL);
+	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2, callback, NULL);
 	trtl_timer_schedule(turtle, timerB);
 	trtl_timer_schedule(turtle, timerA);
 	ck_assert_ptr_eq(turtle->timers, timerA);
@@ -151,14 +182,12 @@ START_TEST(test_timer_schedule_earlier)
 }
 END_TEST
 
-
-
 START_TEST(test_timer_schedule_middle)
 {
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1);
-	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2);
-	struct trtl_timer *timerC = trtl_timer_add("Timer C", 3);
+	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1, callback, NULL);
+	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2, callback, NULL);
+	struct trtl_timer *timerC = trtl_timer_add("Timer C", 3, callback, NULL);
 	// Reverse the order then the previous test
 	trtl_timer_schedule(turtle, timerC);
 	trtl_timer_schedule(turtle, timerA);
@@ -170,15 +199,26 @@ END_TEST
 
 START_TEST(test_timer_schedule_many)
 {
+	struct trtl_timer *timer;
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
 	const double timeouts[] = {4, 7, 9, 2, 5, 3, 10, 1, 6, 8};
-	for (size_t i = 0 ; i < TRTL_ARRAY_SIZE(timeouts) ; i ++){ 
+	for (size_t i = 0; i < TRTL_ARRAY_SIZE(timeouts); i++) {
 		char buf[100];
-		snprintf(buf, sizeof(buf), "Timer %zd (%fs)", i, timeouts[i]); 
-		trtl_timer_schedule(turtle, trtl_timer_add(buf, timeouts[i]));
+		snprintf(buf, sizeof(buf), "Timer %zd (%fs)", i, timeouts[i]);
+		timer = trtl_timer_add(buf, timeouts[i], callback, (void *)&timeouts[i]);
+		trtl_timer_schedule(turtle, timer);
 	}
-	// Reverse the order then the previous test
-	//ck_assert_ptr_eq(turtle->timers, 1);
+
+	// Move time forward to 20 seconds, then invoke them all
+	saved_timespec = (struct timespec){.tv_sec = 10, .tv_nsec = 0};
+	clock_gettime_fake.custom_fake = custom_clock_gettime;
+	trtl_timer_invoke(turtle);
+	ck_assert_int_eq(callback_fake.call_count, 10);
+	// Check the timers got called in order; the data is a pointer to the timout (as double)
+	for (uint32_t i = 0; i < TRTL_ARRAY_SIZE(timeouts); i++) {
+		ck_assert_double_eq(*((double *)callback_fake.arg0_history[i]), i + 1);
+	}
+
 	talloc_free(turtle);
 }
 END_TEST
@@ -218,6 +258,13 @@ trtl_timer_suite(trtl_arg_unused void *ctx)
 		suite_add_tcase(s, tc_create);
 
 		tcase_add_test(tc_create, test_timer_create);
+	}
+	{
+		TCase *tc_invoke = tcase_create("Invoke");
+		suite_add_tcase(s, tc_invoke);
+
+		tcase_add_test(tc_invoke, test_timer_invoke);
+		tcase_add_test(tc_invoke, test_timer_invoke_recurring);
 	}
 	{
 		TCase *tc_schedule = tcase_create("Schedule");
