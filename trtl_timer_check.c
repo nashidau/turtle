@@ -170,19 +170,15 @@ END_TEST
 
 START_TEST(test_timer_schedule_many)
 {
-	printf("\n\n**** Test: timer many\n");
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
 	const double timeouts[] = {4, 7, 9, 2, 5, 3, 10, 1, 6, 8};
 	for (size_t i = 0 ; i < TRTL_ARRAY_SIZE(timeouts) ; i ++){ 
 		char buf[100];
 		snprintf(buf, sizeof(buf), "Timer %zd (%fs)", i, timeouts[i]); 
 		trtl_timer_schedule(turtle, trtl_timer_add(buf, timeouts[i]));
-		trtl_timer_print(turtle);
 	}
 	// Reverse the order then the previous test
 	//ck_assert_ptr_eq(turtle->timers, 1);
-	printf("All added\n");
-	trtl_timer_print(turtle);
 	talloc_free(turtle);
 }
 END_TEST
