@@ -93,6 +93,16 @@ trtl_timer_schedule(struct turtle *turtle, struct trtl_timer *timer)
 	clock_gettime(CLOCK_UPTIME_RAW_APPROX, &timer->due);
 	trtl_timer_add_timespecs(&timer->due, &timer->period);
 
+	return trtl_timer_reschedule(turtle, timer);
+}
+
+/* Schedules a timer.
+ *
+ * Like trtl_timer_schedule, except the due time is already set.
+ */
+int
+trtl_timer_reschedule(struct turtle *turtle, struct trtl_timer *timer) {
+
 	if (turtle->timers == NULL) {
 		timer->next = NULL;
 		timer->prev = NULL;
