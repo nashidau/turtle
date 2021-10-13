@@ -46,6 +46,75 @@ START_TEST(test_timer_one_quarter)
 }
 END_TEST
 
+START_TEST(test_timer_ts_zero)
+{
+	struct timespec tv = {.tv_sec = 0, .tv_nsec = 0};
+	double val = trtl_timer_timespec_to_double(&tv);
+	ck_assert_double_eq(val, 0);
+}
+END_TEST
+
+START_TEST(test_timer_ts_one_point_five)
+{
+	struct timespec tv = {.tv_sec = 1, .tv_nsec = 5e8};
+	double val = trtl_timer_timespec_to_double(&tv);
+	ck_assert_double_eq(val, 1.5);
+}
+END_TEST
+
+START_TEST(test_timer_ten_seconds)
+{
+	struct timespec tv = {.tv_sec = 9, .tv_nsec = 1e9};
+	double val = trtl_timer_timespec_to_double(&tv);
+	ck_assert_double_eq(val, 10);
+}
+END_TEST
+
+START_TEST(test_timer_diff_same)
+{
+	struct timespec out;
+	struct timespec a = {.tv_sec = 37, .tv_nsec = 3392};
+	struct timespec b = a;
+	trtl_timer_timespec_difference(&out, &a, &b);
+	ck_assert_int_eq(out.tv_sec, 0);
+	ck_assert_int_eq(out.tv_nsec, 0);
+}
+END_TEST
+
+START_TEST(test_timer_diff_seconds)
+{
+	struct timespec out;
+	struct timespec a = {.tv_sec = 39, .tv_nsec = 0};
+	struct timespec b = {.tv_sec = 37, .tv_nsec = 0};
+	trtl_timer_timespec_difference(&out, &a, &b);
+	ck_assert_int_eq(out.tv_sec, 2);
+	ck_assert_int_eq(out.tv_nsec, 0);
+}
+END_TEST
+
+START_TEST(test_timer_diff_nanoseconds)
+{
+
+	struct timespec out;
+	struct timespec a = {.tv_sec = 39, .tv_nsec = 2223};
+	struct timespec b = {.tv_sec = 37, .tv_nsec = 1123};
+	trtl_timer_timespec_difference(&out, &a, &b);
+	ck_assert_int_eq(out.tv_sec, 2);
+	ck_assert_int_eq(out.tv_nsec, 1100);
+}
+END_TEST
+
+START_TEST(test_timer_diff_carry)
+{
+	struct timespec out;
+	struct timespec a = {.tv_sec = 39, .tv_nsec = 1000};
+	struct timespec b = {.tv_sec = 37, .tv_nsec = 2000};
+	trtl_timer_timespec_difference(&out, &a, &b);
+	ck_assert_int_eq(out.tv_sec, 1);
+	ck_assert_int_eq(out.tv_nsec, 1e9 - 1000);
+}
+END_TEST
+
 START_TEST(test_timer_timespec_add)
 {
 	struct timespec a = {.tv_sec = 1, .tv_nsec = 100};
@@ -223,6 +292,28 @@ START_TEST(test_timer_schedule_many)
 }
 END_TEST
 
+START_TEST(test_timer_get_short)
+{
+	struct turtle *turtle = talloc_zero(NULL, struct turtle);
+	struct trtl_timer *timer = trtl_timer_add("Timer", 1, callback, NULL);
+	trtl_timer_schedule(turtle, timer);
+	double next = trtl_timer_timeout_get(turtle);
+	ck_assert_double_eq(next, 1);
+}
+END_TEST
+
+START_TEST(test_timer_get_half)
+{
+	struct turtle *turtle = talloc_zero(NULL, struct turtle);
+	struct trtl_timer *timer = trtl_timer_add("Timer", 0.5, callback, NULL);
+	trtl_timer_schedule(turtle, timer);
+	double next = trtl_timer_timeout_get(turtle);
+	ck_assert_double_eq(next, 0.5);
+}
+END_TEST
+
+
+
 Suite *
 trtl_timer_suite(trtl_arg_unused void *ctx)
 {
@@ -235,6 +326,9 @@ trtl_timer_suite(trtl_arg_unused void *ctx)
 		tcase_add_test(tc_convert, test_timer_zero);
 		tcase_add_test(tc_convert, test_timer_one_second);
 		tcase_add_test(tc_convert, test_timer_one_quarter);
+		tcase_add_test(tc_convert, test_timer_ts_zero);
+		tcase_add_test(tc_convert, test_timer_ts_one_point_five);
+		tcase_add_test(tc_convert, test_timer_ten_seconds);
 	}
 
 	{
@@ -243,6 +337,14 @@ trtl_timer_suite(trtl_arg_unused void *ctx)
 
 		tcase_add_test(tc_add, test_timer_timespec_add);
 		tcase_add_test(tc_add, test_timer_timespec_add_adjust);
+	}
+	{
+		TCase *tc_diff = tcase_create("Difference");
+		suite_add_tcase(s, tc_diff);
+		tcase_add_test(tc_diff, test_timer_diff_same);
+		tcase_add_test(tc_diff, test_timer_diff_seconds);
+		tcase_add_test(tc_diff, test_timer_diff_nanoseconds);
+		tcase_add_test(tc_diff, test_timer_diff_carry);
 	}
 	{
 		// Compare two timespecs
@@ -275,6 +377,13 @@ trtl_timer_suite(trtl_arg_unused void *ctx)
 		tcase_add_test(tc_schedule, test_timer_schedule_earlier);
 		tcase_add_test(tc_schedule, test_timer_schedule_middle);
 		tcase_add_test(tc_schedule, test_timer_schedule_many);
+	}
+	{
+		TCase *tc_timeout = tcase_create("Timeout");
+		suite_add_tcase(s, tc_timeout);
+
+		tcase_add_test(tc_timeout, test_timer_get_short);
+		tcase_add_test(tc_timeout, test_timer_get_half);
 	}
 	return s;
 }

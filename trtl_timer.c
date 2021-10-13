@@ -34,6 +34,12 @@ trtl_timer_double_to_timespec(double in, struct timespec *tv)
 	tv->tv_nsec = CONVERT_S_TO_NS(fval);
 }
 
+double
+trtl_timer_timespec_to_double(trtl_arg_unused struct timespec *tv)
+{
+	return tv->tv_sec + (tv->tv_nsec / (double)NS_IN_S);
+}
+
 void
 trtl_timer_add_timespecs(struct timespec *a, const struct timespec *b)
 {
@@ -42,6 +48,19 @@ trtl_timer_add_timespecs(struct timespec *a, const struct timespec *b)
 	if (a->tv_nsec > NS_IN_S) {
 		a->tv_nsec -= NS_IN_S;
 		a->tv_sec += 1;
+	}
+}
+
+void
+trtl_timer_timespec_difference(struct timespec *out, const struct timespec *a,
+			       const struct timespec *b)
+{
+	if (b->tv_nsec > a->tv_nsec) {
+		out->tv_nsec = NS_IN_S + a->tv_nsec - b->tv_nsec;
+		out->tv_sec = a->tv_sec - b->tv_sec - 1;
+	} else {
+		out->tv_nsec = a->tv_nsec - b->tv_nsec;
+		out->tv_sec = a->tv_sec - b->tv_sec;
 	}
 }
 
@@ -78,7 +97,7 @@ trtl_timer_add(const char *name, double peroid,
 
 	trtl_timer_double_to_timespec(peroid, &timer->period);
 
-        timer->cb = timer_cb;
+	timer->cb = timer_cb;
 	timer->opaque = opaque;
 
 	return timer;
@@ -98,7 +117,7 @@ trtl_timer_schedule(struct turtle *turtle, struct trtl_timer *timer)
 	if (!turtle || !timer) return -1;
 
 	// Set the target time
-	clock_gettime(CLOCK_UPTIME_RAW_APPROX, &timer->due);
+	clock_gettime(CLOCK_UPTIME_RAW, &timer->due);
 	trtl_timer_add_timespecs(&timer->due, &timer->period);
 
 	return trtl_timer_reschedule(turtle, timer);
@@ -199,13 +218,32 @@ trtl_timer_invoke(struct turtle *turtle)
 
 	// Get 'now' once.  So we always make progress
 	clock_gettime(CLOCK_UPTIME_RAW, &now);
-	//clock_gettime(CLOCK_UPTIME_RAW_APPROX, &now);
 
 	while (trtl_timer_invoke_first(turtle, &now) && turtle->timers != NULL) {
 		// Call again basically ;-)
 	}
 
 	return 1;
+}
+
+/**
+ * Work out how long before the next timer needs to be called.
+ *
+ * @param turtle Pointer
+ * @return How long (in seconds) before the next event.
+ */
+double
+trtl_timer_timeout_get(struct turtle *turtle)
+{
+	struct timespec now;
+	struct timespec res;
+
+	if (turtle->timers == NULL) return 1;
+
+	clock_gettime(CLOCK_UPTIME_RAW, &now);
+	trtl_timer_timespec_difference(&res, &turtle->timers->due, &now);
+
+	return trtl_timer_timespec_to_double(&res);
 }
 
 int
