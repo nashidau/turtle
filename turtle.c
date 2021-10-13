@@ -16,6 +16,7 @@
 #include "trtl_shader.h"
 #include "trtl_solo.h"
 #include "trtl_texture.h"
+#include "trtl_timer.h"
 #include "trtl_uniform.h"
 #include "trtl_vulkan.h"
 #include "turtle.h"
@@ -455,53 +456,37 @@ turtle_init(void)
 	return turtle;
 }
 
-static void
-calculate_target_time(struct timespec *ts) {
-	static const long frametime_ns = 1000000000 / 30;
-	ts->tv_nsec += frametime_ns;
-	if (ts->tv_nsec > 1000000000)
-		ts->tv_nsec = 0;
-	ts->tv_sec += 1;
-}
+static int
+draw_frame_timer_cb(trtl_arg_unused void *turtlev, struct turtle *turtle,
+		    trtl_arg_unused struct trtl_timer *timer)
+{
+	static int currentFrame = 0;
 
-static double
-get_sleep_time(struct timespec *target) {
-	struct timespec now;
-	time_t diff_sec;
-	long diff_nsec;
-	clock_gettime(CLOCK_UPTIME_RAW_APPROX, &now);
+	draw_frame(turtle, turtle->tsc, turtle->barriers.image_ready_sem[currentFrame],
+		   turtle->barriers.render_done_sem[currentFrame],
+		   turtle->barriers.in_flight_fences[currentFrame]);
+	currentFrame++;
+	currentFrame %= TRTL_MAX_FRAMES_IN_FLIGHT;
 
-	diff_sec = target->tv_sec - now.tv_sec;
-	diff_nsec = target->tv_nsec - now.tv_nsec;
-	return (double)diff_sec + (double)diff_nsec / 1000000000;
+	return 1;
 }
 
 int
 trtl_main_loop(struct turtle *turtle)
 {
-	struct timespec targettime, now;
+	struct trtl_timer *timer;
 
-	// Calculate a target time for rendering, 
-	clock_gettime(CLOCK_UPTIME_RAW_APPROX, &targettime);
-
-	calculate_target_time(&targettime);
+	timer = trtl_timer_add("Turtle Render", 1 / 30.0, draw_frame_timer_cb, turtle);
+	trtl_timer_schedule(turtle, timer);
 
 	turtle->tsc->command_buffers =
 	    trtl_seer_create_command_buffers(turtle, turtle->tsc->command_pool);
-	// No wait the first time
-	double timeout = 0;
 
-	int currentFrame = 0;
+	double timeout;
 	while (!glfwWindowShouldClose(turtle->window)) {
+		timeout = trtl_timer_timeout_get(turtle);
 		glfwWaitEventsTimeout(timeout);
-		draw_frame(turtle, turtle->tsc, turtle->barriers.image_ready_sem[currentFrame],
-			   turtle->barriers.render_done_sem[currentFrame],
-			   turtle->barriers.in_flight_fences[currentFrame]);
-		currentFrame++;
-		currentFrame %= TRTL_MAX_FRAMES_IN_FLIGHT;
-
-		clock_gettime(CLOCK_UPTIME_RAW_APPROX, &now);
-		timeout = get_sleep_time(&targettime);
+		trtl_timer_invoke(turtle);
 	}
 	vkDeviceWaitIdle(turtle->device);
 
