@@ -57,5 +57,7 @@ jobs:
         env:
           GITHUB: true
           SHADERCC: ./third-party/turtle-support/mac/glslc
-      - name: make check
-        run: make check
+      - name: make test
+        run: make trtl_check
+      - name: Run tests
+        run: ./trtl_check
