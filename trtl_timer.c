@@ -4,7 +4,6 @@
 #include <talloc.h>
 
 #include "trtl_timer.h"
-#include "trtl_timer_int.h"
 #include "turtle.h"
 
 struct trtl_timer {
