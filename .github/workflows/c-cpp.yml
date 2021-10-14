@@ -40,7 +40,7 @@ jobs:
 
     steps:
       - name: install dependancies
-        run: brew install talloc glfw3 check vulkan-headers
+        run: brew install talloc glfw3 check vulkan-headers molten-vk
       - name: Checkout code
         uses: actions/checkout@v2
         with:
