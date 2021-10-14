@@ -1,6 +1,18 @@
 
 VULKANCFLAGS=/
-VULKANLIBS=-lvulkan 
+
+ifeq ($(OS),Windows_NT)     # is Windows_NT on XP, 2000, 7, Vista, 10...
+    detected_OS := Windows
+else
+    detected_OS := $(shell uname)  # same as "uname -s"
+endif
+
+ifeq ($(detected_OS),Darwin)        # Mac OS X
+	VULKANLIBS=-lMoltenVK
+endif
+ifeq ($(detected_OS),Linux)
+	VULKANLIBS=-lvulkan
+endif
 
 PKGS=talloc glfw3 check
 CTAGS=/opt/homebrew/bin/ctags
@@ -31,7 +43,7 @@ CFLAGS+=-g ${OPTIMIZATION} ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library
 	-iframework /Libraay/Frameworks  -Ithird-party/cglm/include -fsanitize=address \
 	-I/usr/local/include -Ithird-party
 # -all_load is only needed for a static library; move to dynamicl and it goes away
-LDFLAGS+=`pkg-config --libs ${PKGS}` -lvulkan -framework Cocoa -framework IOSurface \
+LDFLAGS+=`pkg-config --libs ${PKGS}` ${VULKANLIBS} -framework Cocoa -framework IOSurface \
 	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
 	 -fsanitize=address -rdynamic -all_load
 
