@@ -477,6 +477,7 @@ trtl_main_loop(struct turtle *turtle)
 	struct trtl_timer *timer;
 
 	timer = trtl_timer_add("Turtle Render", 1 / 30.0, draw_frame_timer_cb, turtle);
+	talloc_steal(turtle, timer);
 	trtl_timer_schedule(turtle, timer);
 
 	turtle->tsc->command_buffers =
@@ -489,6 +490,8 @@ trtl_main_loop(struct turtle *turtle)
 		trtl_timer_invoke(turtle);
 	}
 	vkDeviceWaitIdle(turtle->device);
+
+	talloc_free(timer);
 
 	return 0;
 }
