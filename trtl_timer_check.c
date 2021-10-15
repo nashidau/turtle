@@ -294,6 +294,7 @@ END_TEST
 
 START_TEST(test_timer_get_short)
 {
+	clock_gettime_fake.custom_fake = custom_clock_gettime;
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
 	struct trtl_timer *timer = trtl_timer_add("Timer", 1, callback, NULL);
 	trtl_timer_schedule(turtle, timer);
@@ -304,6 +305,7 @@ END_TEST
 
 START_TEST(test_timer_get_half)
 {
+	clock_gettime_fake.custom_fake = custom_clock_gettime;
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
 	struct trtl_timer *timer = trtl_timer_add("Timer", 0.5, callback, NULL);
 	trtl_timer_schedule(turtle, timer);

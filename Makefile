@@ -151,6 +151,10 @@ shaders/vert.spv: shaders/shader.vert
 
 trtl_check: trtl_check.o ${TESTS} ${OBJECTS}
 
+.PHONY: check
+check: trtl_check
+	./trtl_check
+
 libturtle.a: ${OBJECTS} ${SHADER_OBJECTS}
 	@echo Link #<
 	@ar ru $@ $^
