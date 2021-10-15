@@ -175,7 +175,6 @@ END_TEST
 START_TEST(test_timer_create)
 {
 	struct trtl_timer *timer;
-
 	timer = trtl_timer_add("Timer", 1, callback, NULL);
 	ck_assert_ptr_ne(timer, NULL);
 	talloc_free(timer);
@@ -185,12 +184,13 @@ END_TEST
 START_TEST(test_timer_invoke)
 {
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timer = trtl_timer_add("test", 1, callback, NULL);
+	struct trtl_timer *timer = talloc_steal(turtle, trtl_timer_add("test", 1, callback, NULL));
 	trtl_timer_schedule(turtle, timer);
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 	saved_timespec = (struct timespec){.tv_sec = 2, .tv_nsec = 0};
 	trtl_timer_invoke(turtle);
 	ck_assert_int_eq(callback_fake.call_count, 1);
+	talloc_free(turtle);
 }
 END_TEST
 
@@ -198,7 +198,7 @@ START_TEST(test_timer_invoke_recurring)
 {
 	saved_timespec = (struct timespec){.tv_sec = 0, .tv_nsec = 0};
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timer = trtl_timer_add("test", 1, callback, NULL);
+	struct trtl_timer *timer = talloc_steal(turtle, trtl_timer_add("test", 1, callback, NULL));
 	trtl_timer_schedule(turtle, timer);
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 	callback_fake.return_val = 1;
@@ -208,13 +208,15 @@ START_TEST(test_timer_invoke_recurring)
 	trtl_timer_invoke(turtle);
 
 	ck_assert_int_eq(callback_fake.call_count, 2);
+
+	talloc_free(turtle);
 }
 END_TEST
 
 START_TEST(test_timer_schedule_one)
 {
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timer = trtl_timer_add("test", 1, callback, NULL);
+	struct trtl_timer *timer = talloc_steal(turtle, trtl_timer_add("test", 1, callback, NULL));
 	trtl_timer_schedule(turtle, timer);
 	ck_assert_ptr_eq(turtle->timers, timer);
 	talloc_free(turtle);
@@ -228,8 +230,10 @@ START_TEST(test_timer_schedule_later)
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1, callback, NULL);
-	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2, callback, NULL);
+	struct trtl_timer *timerA =
+	    talloc_steal(turtle, trtl_timer_add("Timer A", 1, callback, NULL));
+	struct trtl_timer *timerB =
+	    talloc_steal(turtle, trtl_timer_add("Timer B", 2, callback, NULL));
 	trtl_timer_schedule(turtle, timerA);
 	trtl_timer_schedule(turtle, timerB);
 	ck_assert_ptr_eq(turtle->timers, timerA);
@@ -242,8 +246,10 @@ START_TEST(test_timer_schedule_earlier)
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1, callback, NULL);
-	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2, callback, NULL);
+	struct trtl_timer *timerA =
+	    talloc_steal(turtle, trtl_timer_add("Timer A", 1, callback, NULL));
+	struct trtl_timer *timerB =
+	    talloc_steal(turtle, trtl_timer_add("Timer B", 2, callback, NULL));
 	trtl_timer_schedule(turtle, timerB);
 	trtl_timer_schedule(turtle, timerA);
 	ck_assert_ptr_eq(turtle->timers, timerA);
@@ -254,9 +260,12 @@ END_TEST
 START_TEST(test_timer_schedule_middle)
 {
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timerA = trtl_timer_add("Timer A", 1, callback, NULL);
-	struct trtl_timer *timerB = trtl_timer_add("Timer B", 2, callback, NULL);
-	struct trtl_timer *timerC = trtl_timer_add("Timer C", 3, callback, NULL);
+	struct trtl_timer *timerA =
+	    talloc_steal(turtle, trtl_timer_add("Timer A", 1, callback, NULL));
+	struct trtl_timer *timerB =
+	    talloc_steal(turtle, trtl_timer_add("Timer B", 2, callback, NULL));
+	struct trtl_timer *timerC =
+	    talloc_steal(turtle, trtl_timer_add("Timer C", 3, callback, NULL));
 	// Reverse the order then the previous test
 	trtl_timer_schedule(turtle, timerC);
 	trtl_timer_schedule(turtle, timerA);
@@ -274,7 +283,8 @@ START_TEST(test_timer_schedule_many)
 	for (size_t i = 0; i < TRTL_ARRAY_SIZE(timeouts); i++) {
 		char buf[100];
 		snprintf(buf, sizeof(buf), "Timer %zd (%fs)", i, timeouts[i]);
-		timer = trtl_timer_add(buf, timeouts[i], callback, (void *)&timeouts[i]);
+		timer = talloc_steal(
+		    turtle, trtl_timer_add(buf, timeouts[i], callback, (void *)&timeouts[i]));
 		trtl_timer_schedule(turtle, timer);
 	}
 
@@ -296,10 +306,11 @@ START_TEST(test_timer_get_short)
 {
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timer = trtl_timer_add("Timer", 1, callback, NULL);
+	struct trtl_timer *timer = talloc_steal(turtle, trtl_timer_add("Timer", 1, callback, NULL));
 	trtl_timer_schedule(turtle, timer);
 	double next = trtl_timer_timeout_get(turtle);
 	ck_assert_double_eq(next, 1);
+	talloc_free(turtle);
 }
 END_TEST
 
@@ -307,14 +318,14 @@ START_TEST(test_timer_get_half)
 {
 	clock_gettime_fake.custom_fake = custom_clock_gettime;
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_timer *timer = trtl_timer_add("Timer", 0.5, callback, NULL);
+	struct trtl_timer *timer =
+	    talloc_steal(turtle, trtl_timer_add("Timer", 0.5, callback, NULL));
 	trtl_timer_schedule(turtle, timer);
 	double next = trtl_timer_timeout_get(turtle);
 	ck_assert_double_eq(next, 0.5);
+	talloc_free(turtle);
 }
 END_TEST
-
-
 
 Suite *
 trtl_timer_suite(trtl_arg_unused void *ctx)
