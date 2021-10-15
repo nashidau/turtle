@@ -31,6 +31,10 @@ struct trtl_object_grid {
 		float x;
 		float y;
 	} pos;
+	struct {
+		float x;
+		float y;
+	} dest;
 
 	uint32_t nframes;
 	VkDescriptorSetLayout descriptor_set_layout;
@@ -224,6 +228,21 @@ grid_update(struct trtl_object *obj, int frame)
 
 	pos = trtl_uniform_info_address(grid->uniform_info, frame);
 
+	if (grid->dest.x != grid->pos.x) {
+		float diff = grid->pos.x - grid->dest.x;
+		if (fabsf(diff) < 0.01)
+			grid->pos.x = grid->dest.x;
+		else
+			grid->pos.x -= diff / 2;
+	}
+	if (grid->dest.y != grid->pos.y) {
+		float diff = grid->pos.y - grid->dest.y;
+		if (fabsf(diff) < 0.01)
+			grid->pos.y = grid->dest.y;
+		else
+			grid->pos.y -= diff / 2;
+	}
+
 	pos->x = grid->pos.x;
 	pos->y = grid->pos.y;
 
@@ -354,16 +373,21 @@ trtl_grid_fill_rectangle(struct trtl_object *obj, uint32_t width, uint32_t heigh
  * @param obj Grid object to update.
  * @param x X position of the center square.
  * @param y Y position of the center square.
+ * @param motion Function to move to trnsform.
  * @return 0 on success.
  */
 int
-trtl_grid_set_active_tile(struct trtl_object *obj, float x, float y)
+trtl_grid_set_active_tile(struct trtl_object *obj, float x, float y, int motion)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 
-	grid->pos.x = x;
-	grid->pos.y = y;
-		
+	if (!motion) {
+		grid->pos.x = x;
+		grid->pos.y = y;
+	}
+	grid->dest.x = x;
+	grid->dest.y = y;
+
 	return 0;
 }
 
