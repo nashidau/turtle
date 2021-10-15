@@ -7,3 +7,5 @@ tags
 trtl_check
 .cache
 .deps
+compile_commands.json
+libturtle.a
