@@ -49,9 +49,7 @@ float noise (in vec2 st) {
 }
 
 void main(){
-    vec3 brown = vec3(212.0/255.0,201.0/255.0,182.0/255.0);
     vec3 brown2 = vec3(147.0/255.0, 127.0/255.0,111.0/255.0);
-    vec3 saddlebrown = vec3(0.545, 0.271, 0.0753);
     vec3 darkbrown = vec3(0.19, 0.10, 0.05);
     vec3 black = vec3(0.0,0.0,0.0);
     vec3 red = vec3(1.0,0,0);
