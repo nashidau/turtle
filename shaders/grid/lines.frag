@@ -59,8 +59,10 @@ void main(){
     uint seed = tileData.z;
 
     // Enable this to force tiling
-    // FIXME: SHould shift this a litte so 2 is less frequent, and 3 is infrequnt.
-    float mul = 1.0 + bitCount(seed & 0x7);
+    // So lets make some tiles sliced horizontaly or vertically
+    float ntiles = float(seed & 0xff) / 255.0;
+    float mul = floor(pow(ntiles, 4) * 3) + 1;
+
     st = fract(st * mul);
 
     vec3 color = fragColor;
