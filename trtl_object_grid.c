@@ -19,7 +19,6 @@
 #include "vertex.h"
 
 #define FRAG_SHADER "shaders/grid/lines.spv"
-//#define FRAG_SHADER "shaders/grid/browns.spv"
 
 struct trtl_object_grid {
 	struct trtl_object parent;
