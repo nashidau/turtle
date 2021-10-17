@@ -153,7 +153,7 @@ trtl_canvas_create(struct turtle *turtle)
 
 	canvas->parent.draw = canvas_draw;
 	canvas->parent.update = canvas_update;
-	canvas->parent.resize = canvas_resize;
+	canvas->parent.relayer = canvas_resize;
 
 	canvas->nframes = turtle->tsc->nimages;
 

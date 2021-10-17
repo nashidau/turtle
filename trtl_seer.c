@@ -133,8 +133,8 @@ trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
 		struct objlayer *layer = seer->layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
-			if (layer->objects[obj]->resize) {
-				layer->objects[obj]->resize(layer->objects[obj], turtle,
+			if (layer->objects[obj]->relayer) {
+				layer->objects[obj]->relayer(layer->objects[obj], turtle,
 							    layer->render_pass, new_size);
 			}
 		}
@@ -199,7 +199,7 @@ trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_ren
 	layer->objects[layer->nobjects++] = object;
 
 	talloc_steal(seer, object);
-	object->resize(object, turtle, layer->render_pass, seer->size);
+	object->relayer(object, turtle, layer->render_pass, seer->size);
 
 	return 0;
 }

@@ -12,6 +12,6 @@ struct trtl_object {
 
 	// Triggered when an object is first added to a layer or on resize.
 	// The object should create it's pipeline based on the info in this call
-	void (*resize)(struct trtl_object *obj, struct turtle *turtle, VkRenderPass pass,
+	void (*relayer)(struct trtl_object *obj, struct turtle *turtle, VkRenderPass pass,
 		       VkExtent2D size);
 };

@@ -261,7 +261,7 @@ trtl_grid_create(struct turtle *turtle)
 
 	grid->parent.draw = grid_draw;
 	grid->parent.update = grid_update;
-	grid->parent.resize = grid_resize;
+	grid->parent.relayer = grid_resize;
 
 	grid->nframes = turtle->tsc->nimages;
 
