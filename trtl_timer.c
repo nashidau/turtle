@@ -6,6 +6,18 @@
 #include "trtl_timer.h"
 #include "turtle.h"
 
+// Choose out default clock for clock_gettime.
+
+#ifdef APPLE
+// On Apple, the uptime raw clock is the best - dones't trigger when sleeping
+// and handles CPU migration
+#define TRTL_CLOCK  CLOCK_UPTIME_RAW
+#else
+// Alas it increments when sleeping.
+#define TRTL_CLOCK CLOCK_MONOTONIC
+#endif
+
+
 struct trtl_timer {
 	struct trtl_timer *next;
 	struct trtl_timer *prev;
@@ -116,7 +128,7 @@ trtl_timer_schedule(struct turtle *turtle, struct trtl_timer *timer)
 	if (!turtle || !timer) return -1;
 
 	// Set the target time
-	clock_gettime(CLOCK_UPTIME_RAW, &timer->due);
+	clock_gettime(TRTL_CLOCK, &timer->due);
 	trtl_timer_add_timespecs(&timer->due, &timer->period);
 
 	return trtl_timer_reschedule(turtle, timer);
@@ -216,7 +228,7 @@ trtl_timer_invoke(struct turtle *turtle)
 	if (!turtle->timers) return 0;
 
 	// Get 'now' once.  So we always make progress
-	clock_gettime(CLOCK_UPTIME_RAW, &now);
+	clock_gettime(TRTL_CLOCK, &now);
 
 	while (trtl_timer_invoke_first(turtle, &now) && turtle->timers != NULL) {
 		// Call again basically ;-)
@@ -239,7 +251,7 @@ trtl_timer_timeout_get(struct turtle *turtle)
 
 	if (turtle->timers == NULL) return 1;
 
-	clock_gettime(CLOCK_UPTIME_RAW, &now);
+	clock_gettime(TRTL_CLOCK, &now);
 	trtl_timer_timespec_difference(&res, &turtle->timers->due, &now);
 
 	return trtl_timer_timespec_to_double(&res);
