@@ -5,7 +5,9 @@
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
 // Needed for portabllity extensions
+#if __has_include(<vulkan/vulkan_beta.h>)
 #include <vulkan/vulkan_beta.h>
+#endif
 
 #include <talloc.h>
 
