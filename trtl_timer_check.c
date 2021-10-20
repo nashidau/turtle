@@ -16,9 +16,9 @@ FAKE_VALUE_FUNC(int, clock_gettime, clockid_t, struct timespec *);
 #define ck_assert_double_eq(X, Y)                                                                  \
 	do {                                                                                       \
 		double _ck_x = (X);                                                                \
-		TP _ck_y = (Y);                                                                    \
+		double _ck_y = (Y);                                                                \
 		ck_assert_msg(_ck_x == _ck_y, "Assertion '%s' failed: %s == %.*g, %s == %.*g",     \
-			      #X " ==  " #Y, #X, 6 _ck_x, #Y, 6 _ck_y);                            \
+			      #X " ==  " #Y, #X, 6, _ck_x, #Y, 6, _ck_y);                          \
 	} while (0)
 #endif
 
