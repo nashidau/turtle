@@ -20,6 +20,8 @@ jobs:
       with:
         repository: nashidau/turtle-support
         path: third-party/turtle-support
+    - name: update Dependances
+      run: sudo apt-get update
     - name: Install Dependances
       run: sudo apt-get install -y libtalloc-dev libglfw3-dev check
     - name: Install Vulkan
