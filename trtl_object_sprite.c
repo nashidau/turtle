@@ -6,7 +6,9 @@
 #include "trtl_object.h"
 #include "trtl_object_sprite.h"
 #include "trtl_pipeline.h"
+#include "trtl_shell.h"
 #include "trtl_seer.h"
+#include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
 
@@ -35,6 +37,50 @@ static const struct vertex sprite_vertices[] = {
     {{1.0f, 1.0f, 0}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f}},
     {{-1.0f, 1.0f, 0}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
 };
+
+struct sprite_vertex {
+	struct pos3d pos;
+	struct {
+		uint32_t x;
+		uint32_t y;
+		uint32_t seed;
+	} tile;
+	struct pos2d tex_coord;
+};
+
+
+
+static const VkVertexInputAttributeDescription sprite_vertex_description[3] = {
+    {
+	.binding = 0,
+	.location = 0,
+	.format = VK_FORMAT_R32G32B32_SFLOAT,
+	.offset = offsetof(struct sprite_vertex, pos),
+    },
+    {
+	.binding = 0,
+	.location = 1,
+	.format = VK_FORMAT_R32G32B32_UINT,
+	.offset = offsetof(struct sprite_vertex, tile),
+    },
+    {
+	.binding = 0,
+	.location = 2,
+	.format = VK_FORMAT_R32G32_SFLOAT,
+	.offset = offsetof(struct sprite_vertex, tex_coord),
+    },
+};
+
+static const VkVertexInputBindingDescription sprite_binding_descriptor = {
+    .binding = 0,
+    .stride = sizeof(struct sprite_vertex),
+    // Should this be 'instance?'
+    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+};
+
+#define N_VERTEX_ATTRIBUTE_DESCRIPTORS TRTL_ARRAY_SIZE(sprite_vertex_description)
+
+
 
 static const uint32_t sprite_indices[] = {0, 1, 2, 3, 2, 0};
 static const uint32_t CANVAS_OBJECT_NINDEXES = TRTL_ARRAY_SIZE(sprite_indices);
