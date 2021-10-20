@@ -41,7 +41,9 @@ struct trtl_swap_chain *create_swap_chain(struct turtle *turtle, VkPhysicalDevic
 
 static const char *required_extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+#ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
     VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
+#endif
 };
 #define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
 
