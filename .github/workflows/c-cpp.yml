@@ -20,6 +20,7 @@ jobs:
       with:
         repository: nashidau/turtle-support
         path: third-party/turtle-support
+        lfs: 'true'
     - name: update Dependances
       run: sudo apt-get update
     - name: Install Dependances
