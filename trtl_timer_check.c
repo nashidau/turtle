@@ -11,6 +11,17 @@ FAKE_VALUE_FUNC(int, callback, void *, struct turtle *, struct trtl_timer *);
 
 FAKE_VALUE_FUNC(int, clock_gettime, clockid_t, struct timespec *);
 
+// The ubuntu 20.04 version of check is ancient
+#ifndef ck_assert_double_eq
+#define ck_assert_double_eq(X, Y)                                                                  \
+	do {                                                                                       \
+		double _ck_x = (X);                                                                \
+		TP _ck_y = (Y);                                                                    \
+		ck_assert_msg(_ck_x == _ck_y, "Assertion '%s' failed: %s == %.*g, %s == %.*g",     \
+			      #X " ==  " #Y, #X, 6 _ck_x, #Y, 6 _ck_y);                            \
+	} while (0)
+#endif
+
 static struct timespec saved_timespec;
 static int
 custom_clock_gettime(trtl_arg_unused clockid_t clock, struct timespec *timespec)
