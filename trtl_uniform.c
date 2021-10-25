@@ -195,6 +195,7 @@ trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
 VkDescriptorBufferInfo
 trtl_uniform_buffer_get_descriptor(struct trtl_uniform_info *info, int frame)
 {
+	assert(info != NULL);
 	VkDescriptorBufferInfo buffer_info = {0};
 	buffer_info.buffer = info->uniforms->uniform_buffers[frame];
 	buffer_info.offset = info->offset;
