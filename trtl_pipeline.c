@@ -235,9 +235,10 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
-	if (vkCreateGraphicsPipelines(turtle->device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL,
-				      &info.pipeline) != VK_SUCCESS) {
-		error("failed to create graphics pipeline!");
+	VkResult rv = vkCreateGraphicsPipelines(turtle->device, VK_NULL_HANDLE, 1, &pipelineInfo,
+						NULL, &info.pipeline);
+	if (rv != VK_SUCCESS) {
+		error_msg(rv, "failed to create graphics pipeline!");
 	}
 
 	if (tofree) talloc_free(tofree);
