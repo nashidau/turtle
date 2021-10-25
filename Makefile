@@ -98,7 +98,9 @@ SHADERS= \
 	shaders/grid/lines.spv \
 	shaders/grid/grid-vertex.spv \
 	shaders/grid/browns.spv \
-	shaders/grid/red.spv
+	shaders/grid/red.spv \
+	shaders/sprite/sprite-vertex.spv \
+	shaders/sprite/sprite-fragment.spv
 
 OBJECTS := $(SOURCES:%.c=%.o)
 SHADER_OBJECTS := $(SHADERS:%.spv=%.o)
