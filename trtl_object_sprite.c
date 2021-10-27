@@ -107,9 +107,16 @@ trtl_object_sprite(struct trtl_object *obj)
 }
 
 static bool
-sprite_update(trtl_arg_unused struct trtl_object *obj, trtl_arg_unused int frame)
+sprite_update(struct trtl_object *obj, int frame)
 {
-	return false;
+	struct trtl_object_sprite *sprite = trtl_object_sprite(obj);
+	struct pos2d *pos;
+
+	pos = trtl_uniform_info_address(sprite->uniform_info, frame);
+	pos->x = 0;
+	pos->y = 0;
+
+	return true;
 }
 
 static void
