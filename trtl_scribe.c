@@ -10,11 +10,8 @@
 #include "trtl_scribe.h"
 #include "turtle.h"
 
-
-
 // FIXME: This has a big fixme on it
 static VkDebugUtilsMessengerEXT debugMessenger;
-
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
     trtl_arg_unused VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -41,10 +38,21 @@ static VkDebugUtilsMessengerCreateInfoEXT debug_messenger_create_info = {
 void
 trtl_scribe_upadate_validation(VkInstanceCreateInfo *create_info)
 {
+	// FIXME: Allocate these sanely
+	static VkValidationFeatureEnableEXT enabled[] = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
+	static VkValidationFeaturesEXT features;
+	features.disabledValidationFeatureCount = 0;
+	features.enabledValidationFeatureCount = 1;
+	features.pDisabledValidationFeatures = NULL;
+	features.pEnabledValidationFeatures = enabled;
+
 	// FIXME: Check logging state / verbose state
 	create_info->enabledLayerCount = 1;
 	create_info->ppEnabledLayerNames = &VALIDATION_LAYER;
 	create_info->pNext = &debug_messenger_create_info;
+
+	features.pNext = create_info->pNext;
+	create_info->pNext = &features;
 }
 
 VkResult
@@ -97,7 +105,8 @@ trtl_setup_debug_messenger(VkInstance instance)
 {
 	VkResult err;
 
-	err = CreateDebugUtilsMessengerEXT(instance, &debug_messenger_create_info, NULL, &debugMessenger);
+	err = CreateDebugUtilsMessengerEXT(instance, &debug_messenger_create_info, NULL,
+					   &debugMessenger);
 	if (err != VK_SUCCESS) {
 		printf("Failed to cretate debug messenger\n");
 	}
