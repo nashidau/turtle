@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <time.h>
 
+#define VKB_VALIDATION_LAYERS 1
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <vulkan/vulkan.h>
@@ -226,13 +227,14 @@ check_device_extension_support(VkPhysicalDevice device)
 
 	available_extensions = talloc_array(NULL, VkExtensionProperties, extensionCount);
 	vkEnumerateDeviceExtensionProperties(device, NULL, &extensionCount, available_extensions);
+	for (uint32_t i = 0; i < extensionCount; i++) {
+		printf(" Extension: %s (%d)\n", available_extensions[i].extensionName,
+		       available_extensions[i].specVersion);
+	}
 
 	uint32_t j;
 	for (uint32_t i = 0; i < N_REQUIRED_EXTENSIONS; i++) {
 		for (j = 0; j < extensionCount; j++) {
-			// LOG(VERBOSE, "Found Extension: %s (%d)\n",
-			//   available_extensions[j].extensionName,
-			//  available_extensions[j].specVersion);
 			if (strcmp(required_extensions[i], available_extensions[j].extensionName) ==
 			    0) {
 				break;
@@ -315,6 +317,7 @@ create_physical_device(VkInstance instance, VkSurfaceKHR surface)
 		return NULL;
 	}
 
+	// FIXME: leaking this
 	devices = talloc_array(NULL, VkPhysicalDevice, deviceCount);
 
 	vkEnumeratePhysicalDevices(instance, &deviceCount, devices);
@@ -421,6 +424,13 @@ turtle_init(void)
 
 	turtle->surface = create_surface(turtle->instance, turtle->window);
 	turtle->physical_device = pick_physical_device(turtle->instance, turtle->surface);
+
+	VkPhysicalDeviceProperties properties = {0};
+	vkGetPhysicalDeviceProperties(turtle->physical_device, &properties);
+	printf("Vulkan API Version: %d.%d.%d\n", 
+			VK_VERSION_MAJOR(properties.apiVersion),
+			VK_VERSION_MINOR(properties.apiVersion),
+			VK_VERSION_PATCH(properties.apiVersion));
 
 	turtle->device = create_logical_device(turtle->physical_device, turtle->surface,
 					       &turtle->graphicsQueue, &turtle->presentQueue);
