@@ -34,6 +34,13 @@ vec2 positions[4] = vec2[](
     vec2(0.5, 0)
 );
 
+vec2 textureCoords[] = vec2[](
+    vec2(0, 0),
+    vec2(0, 1.0),
+    vec2(1.0, 0),
+    vec2(1.0, 1.0)
+);
+
 float width = 128;
 vec2 pos = vec2(0.0, 0.0);
 
@@ -67,7 +74,7 @@ void main() {
 
 
     gl_Position = vec4(pos, 0.0, 1.0);
-    fragTexCoord = inTexCoord.xy;
+    fragTexCoord = textureCoords[gl_VertexIndex];
 
 //    vec2 screenSize = vec2(screenWidth, screenHeight);
 //    gl_Position = positions[gl_VertexIndex];
