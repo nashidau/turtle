@@ -41,7 +41,7 @@ WARNINGS= \
 OPTIMIZATION=-O2
 
 CFLAGS+=-g ${OPTIMIZATION} ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
-	-iframework /Libraay/Frameworks  -Ithird-party/cglm/include -fsanitize=address \
+	-Ithird-party/cglm/include -fsanitize=address \
 	-I/usr/local/include -Ithird-party
 # -all_load is only needed for a static library; move to dynamicl and it goes away
 LDFLAGS+=`pkg-config --libs ${PKGS}` ${VULKANLIBS} -framework Cocoa -framework IOSurface \
@@ -52,7 +52,8 @@ ifdef GITHUB
 CFLAGS+=-DGITHUB=1
 endif
 
-SHADERCC?=glslc
+#SHADERCC?=glslc
+SHADERCC?=~/work/vulkan/turtle-support/mac/glslc
 
 TESTS=	\
 	trtl_uniform.o \
@@ -75,6 +76,7 @@ SOURCES= \
 	trtl_object_canvas.c	\
 	trtl_object_grid.c	\
 	trtl_object_sprite.c	\
+	trtl_object_sprite2.c	\
 	trtl_pipeline.c	\
 	trtl_scribe.c   \
 	trtl_shader.c	\

@@ -16,6 +16,7 @@
 #include "trtl_object_sprite2.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
+#include "trtl_texture.h"
 #include "trtl_shell.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
@@ -31,6 +32,8 @@ struct trtl_object_sprite2 {
 
 	struct trtl_pipeline_info pipeline_info;
 
+	VkImageView texture_image_view;
+
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
 
@@ -42,8 +45,8 @@ struct sprite2_shader_params {
 	float time;
 };
 
-trtl_alloc static VkDescriptorSet *create_sprite2_descriptor_sets(struct trtl_object_sprite2 *sprite2,
-								 struct trtl_swap_chain *scd);
+trtl_alloc static VkDescriptorSet *
+create_sprite2_descriptor_sets(struct trtl_object_sprite2 *sprite2, struct trtl_swap_chain *scd);
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
 // static const struct vertex2d vertices[] = {
@@ -54,7 +57,7 @@ static const struct vertex sprite2_vertices[] = {
     {{-1.0f, 1.0f, 0}, {1.0f, 1.0f, 1.0f}, {0.0f, 1.0f}},
 };
 
-static const uint32_t sprite2_indices[] = {0, 1, 2, 3,2,1};
+static const uint32_t sprite2_indices[] = {0, 1, 2, 3, 2, 1};
 static const uint32_t CANVAS_OBJECT_NINDEXES = TRTL_ARRAY_SIZE(sprite2_indices);
 
 // Inline function to cast from abstract to concrete type.
@@ -81,8 +84,8 @@ sprite2_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset
 	vkCmdBindIndexBuffer(cmd_buffer, sprite2->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				sprite2->pipeline_info.pipeline_layout, 0, 1, sprite2->descriptor_set,
-				0, NULL);
+				sprite2->pipeline_info.pipeline_layout, 0, 1,
+				sprite2->descriptor_set, 0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }
 
@@ -106,14 +109,15 @@ sprite2_update(struct trtl_object *obj, trtl_arg_unused int frame)
 
 static void
 sprite2_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
-	      VkExtent2D size)
+	       VkExtent2D size)
 {
 	struct trtl_object_sprite2 *sprite2 = trtl_object_sprite2(obj);
 	sprite2->size = size;
 	sprite2->descriptor_set = create_sprite2_descriptor_sets(sprite2, turtle->tsc);
-	sprite2->pipeline_info = trtl_pipeline_create(
-	    turtle, renderpass, size, sprite2->descriptor_set_layout,
-	    "shaders/sprite/sprite-vertex.spv", "shaders/sprite/sprite-fragment.spv", NULL, NULL, 0);
+	sprite2->pipeline_info =
+	    trtl_pipeline_create(turtle, renderpass, size, sprite2->descriptor_set_layout,
+				 "shaders/sprite/sprite-vertex.spv",
+				 "shaders/sprite/sprite-fragment.spv", NULL, NULL, 0);
 }
 
 static VkDescriptorSetLayout
@@ -128,8 +132,14 @@ sprite2_create_descriptor_set_layout(VkDevice device)
 	ubo_layout_binding.pImmutableSamplers = NULL;
 	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
 
-	VkDescriptorSetLayoutBinding bindings[1];
-	bindings[0] = ubo_layout_binding;
+	VkDescriptorSetLayoutBinding sampler_layout_binding = {0};
+	sampler_layout_binding.binding = 1;
+	sampler_layout_binding.descriptorCount = 1;
+	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	sampler_layout_binding.pImmutableSamplers = NULL;
+	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutBinding bindings[2] = {ubo_layout_binding, sampler_layout_binding};
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
@@ -143,25 +153,29 @@ sprite2_create_descriptor_set_layout(VkDevice device)
 }
 
 trtl_alloc struct trtl_object *
-trtl_sprite2_create(struct turtle *turtle)
+trtl_sprite2_create(struct turtle *turtle, const char *image)
 {
-	struct trtl_object_sprite2 *sprite2;
+	struct trtl_object_sprite2 *sprite;
 
-	sprite2 = talloc_zero(NULL, struct trtl_object_sprite2);
+	sprite = talloc_zero(NULL, struct trtl_object_sprite2);
 
 	// FIXME: Set a destructor and cleanup
 
-	sprite2->parent.draw = sprite2_draw;
-	sprite2->parent.update = sprite2_update;
-	sprite2->parent.relayer = sprite2_resize;
+	sprite->parent.draw = sprite2_draw;
+	sprite->parent.update = sprite2_update;
+	sprite->parent.relayer = sprite2_resize;
 
-	sprite2->nframes = turtle->tsc->nimages;
+	sprite->nframes = turtle->tsc->nimages;
 
-	sprite2->uniform_info =
+	// FIXME: Leaky
+	sprite->texture_image_view =
+	    create_texture_image_view(turtle, create_texture_image(turtle, image));
+
+	sprite->uniform_info =
 	    trtl_uniform_alloc_type(turtle->uniforms, struct sprite2_shader_params);
 
-	sprite2->descriptor_set_layout = sprite2_create_descriptor_set_layout(turtle->device);
-	sprite2->descriptor_set = create_sprite2_descriptor_sets(sprite2, turtle->tsc);
+	sprite->descriptor_set_layout = sprite2_create_descriptor_set_layout(turtle->device);
+	sprite->descriptor_set = create_sprite2_descriptor_sets(sprite, turtle->tsc);
 
 	{
 		struct trtl_seer_vertexset vertices;
@@ -169,45 +183,50 @@ trtl_sprite2_create(struct turtle *turtle)
 		vertices.vertices = sprite2_vertices;
 		vertices.vertex_size = sizeof(struct vertex);
 
-		sprite2->vertex_buffer = create_vertex_buffers(turtle, &vertices);
+		sprite->vertex_buffer = create_vertex_buffers(turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = CANVAS_OBJECT_NINDEXES;
 		indexes.indexes = sprite2_indices;
-		sprite2->index_buffer = create_index_buffer(turtle, &indexes);
+		sprite->index_buffer = create_index_buffer(turtle, &indexes);
 	}
 
-	return (struct trtl_object *)sprite2;
+	return (struct trtl_object *)sprite;
 }
 
 trtl_alloc static VkDescriptorSet *
-create_sprite2_descriptor_sets(struct trtl_object_sprite2 *sprite2, struct trtl_swap_chain *scd)
+create_sprite2_descriptor_sets(struct trtl_object_sprite2 *sprite, struct trtl_swap_chain *scd)
 {
-	VkDescriptorSet *sets = talloc_zero_array(sprite2, VkDescriptorSet, sprite2->nframes);
+	VkDescriptorSet *sets = talloc_zero_array(sprite, VkDescriptorSet, sprite->nframes);
 	VkDescriptorSetLayout *layouts =
-	    talloc_zero_array(NULL, VkDescriptorSetLayout, sprite2->nframes);
+	    talloc_zero_array(NULL, VkDescriptorSetLayout, sprite->nframes);
 
-	for (uint32_t i = 0; i < sprite2->nframes; i++) {
-		layouts[i] = sprite2->descriptor_set_layout;
+	for (uint32_t i = 0; i < sprite->nframes; i++) {
+		layouts[i] = sprite->descriptor_set_layout;
 	}
 
 	VkDescriptorSetAllocateInfo alloc_info = {0};
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	alloc_info.descriptorPool = scd->descriptor_pool;
-	alloc_info.descriptorSetCount = sprite2->nframes;
+	alloc_info.descriptorSetCount = sprite->nframes;
 	alloc_info.pSetLayouts = layouts;
 
 	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
-	for (uint32_t i = 0; i < sprite2->nframes; i++) {
+	for (uint32_t i = 0; i < sprite->nframes; i++) {
 		VkDescriptorBufferInfo buffer_info =
-		    trtl_uniform_buffer_get_descriptor(sprite2->uniform_info, i);
+		    trtl_uniform_buffer_get_descriptor(sprite->uniform_info, i);
 
-		VkWriteDescriptorSet descriptorWrites[1] = {0};
+		VkDescriptorImageInfo image_info = {0};
+		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		image_info.imageView = sprite->texture_image_view;
+		image_info.sampler = scd->turtle->texture_sampler;
+
+		VkWriteDescriptorSet descriptorWrites[2] = {0};
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = sets[i];
@@ -216,6 +235,14 @@ create_sprite2_descriptor_sets(struct trtl_object_sprite2 *sprite2, struct trtl_
 		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		descriptorWrites[0].descriptorCount = 1;
 		descriptorWrites[0].pBufferInfo = &buffer_info;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = sets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].dstArrayElement = 0;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pImageInfo = &image_info;
 
 		vkUpdateDescriptorSets(scd->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
 				       descriptorWrites, 0, NULL);
