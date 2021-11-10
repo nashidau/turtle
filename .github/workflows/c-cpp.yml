@@ -29,8 +29,8 @@ jobs:
         CC: clang
         GITHUB: true
         SHADERCC: ./tools/fake-shadercc.sh
-    - name: make check
-      run: make check
+    - name: ./trtl_check
+      run: ./trtl_check
 
   mac:
     runs-on: macos-11
