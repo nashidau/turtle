@@ -22,7 +22,9 @@ int main(trtl_arg_unused int argc, trtl_arg_unused char **argv) {
 	int nfailed;
 	int i;
 
+#  if !__has_feature(address_sanitizer)
 	talloc_enable_leak_report();
+#  endif
 
 	sr = srunner_create(NULL);
 	for (i = 0 ; i < N_MODULES ; i ++) {
