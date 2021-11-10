@@ -39,12 +39,12 @@ void
 trtl_scribe_upadate_validation(VkInstanceCreateInfo *create_info)
 {
 	// FIXME: Allocate these sanely
-	static VkValidationFeatureEnableEXT enabled[] = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
+	//static VkValidationFeatureEnableEXT enabled[] = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
 	static VkValidationFeaturesEXT features;
 	features.disabledValidationFeatureCount = 0;
-	features.enabledValidationFeatureCount = 1;
+	features.enabledValidationFeatureCount = 0;
 	features.pDisabledValidationFeatures = NULL;
-	features.pEnabledValidationFeatures = enabled;
+	features.pEnabledValidationFeatures = NULL;//enabled;
 
 	// FIXME: Check logging state / verbose state
 	create_info->enabledLayerCount = 1;
