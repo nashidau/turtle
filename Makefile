@@ -10,9 +10,18 @@ endif
 VULKANLIBS="unknown"
 ifeq ($(detected_OS),Darwin)
 	VULKANLIBS=-lMoltenVK
+		# -all_load is only needed for a static library; move to dynamicl and it goes away
+	PLATFORM_LDFLAGS=-framework Cocoa -framework IOSurface -framework IOKit \
+			 -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
+			 -fsanitize=address -rdynamic -all_load
+	AR?=ar
+	ARCOMMAND?=ru
 endif
 ifeq ($(detected_OS),Linux)
 	VULKANLIBS=-lvulkan
+	PLATFORM_LDFLAGS=-lasan -lcheck -ldl
+	AR?=ar
+	ARCOMMAND?=r
 endif
 
 PKGS=talloc glfw3 check
@@ -43,10 +52,7 @@ OPTIMIZATION=-O2
 CFLAGS+=-g ${OPTIMIZATION} ${WARNINGS} `pkg-config --cflags ${PKGS}` -F /Library/Frameworks \
 	-Ithird-party/cglm/include -fsanitize=address \
 	-I/usr/local/include -Ithird-party
-# -all_load is only needed for a static library; move to dynamicl and it goes away
-LDFLAGS+=`pkg-config --libs ${PKGS}` ${VULKANLIBS} -framework Cocoa -framework IOSurface \
-	 -framework IOKit -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
-	 -fsanitize=address -rdynamic -all_load
+LDFLAGS+=${PLATFORM_LDFLAGS} `pkg-config --libs ${PKGS}` ${VULKANLIBS}
 
 ifdef GITHUB
 CFLAGS+=-DGITHUB=1
@@ -155,6 +161,7 @@ shaders/vert.spv: shaders/shader.vert
 	${SHADERCC} -o $@ $<
 
 trtl_check: trtl_check.o ${TESTS} ${OBJECTS}
+	${CC} -o $@ $^ ${LDFLAGS}
 
 .PHONY: check
 check: trtl_check
@@ -162,7 +169,7 @@ check: trtl_check
 
 libturtle.a: ${OBJECTS} ${SHADER_OBJECTS}
 	@echo Link #<
-	@ar ru $@ $^
+	${AR} ${ARCOMMAND} $@ $^
 	@ranlib $@
 
 triangles: triangles.o libturtle.a
