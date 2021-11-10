@@ -28,7 +28,7 @@ jobs:
       env:
         CC: clang
         GITHUB: true
-        SHADERCC: ./tools/fake-shadercc.ch
+        SHADERCC: ./tools/fake-shadercc.sh
     - name: make check
       run: make check
 
@@ -48,7 +48,7 @@ jobs:
         run: make
         env:
           GITHUB: true
-          SHADERCC: ./tools/fake-shadercc.ch
+          SHADERCC: ./tools/fake-shadercc.sh
       - name: make test
         run: make trtl_check
       - name: Run tests
