@@ -1,5 +1,10 @@
+Sprite2:
+	- Rename to sprite soonish
+	- Add support for multiple objects
+	- add zoom support
+	- fix height/width of sprites
+
 Add a proper event rendering loop
-	- so timers, deferred work
 	messages from threads
 
 Add animated zoom to quest
@@ -10,8 +15,6 @@ Finish moving VkPipeline{Layout} out of trtl.
 	- need a pipeline cache
 Maybe add pushconstant support through trtl_uniform
 	- so bind then push the cosntant at draw tim
-
-Fix resize.
 
 Add trtl_crier -> message system
 	- addd creier event to pipeline and descriptor set to autoamtically nalde the events
