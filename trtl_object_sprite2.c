@@ -100,8 +100,6 @@ sprite2_update(struct trtl_object *obj, trtl_arg_unused int frame)
 	params->time = time(NULL);
 	params->screenSize[0] = 1.0; // sprite2->size.width;
 	params->screenSize[1] = 0.5; // sprite2->size.height;
-	// printf("%f %f %f\n", params->screenSize[0],
-	//		params->screenSize[1], params->time);
 
 	// We updated
 	return true;
