@@ -19,20 +19,10 @@ struct trtl_seer_indexset {
 	const uint32_t *indexes;
 };
 
-
-struct trtl_layer_info {
-	bool has_depth;
-	bool clear_on_load;
-};
-
-typedef uint16_t trtl_render_layer_t;
-
-
 struct trtl_object;
 
-
-
-struct trtl_seer *trtl_seer_init(struct turtle *turtle, VkExtent2D extent);
+struct trtl_seer *trtl_seer_init(struct turtle *turtle, VkExtent2D extent,
+				 trtl_render_layer_t nlayers, const struct trtl_layer_info *info);
 
 int trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 				    trtl_render_layer_t layer);

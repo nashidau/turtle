@@ -409,7 +409,7 @@ create_depth_resources(struct turtle *turtle)
 }
 
 struct turtle *
-turtle_init(void)
+turtle_init(int nlayers, const struct trtl_layer_info *layers)
 {
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
 	talloc_set_destructor(turtle, turtle_destructor);
@@ -455,7 +455,7 @@ turtle_init(void)
 
 	turtle->tsc->descriptor_pool = create_descriptor_pool(turtle->tsc);
 
-	turtle->seer = trtl_seer_init(turtle, turtle->tsc->extent);
+	turtle->seer = trtl_seer_init(turtle, turtle->tsc->extent, nlayers, layers);
 	assert(turtle->seer);
 
 	trtl_barriers_init(turtle);

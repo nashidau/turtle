@@ -23,6 +23,8 @@
 
 #define TRTL_MAX_FRAMES_IN_FLIGHT 2
 
+typedef uint16_t trtl_render_layer_t;
+
 // Global structure for frequently used global state.
 // Everything here should not change frequently
 struct turtle {
@@ -104,7 +106,13 @@ struct queue_family_indices {
 
 int trtl_main_loop(struct turtle *turtle);
 
-struct turtle *turtle_init(void);
+
+struct trtl_layer_info {
+	bool has_depth;
+	bool clear_on_load;
+};
+
+struct turtle *turtle_init(int nlayers, const struct trtl_layer_info *layers);
 
 // FIXME: Should be turtle_create() and render_context should be a struct turtle.
 void create_buffer(struct turtle *turtle, VkDeviceSize size, VkBufferUsageFlags usage,

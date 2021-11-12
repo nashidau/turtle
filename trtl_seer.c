@@ -57,14 +57,7 @@ struct objlayer {
 	VkRenderPass render_pass;
 };
 
-static struct trtl_layer_info layer_info[] = {
-    // Background:  No depth, clear on load
-    {.has_depth = true, .clear_on_load = true},
-    // Next layer; has depth, but dont' clear it
-    {.has_depth = true, .clear_on_load = false},
-};
-
-static VkRenderPass create_render_pass(struct turtle *turtle, struct trtl_layer_info *info);
+static VkRenderPass create_render_pass(struct turtle *turtle, const struct trtl_layer_info *info);
 VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct trtl_swap_chain *scd,
 					VkCommandPool command_pool, VkFramebuffer *framebuffers);
 static VkFramebuffer *create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd,
@@ -92,10 +85,10 @@ seer_destroy(struct trtl_seer *seer)
 }
 
 struct trtl_seer *
-trtl_seer_init(struct turtle *turtle, VkExtent2D extent)
+trtl_seer_init(struct turtle *turtle, VkExtent2D extent, trtl_render_layer_t nlayers,
+		const struct trtl_layer_info *layer_info)
 {
 	struct trtl_seer *seer;
-	int nlayers = 2; // FIXME: magic here is evil
 
 	if (turtle->seer) {
 		warning("Multiple init of trtl_seer\n");
@@ -311,7 +304,7 @@ trtl_seer_draw(struct turtle *turtle, VkCommandBuffer buffer, trtl_render_layer_
 VkFormat find_depth_format(VkPhysicalDevice physical_device);
 
 static VkRenderPass
-create_render_pass(struct turtle *turtle, struct trtl_layer_info *layerinfo)
+create_render_pass(struct turtle *turtle, const struct trtl_layer_info *layerinfo)
 {
 	VkRenderPass render_pass;
 
@@ -366,7 +359,7 @@ create_render_pass(struct turtle *turtle, struct trtl_layer_info *layerinfo)
 	subpass_main.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass_main.colorAttachmentCount = 1;
 	subpass_main.pColorAttachments = &colorAttachmentRef;
-	if (layer_info->has_depth) {
+	if (layerinfo->has_depth) {
 		subpass_main.pDepthStencilAttachment = &depthAttachmentRef;
 	}
 
@@ -400,7 +393,7 @@ create_render_pass(struct turtle *turtle, struct trtl_layer_info *layerinfo)
 	VkRenderPassCreateInfo renderPassInfo = {0};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	// FIXME: Uhh.. so ugly
-	renderPassInfo.attachmentCount = layer_info->has_depth ? 2 : 1;
+	renderPassInfo.attachmentCount = layerinfo->has_depth ? 2 : 1;
 	renderPassInfo.pAttachments = attachments;
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = subpasses;
