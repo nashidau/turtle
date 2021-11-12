@@ -198,7 +198,7 @@ grid_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderp
 	grid->pipeline_info = trtl_pipeline_create(
 	    turtle, renderpass, size, grid->descriptor_set_layout, "shaders/grid/grid-vertex.spv",
 	    FRAG_SHADER, &grid_binding_descriptor, grid_vertex_description,
-	    N_VERTEX_ATTRIBUTE_DESCRIPTORS);
+	    N_VERTEX_ATTRIBUTE_DESCRIPTORS, false);
 }
 
 static void

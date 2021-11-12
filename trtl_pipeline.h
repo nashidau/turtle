@@ -17,7 +17,8 @@ trtl_pipeline_create(struct turtle *turtle,
 		const char *vertex_shader,
 		const char *fragment_shader,
 		const VkVertexInputBindingDescription *binding_description,
-		const VkVertexInputAttributeDescription *attribute_description, uint32_t nattributes);
+		const VkVertexInputAttributeDescription *attribute_description, uint32_t nattributes,
+		bool layer_blend);
 
 
 

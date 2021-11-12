@@ -154,7 +154,7 @@ sprite_relayer(struct trtl_object *obj, struct turtle *turtle,
 	    N_VERTEX_ATTRIBUTE_DESCRIPTORS);
 	sprite->pipeline_info = trtl_pipeline_create(
 	    turtle, renderpass, size, sprite->descriptor_set_layout, VERTEX_SHADER, FRAGMENT_SHADER,
-	    &sprite_binding_descriptor, sprite_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS);
+	    &sprite_binding_descriptor, sprite_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS, false);
 }
 
 struct trtl_object *

@@ -115,7 +115,7 @@ sprite2_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rend
 	sprite2->pipeline_info =
 	    trtl_pipeline_create(turtle, renderpass, size, sprite2->descriptor_set_layout,
 				 "shaders/sprite/sprite-vertex.spv",
-				 "shaders/sprite/sprite-fragment.spv", NULL, NULL, 0);
+				 "shaders/sprite/sprite-fragment.spv", NULL, NULL, 0, true);
 }
 
 static VkDescriptorSetLayout

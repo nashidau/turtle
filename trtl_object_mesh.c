@@ -143,7 +143,7 @@ trtl_object_mesh_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain
 	// FIXME: Need to not leak this; and reuse other function
 	mesh->pipeline_info =
 	    trtl_pipeline_create(turtle, render_pass, extent, descriptor_set_layout,
-				 "shaders/vert.spv", "shaders/frag.spv", NULL, NULL, 0);
+				 "shaders/vert.spv", "shaders/frag.spv", NULL, NULL, 0, false);
 
 	{
 		struct trtl_seer_vertexset vertices;

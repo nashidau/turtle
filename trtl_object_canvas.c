@@ -113,7 +113,7 @@ canvas_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 	canvas->pipeline_info = trtl_pipeline_create(
 	    turtle, renderpass, size, canvas->descriptor_set_layout,
-	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0);
+	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0, false);
 }
 
 static VkDescriptorSetLayout
