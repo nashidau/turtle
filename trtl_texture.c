@@ -146,22 +146,11 @@ create_texture_image(struct turtle *turtle, const char *path)
 	int width, height, channels;
 
 	stbi_uc *pixels = stbi_load(path, &width, &height, &channels, STBI_rgb_alpha);
-	printf("Got %d channels (%dx%d)\n", channels, width, height);
 
 	if (pixels == NULL) {
 		error("failed to load texture image!");
 	}
 	VkDeviceSize imageSize = width * height * 4;
-
-	int count[256] = { 0 };
-	uint32_t *x = (uint32_t*)pixels;
-	for (VkDeviceSize i = 0 ; i < imageSize / 4 ; i ++) {
-		count[(x[i] >> 24) & 0xff]++;
-	}
-	for (int i = 0 ; i < 256; i ++) {
-		printf("%d ", count[i]);
-	}
-	printf("\n");
 
 	VkBuffer staging_buffer;
 	VkDeviceMemory staging_buffer_memory;
