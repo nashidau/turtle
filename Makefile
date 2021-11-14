@@ -82,7 +82,6 @@ SOURCES= \
 	trtl_object_canvas.c	\
 	trtl_object_grid.c	\
 	trtl_object_sprite.c	\
-	trtl_object_sprite2.c	\
 	trtl_pipeline.c	\
 	trtl_scribe.c   \
 	trtl_shader.c	\

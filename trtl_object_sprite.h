@@ -1,6 +1,6 @@
+#include <vulkan/vulkan.h>
 
-#pragma once
+struct trtl_swap_chain;
+struct turtle;
 
-#include "trtl_object.h"
-
-struct trtl_object *trtl_object_sprite_add(struct turtle *, const char *image);
+struct trtl_object *trtl_sprite_create(struct turtle *turtle, const char *image);
