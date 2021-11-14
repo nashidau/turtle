@@ -112,6 +112,8 @@ sprite2_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rend
 	struct trtl_object_sprite2 *sprite2 = trtl_object_sprite2(obj);
 	sprite2->size = size;
 	sprite2->descriptor_set = create_sprite2_descriptor_sets(sprite2, turtle->tsc);
+	// FIXME: Alternative is sprite-red-boder - which has a cool red border instead
+	// of alpha.
 	sprite2->pipeline_info =
 	    trtl_pipeline_create(turtle, renderpass, size, sprite2->descriptor_set_layout,
 				 "shaders/sprite/sprite-vertex.spv",
