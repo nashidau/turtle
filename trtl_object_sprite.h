@@ -1,6 +1,20 @@
+#pragma once
+
 #include <vulkan/vulkan.h>
 
-struct trtl_swap_chain;
-struct turtle;
+#include "helpers.h"
 
-struct trtl_object *trtl_sprite_create(struct turtle *turtle, const char *image);
+struct turtle;
+struct trtl_sprite_subsprite;
+
+typedef struct trtl_subsprite_index {
+	int index;
+} trtl_subsprite_index;
+
+trtl_alloc struct trtl_object *trtl_sprite_create(struct turtle *turtle);
+
+trtl_alloc struct trtl_sprite_subsprite *trtl_sprite_subsprite_add(struct trtl_object *sprite,
+								   const char *image);
+trtl_subsprite_index trtl_sprite_subsprite_instance_add(struct trtl_sprite_subsprite *subsprite);
+int trtl_sprite_subsprite_position_set(struct trtl_sprite_subsprite *subsprite,
+				       trtl_subsprite_index index, int x, int y);

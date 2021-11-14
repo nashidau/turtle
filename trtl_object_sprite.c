@@ -1,8 +1,8 @@
 /**
- * A sprite object is afairly simple sprite object used to render/manage a shader object.
+ * A sprite object is a used to render a 2d sprite object.  Multiple different objects can be added
+ * using the tempplate object.  Each different sprite is identified by a referene object (subsprite)
+ * and then an instance of the subsprite.
  *
- * Used for backgrounds. skyboses and similar objects. It provides a number of hooks to insert
- * paramaters into a supplied shader.
  */
 #include <assert.h>
 #include <time.h>
@@ -16,14 +16,16 @@
 #include "trtl_object_sprite.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
-#include "trtl_texture.h"
 #include "trtl_shell.h"
+#include "trtl_texture.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
 
 struct trtl_object_sprite {
 	struct trtl_object parent;
+
+	struct turtle *turtle;
 
 	uint32_t nframes;
 	VkDescriptorSetLayout descriptor_set_layout;
@@ -40,13 +42,17 @@ struct trtl_object_sprite {
 	VkExtent2D size;
 };
 
+struct trtl_sprite_subsprite {
+	int count;
+};
+
 struct sprite_shader_params {
 	vec2 screenSize;
 	float time;
 };
 
-trtl_alloc static VkDescriptorSet *
-create_sprite_descriptor_sets(struct trtl_object_sprite *sprite, struct trtl_swap_chain *scd);
+trtl_alloc static VkDescriptorSet *create_sprite_descriptor_sets(struct trtl_object_sprite *sprite);
+
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
 // static const struct vertex2d vertices[] = {
@@ -84,8 +90,8 @@ sprite_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 	vkCmdBindIndexBuffer(cmd_buffer, sprite->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				sprite->pipeline_info.pipeline_layout, 0, 1,
-				sprite->descriptor_set, 0, NULL);
+				sprite->pipeline_info.pipeline_layout, 0, 1, sprite->descriptor_set,
+				0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }
 
@@ -107,11 +113,11 @@ sprite_update(struct trtl_object *obj, trtl_arg_unused int frame)
 
 static void
 sprite_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
-	       VkExtent2D size)
+	      VkExtent2D size)
 {
 	struct trtl_object_sprite *sprite = trtl_object_sprite(obj);
 	sprite->size = size;
-	sprite->descriptor_set = create_sprite_descriptor_sets(sprite, turtle->tsc);
+	sprite->descriptor_set = create_sprite_descriptor_sets(sprite);
 	// FIXME: Alternative is sprite-red-boder - which has a cool red border instead
 	// of alpha.
 	sprite->pipeline_info =
@@ -152,12 +158,39 @@ sprite_create_descriptor_set_layout(VkDevice device)
 	return descriptor_set_layout;
 }
 
+// FIXME: Just imp
+trtl_alloc struct trtl_sprite_subsprite *
+trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
+{
+	struct trtl_object_sprite *sprite = trtl_object_sprite(object);
+	assert(image != NULL);
+
+	struct trtl_sprite_subsprite *subsprite;
+
+	// FIXME: Leaky
+	sprite->texture_image_view =
+	    create_texture_image_view(sprite->turtle, create_texture_image(sprite->turtle, image));
+
+	sprite->uniform_info =
+	    trtl_uniform_alloc_type(sprite->turtle->uniforms, struct sprite_shader_params);
+	sprite->descriptor_set = create_sprite_descriptor_sets(sprite);
+
+	subsprite = talloc_zero(sprite, struct trtl_sprite_subsprite);
+	subsprite->count = 1;
+	return subsprite;
+}
+
+trtl_subsprite_index trtl_sprite_subsprite_instance_add(struct trtl_sprite_subsprite *subsprite);
+int trtl_sprite_subsprite_position_set(struct trtl_sprite_subsprite *subsprite,
+				       trtl_subsprite_index index, int x, int y);
+
 trtl_alloc struct trtl_object *
-trtl_sprite_create(struct turtle *turtle, const char *image)
+trtl_sprite_create(struct turtle *turtle)
 {
 	struct trtl_object_sprite *sprite;
 
 	sprite = talloc_zero(NULL, struct trtl_object_sprite);
+	sprite->turtle = turtle;
 
 	// FIXME: Set a destructor and cleanup
 
@@ -167,15 +200,7 @@ trtl_sprite_create(struct turtle *turtle, const char *image)
 
 	sprite->nframes = turtle->tsc->nimages;
 
-	// FIXME: Leaky
-	sprite->texture_image_view =
-	    create_texture_image_view(turtle, create_texture_image(turtle, image));
-
-	sprite->uniform_info =
-	    trtl_uniform_alloc_type(turtle->uniforms, struct sprite_shader_params);
-
 	sprite->descriptor_set_layout = sprite_create_descriptor_set_layout(turtle->device);
-	sprite->descriptor_set = create_sprite_descriptor_sets(sprite, turtle->tsc);
 
 	{
 		struct trtl_seer_vertexset vertices;
@@ -197,7 +222,7 @@ trtl_sprite_create(struct turtle *turtle, const char *image)
 }
 
 trtl_alloc static VkDescriptorSet *
-create_sprite_descriptor_sets(struct trtl_object_sprite *sprite, struct trtl_swap_chain *scd)
+create_sprite_descriptor_sets(struct trtl_object_sprite *sprite)
 {
 	VkDescriptorSet *sets = talloc_zero_array(sprite, VkDescriptorSet, sprite->nframes);
 	VkDescriptorSetLayout *layouts =
@@ -209,11 +234,11 @@ create_sprite_descriptor_sets(struct trtl_object_sprite *sprite, struct trtl_swa
 
 	VkDescriptorSetAllocateInfo alloc_info = {0};
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	alloc_info.descriptorPool = scd->descriptor_pool;
+	alloc_info.descriptorPool = sprite->turtle->tsc->descriptor_pool;
 	alloc_info.descriptorSetCount = sprite->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(sprite->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
@@ -224,7 +249,7 @@ create_sprite_descriptor_sets(struct trtl_object_sprite *sprite, struct trtl_swa
 		VkDescriptorImageInfo image_info = {0};
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		image_info.imageView = sprite->texture_image_view;
-		image_info.sampler = scd->turtle->texture_sampler;
+		image_info.sampler = sprite->turtle->texture_sampler;
 
 		VkWriteDescriptorSet descriptorWrites[2] = {0};
 
@@ -244,7 +269,7 @@ create_sprite_descriptor_sets(struct trtl_object_sprite *sprite, struct trtl_swa
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &image_info;
 
-		vkUpdateDescriptorSets(scd->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
+		vkUpdateDescriptorSets(sprite->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
 				       descriptorWrites, 0, NULL);
 	}
 
