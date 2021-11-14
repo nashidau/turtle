@@ -118,11 +118,15 @@ load_objects(struct turtle *turtle)
 int
 main(int argc, char **argv)
 {
+	static const struct trtl_layer_info layers[] = {
+		/* background */ { .has_depth = true, .clear_on_load = true },
+		/* Grid */ { .has_depth = true, .clear_on_load = false },
+	};
 	struct turtle *turtle;
 
 	parse_arguments(argc, argv);
 
-	turtle = turtle_init();
+	turtle = turtle_init(TRTL_ARRAY_SIZE(layers), layers);
 
 	load_objects(turtle);
 
