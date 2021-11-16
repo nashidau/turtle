@@ -34,16 +34,24 @@ struct trtl_object_sprite {
 
 	struct trtl_pipeline_info pipeline_info;
 
-	VkImageView texture_image_view;
-
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
 
 	VkExtent2D size;
+
+	struct trtl_sprite_subsprite *subsprite;
 };
 
 struct trtl_sprite_subsprite {
-	int count;
+	// The sprite itself.
+	struct trtl_object_sprite *sprite;
+
+	VkImageView texture_image_view;
+
+	// FIXME: Instane variable
+	struct {
+		int x, y;
+	} pos;
 };
 
 struct sprite_shader_params {
@@ -51,7 +59,8 @@ struct sprite_shader_params {
 	float time;
 };
 
-trtl_alloc static VkDescriptorSet *create_sprite_descriptor_sets(struct trtl_object_sprite *sprite);
+trtl_alloc static VkDescriptorSet *create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
+		struct trtl_sprite_subsprite *subsprite);
 
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
@@ -115,9 +124,10 @@ static void
 sprite_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
 	      VkExtent2D size)
 {
+	// FIXME: Handle the empty case.
 	struct trtl_object_sprite *sprite = trtl_object_sprite(obj);
 	sprite->size = size;
-	sprite->descriptor_set = create_sprite_descriptor_sets(sprite);
+	sprite->descriptor_set = create_sprite_descriptor_sets(sprite, sprite->subsprite);
 	// FIXME: Alternative is sprite-red-boder - which has a cool red border instead
 	// of alpha.
 	sprite->pipeline_info =
@@ -167,22 +177,39 @@ trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
 
 	struct trtl_sprite_subsprite *subsprite;
 
+	subsprite = talloc_zero(sprite, struct trtl_sprite_subsprite);
+	sprite->subsprite = subsprite;
+
 	// FIXME: Leaky
-	sprite->texture_image_view =
+	subsprite->texture_image_view =
 	    create_texture_image_view(sprite->turtle, create_texture_image(sprite->turtle, image));
 
 	sprite->uniform_info =
 	    trtl_uniform_alloc_type(sprite->turtle->uniforms, struct sprite_shader_params);
-	sprite->descriptor_set = create_sprite_descriptor_sets(sprite);
+	sprite->descriptor_set = create_sprite_descriptor_sets(sprite, subsprite);
 
-	subsprite = talloc_zero(sprite, struct trtl_sprite_subsprite);
-	subsprite->count = 1;
+	subsprite->sprite = sprite;
+
+	subsprite->pos.x = subsprite->pos.y = 0;
 	return subsprite;
 }
 
 trtl_subsprite_index trtl_sprite_subsprite_instance_add(struct trtl_sprite_subsprite *subsprite);
-int trtl_sprite_subsprite_position_set(struct trtl_sprite_subsprite *subsprite,
-				       trtl_subsprite_index index, int x, int y);
+
+int
+trtl_sprite_subsprite_position_set(struct trtl_sprite_subsprite *subsprite,
+				   trtl_subsprite_index index, int x, int y)
+{
+	assert(subsprite);
+	// struct trtl_object_sprite *sprite = subsprite->sprite;
+
+	assert(index.index == 0);
+
+	subsprite->pos.x = x;
+	subsprite->pos.y = y;
+
+	return 0;
+}
 
 trtl_alloc struct trtl_object *
 trtl_sprite_create(struct turtle *turtle)
@@ -222,7 +249,8 @@ trtl_sprite_create(struct turtle *turtle)
 }
 
 trtl_alloc static VkDescriptorSet *
-create_sprite_descriptor_sets(struct trtl_object_sprite *sprite)
+create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
+			      struct trtl_sprite_subsprite *subsprite)
 {
 	VkDescriptorSet *sets = talloc_zero_array(sprite, VkDescriptorSet, sprite->nframes);
 	VkDescriptorSetLayout *layouts =
@@ -248,7 +276,7 @@ create_sprite_descriptor_sets(struct trtl_object_sprite *sprite)
 
 		VkDescriptorImageInfo image_info = {0};
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = sprite->texture_image_view;
+		image_info.imageView = subsprite->texture_image_view;
 		image_info.sampler = sprite->turtle->texture_sampler;
 
 		VkWriteDescriptorSet descriptorWrites[2] = {0};
