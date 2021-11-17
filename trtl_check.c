@@ -26,7 +26,6 @@ int main(trtl_arg_unused int argc, trtl_arg_unused char **argv) {
 #  if !__has_feature(address_sanitizer)
 	talloc_enable_leak_report();
 #  endif
-	talloc_enable_leak_report();
 
 	sr = srunner_create(NULL);
 	for (i = 0 ; i < N_MODULES ; i ++) {
