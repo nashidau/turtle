@@ -5,7 +5,7 @@ layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
 layout(constant_id = 2) const int tileSize = 128;
 
-layout(binding = 0) uniform  pos2d {
+layout(binding = 0) uniform pos2d {
     vec2 pos;
     //vec3 size;
 } u_sprite;
@@ -42,7 +42,6 @@ vec2 textureCoords[] = vec2[](
 );
 
 float width = 128;
-vec2 pos = vec2(0.0, 0.0);
 
 void main() {
     vec2 screenSize = vec2(screenWidth, screenHeight) / 2.0;
@@ -59,7 +58,7 @@ void main() {
     //pos.y -= centerPos.y;
 
     // rotate
-    pos = rotate2d(degree45) * pos;
+    vec2 pos = rotate2d(degree45) * u_sprite.pos;
 
     // Flattern to isometric
     pos.y = pos.y / 2.0;

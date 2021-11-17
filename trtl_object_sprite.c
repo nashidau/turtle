@@ -48,15 +48,16 @@ struct trtl_sprite_subsprite {
 
 	VkImageView texture_image_view;
 
-	// FIXME: Instane variable
+	// FIXME: Instance variable
 	struct {
 		int x, y;
 	} pos;
 };
 
 struct sprite_shader_params {
-	vec2 screenSize;
-	float time;
+	vec2 position;
+	//vec2 screenSize;
+	//float time;
 };
 
 trtl_alloc static VkDescriptorSet *
@@ -113,9 +114,11 @@ sprite_update(struct trtl_object *obj, trtl_arg_unused int frame)
 
 	params = trtl_uniform_info_address(sprite->uniform_info, frame);
 
-	params->time = time(NULL);
-	params->screenSize[0] = 1.0; // sprite->size.width;
-	params->screenSize[1] = 0.5; // sprite->size.height;
+	//params->time = time(NULL);
+	//params->screenSize[0] = 1.0; // sprite->size.width;
+	//params->screenSize[1] = 0.5; // sprite->size.height;
+	params->position[0] = sprite->subsprite->pos.x;
+	params->position[1] = sprite->subsprite->pos.y;
 
 	// We updated
 	return true;
