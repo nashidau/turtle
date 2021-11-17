@@ -59,8 +59,9 @@ struct sprite_shader_params {
 	float time;
 };
 
-trtl_alloc static VkDescriptorSet *create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
-		struct trtl_sprite_subsprite *subsprite);
+trtl_alloc static VkDescriptorSet *
+create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
+			      struct trtl_sprite_subsprite *subsprite);
 
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
