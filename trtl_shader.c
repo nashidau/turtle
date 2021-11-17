@@ -66,6 +66,7 @@ shader_node_destroy(struct shader_node *node) {
 	// Remove it from the list
 	// Urgh; singly linked
 	struct trtl_shader_cache *cache = node->cache;
+	printf("shader node destroy\n");
 	if (cache->shaders == node) {
 		// first item
 		cache->shaders = node->next;

@@ -13,6 +13,7 @@ typedef Suite *(*test_module)(void *ctx);
 
 static test_module test_modules[] = {
 	//trtl_uniform_suite,
+	trtl_shader_suite,
 	trtl_timer_suite,
 };
 #define N_MODULES ((int)(sizeof(test_modules)/sizeof(test_modules[0])))
@@ -25,6 +26,7 @@ int main(trtl_arg_unused int argc, trtl_arg_unused char **argv) {
 #  if !__has_feature(address_sanitizer)
 	talloc_enable_leak_report();
 #  endif
+	talloc_enable_leak_report();
 
 	sr = srunner_create(NULL);
 	for (i = 0 ; i < N_MODULES ; i ++) {

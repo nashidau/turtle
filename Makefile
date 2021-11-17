@@ -13,7 +13,8 @@ ifeq ($(detected_OS),Darwin)
 		# -all_load is only needed for a static library; move to dynamicl and it goes away
 	PLATFORM_LDFLAGS=-framework Cocoa -framework IOSurface -framework IOKit \
 			 -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
-			 -fsanitize=address -rdynamic -all_load
+			 -rdynamic -all_load \
+			 -fsanitize=address
 	AR?=ar
 	ARCOMMAND?=ru
 endif
@@ -62,10 +63,12 @@ endif
 SHADERCC?=~/work/vulkan/turtle-support/mac/glslc
 
 TESTS=	\
-	trtl_uniform.o \
+	trtl_shader.o \
 	trtl_timer.o \
+	trtl_uniform.o \
 	helpers.o \
 	turtle.o \
+	trtl_shader_check.o \
 	trtl_timer_check.o \
 	trtl_uniform_check.o
 
