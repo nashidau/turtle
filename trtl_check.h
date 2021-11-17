@@ -20,4 +20,13 @@ Suite *trtl_shader_suite(trtl_arg_unused void *ctx);
 	} while (0)
 #endif
 
+// The ubuntu 20.04 version of check is still ancient
+#ifndef ck_assert_ptr_nonnull
+#define ck_assert_ptr_nonnull(X)                                                                   \
+	do {                                                                                       \
+		const void *_ck_x = (X);                                                           \
+		ck_assert_msg(_ck_x != NULL, "Assertion '%s is not null' failed: %s == %p",        \
+			      #X, #X, _ck_x);                                                      \
+	} while (0)
+#endif
 
