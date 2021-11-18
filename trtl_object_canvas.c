@@ -109,6 +109,15 @@ canvas_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 	      VkExtent2D size)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
+	
+	if (canvas->descriptor_set) {
+		talloc_free(canvas->descriptor_set);
+	}
+	if (canvas->pipeline_info) {
+		talloc_free(canvas->pipeline_info);
+	}
+	
+
 	canvas->size = size;
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 	canvas->pipeline_info = trtl_pipeline_create(

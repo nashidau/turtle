@@ -4,6 +4,7 @@
 #include "turtle.h"
 
 struct trtl_pipeline_info {
+	VkDevice device; // Used in destructor... *sigh*
 	VkPipelineLayout pipeline_layout;
 	VkPipeline pipeline;
 };

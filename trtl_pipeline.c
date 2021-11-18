@@ -64,6 +64,15 @@ set_specialise_info(VkExtent2D *extent)
 	return info;
 }
 
+static int
+pipeline_destroy(struct trtl_pipeline_info *info) {
+	// free the pipeline
+	vkDestroyPipeline(info->device, info->pipeline, NULL);
+	vkDestroyPipelineLayout(info->device, info->pipeline_layout, NULL);
+	return 0;
+}
+
+
 /*
  * FIXME: We creeate a pipeline layout and a pipeline here.  The layout is pretty much the same so
  * we should create it once then reuse it.  A pipeline layout creator with the shaders and other
@@ -79,9 +88,11 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 		     bool layer_blend)
 {
 	struct trtl_pipeline_info *info = talloc_zero(turtle, struct trtl_pipeline_info);
+	info->device = turtle->device;
+	talloc_set_destructor(info, pipeline_destroy);
 
-	struct trtl_shader *vert = trtl_shader_get(turtle, vertex_shader);
-	struct trtl_shader *frag = trtl_shader_get(turtle, fragment_shader);
+	struct trtl_shader *vert = talloc_steal(info, trtl_shader_get(turtle, vertex_shader));
+	struct trtl_shader *frag = talloc_steal(info, trtl_shader_get(turtle, fragment_shader));
 
 	VkSpecializationInfo *specialisationInfo = set_specialise_info(&extent);
 	VkVertexInputAttributeDescription *tofree = NULL;
