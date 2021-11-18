@@ -64,7 +64,12 @@ set_specialise_info(VkExtent2D *extent)
 	return info;
 }
 
-struct trtl_pipeline_info
+/*
+ * FIXME: We creeate a pipeline layout and a pipeline here.  The layout is pretty much the same so
+ * we should create it once then reuse it.  A pipeline layout creator with the shaders and other
+ * attachments added.
+ */
+struct trtl_pipeline_info *
 trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D extent,
 		     VkDescriptorSetLayout descriptor_set_layout, const char *vertex_shader,
 		     const char *fragment_shader,
@@ -73,7 +78,7 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 		     uint32_t nattributes,
 		     bool layer_blend)
 {
-	struct trtl_pipeline_info info;
+	struct trtl_pipeline_info *info = talloc_zero(turtle, struct trtl_pipeline_info);
 
 	struct trtl_shader *vert = trtl_shader_get(turtle, vertex_shader);
 	struct trtl_shader *frag = trtl_shader_get(turtle, fragment_shader);
@@ -223,7 +228,7 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 	pipeline_layout_info.pPushConstantRanges = NULL; // Optional
 
 	if (vkCreatePipelineLayout(turtle->device, &pipeline_layout_info, NULL,
-				   &info.pipeline_layout) != VK_SUCCESS) {
+				   &info->pipeline_layout) != VK_SUCCESS) {
 		error("failed to create pipeline layout!");
 	}
 
@@ -240,13 +245,13 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 	pipelineInfo.pDepthStencilState = &depth_stencil;
 	pipelineInfo.pColorBlendState = &colorBlending;
 
-	pipelineInfo.layout = info.pipeline_layout;
+	pipelineInfo.layout = info->pipeline_layout;
 	pipelineInfo.renderPass = render_pass;
 	pipelineInfo.subpass = 0;
 	pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
 
 	VkResult rv = vkCreateGraphicsPipelines(turtle->device, VK_NULL_HANDLE, 1, &pipelineInfo,
-						NULL, &info.pipeline);
+						NULL, &info->pipeline);
 	if (rv != VK_SUCCESS) {
 		error_msg(rv, "failed to create graphics pipeline!");
 	}

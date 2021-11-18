@@ -28,7 +28,7 @@ struct trtl_object_mesh {
 
 	struct trtl_uniform_info *uniform_info;
 
-	struct trtl_pipeline_info pipeline_info;
+	struct trtl_pipeline_info *pipeline_info;
 
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
@@ -58,13 +58,13 @@ trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t o
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			  mesh->pipeline_info.pipeline);
+			  mesh->pipeline_info->pipeline);
 
 	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh->vertex_buffer, &offsets);
 	vkCmdBindIndexBuffer(cmd_buffer, mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				mesh->pipeline_info.pipeline_layout, 0, 1, mesh->descriptor_set, 0,
+				mesh->pipeline_info->pipeline_layout, 0, 1, mesh->descriptor_set, 0,
 				NULL);
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }

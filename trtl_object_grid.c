@@ -40,7 +40,7 @@ struct trtl_object_grid {
 	VkDescriptorSet *descriptor_set;
 	struct trtl_uniform_info *uniform_info;
 
-	struct trtl_pipeline_info pipeline_info;
+	struct trtl_pipeline_info *pipeline_info;
 
 	uint32_t vcount;
 	uint32_t icount;
@@ -208,13 +208,13 @@ grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused i
 	VkDeviceSize offsets = 0;
 
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			  grid->pipeline_info.pipeline);
+			  grid->pipeline_info->pipeline);
 
 	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &grid->vertex_buffer, &offsets);
 	vkCmdBindIndexBuffer(cmd_buffer, grid->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				grid->pipeline_info.pipeline_layout, 0, 1, grid->descriptor_set, 0,
+				grid->pipeline_info->pipeline_layout, 0, 1, grid->descriptor_set, 0,
 				NULL);
 	vkCmdDrawIndexed(cmd_buffer, grid->icount, 1, 0, offset, 0);
 }

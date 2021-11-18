@@ -32,7 +32,7 @@ struct trtl_object_sprite {
 	VkDescriptorSet *descriptor_set;
 	struct trtl_uniform_info *uniform_info;
 
-	struct trtl_pipeline_info pipeline_info;
+	struct trtl_pipeline_info *pipeline_info;
 
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
@@ -95,13 +95,13 @@ sprite_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 	VkDeviceSize offsets = 0;
 
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			  sprite->pipeline_info.pipeline);
+			  sprite->pipeline_info->pipeline);
 
 	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &sprite->vertex_buffer, &offsets);
 	vkCmdBindIndexBuffer(cmd_buffer, sprite->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				sprite->pipeline_info.pipeline_layout, 0, 1, sprite->descriptor_set,
+				sprite->pipeline_info->pipeline_layout, 0, 1, sprite->descriptor_set,
 				0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }

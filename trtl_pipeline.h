@@ -9,7 +9,7 @@ struct trtl_pipeline_info {
 };
 
 
-struct trtl_pipeline_info
+struct trtl_pipeline_info *
 trtl_pipeline_create(struct turtle *turtle,
 		VkRenderPass render_pass,
 		VkExtent2D extent,

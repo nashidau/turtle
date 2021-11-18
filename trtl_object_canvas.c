@@ -1,5 +1,5 @@
 /**
- * A canvas object is afairly simple canvas object used to render/manage a shader object.
+ * A canvas object is a fairly simple canvas object used to render/manage a shader object.
  *
  * Used for backgrounds. skyboses and similar objects. It provides a number of hooks to insert
  * paramaters into a supplied shader.
@@ -29,7 +29,7 @@ struct trtl_object_canvas {
 	VkDescriptorSet *descriptor_set;
 	struct trtl_uniform_info *uniform_info;
 
-	struct trtl_pipeline_info pipeline_info;
+	struct trtl_pipeline_info *pipeline_info;
 
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
@@ -75,13 +75,13 @@ canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 	VkDeviceSize offsets = 0;
 
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			  canvas->pipeline_info.pipeline);
+			  canvas->pipeline_info->pipeline);
 
 	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &canvas->vertex_buffer, &offsets);
 	vkCmdBindIndexBuffer(cmd_buffer, canvas->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				canvas->pipeline_info.pipeline_layout, 0, 1, canvas->descriptor_set,
+				canvas->pipeline_info->pipeline_layout, 0, 1, canvas->descriptor_set,
 				0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }
