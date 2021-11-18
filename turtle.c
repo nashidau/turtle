@@ -593,6 +593,9 @@ turtle_destructor(struct turtle *turtle)
 	talloc_free(turtle->seer);
 
 	// This is obivoulsy no longer useful, free early
+	// FIXME: Explicit free is really useful for vulkan, I should 
+	// make sure destructor order is explicit.  Maybe remove the reference
+	// or something.
 //	printf("free shader cache\n");
 //	talloc_free(turtle->shader_cache);
 //	turtle->shader_cache = NULL;
