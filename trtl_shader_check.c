@@ -55,6 +55,32 @@ START_TEST(test_shader_get)
 }
 END_TEST
 
+START_TEST(test_shader_get_multiple)
+{
+	struct turtle *turtle = init_shader();
+	struct trtl_shader *shader;
+	struct trtl_shader *shader2;
+
+	shader = trtl_shader_get(turtle, "test_shader");
+	ck_assert_ptr_nonnull(shader);
+	shader2 = trtl_shader_get(turtle, "test_shader");
+	ck_assert_ptr_nonnull(shader2);
+	// They should be distinct
+	ck_assert_ptr_ne(shader2, shader);
+
+	talloc_free(shader);
+
+	ck_assert_int_eq(vkCreateShaderModule_fake.call_count, 1);
+	ck_assert_int_eq(vkDestroyShaderModule_fake.call_count, 0);
+
+	talloc_free(shader2);
+
+	ck_assert_int_eq(vkDestroyShaderModule_fake.call_count, 1);
+
+	talloc_free(turtle);
+}
+END_TEST
+
 Suite *
 trtl_shader_suite(trtl_arg_unused void *ctx)
 {
@@ -72,6 +98,7 @@ trtl_shader_suite(trtl_arg_unused void *ctx)
 		suite_add_tcase(s, tc_get);
 
 		tcase_add_test(tc_get, test_shader_get);
+		tcase_add_test(tc_get, test_shader_get_multiple);
 	}
 	return s;
 }
