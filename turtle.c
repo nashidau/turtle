@@ -621,7 +621,6 @@ static int
 swap_chain_data_destructor(struct trtl_swap_chain *scd)
 {
 	VkDevice device;
-	uint32_t i;
 
 	device = scd->turtle->device;
 
@@ -630,10 +629,6 @@ swap_chain_data_destructor(struct trtl_swap_chain *scd)
 	// FIXME: There are multiple pipelines now
 	// vkDestroyPipeline(device, *scd->pipelines, NULL);
 	// vkDestroyPipelineLayout(device, scd->pipeline_layout, NULL);
-
-	for (i = 0; i < scd->nimages; i++) {
-		vkDestroyImageView(device, scd->image_views[i], NULL);
-	}
 
 	vkDestroySwapchainKHR(device, scd->swap_chain, NULL);
 

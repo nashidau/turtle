@@ -102,11 +102,37 @@ create_image_view(struct turtle *turtle, VkImage image, VkFormat format,
 	return imageView;
 }
 
+// FIXME: Should I turn this into a struacture with the appropriate meta data (Array size, 
+// vkDevice etc)
+static int
+image_view_array_destroy(VkImageView *image_views) {
+	struct trtl_swap_chain *tsc;
+	uint32_t nimages;
+
+	tsc = talloc_find_parent_bytype(image_views, struct trtl_swap_chain);
+
+	printf("Image view destroy: Size: %zd %p\n", talloc_get_size(image_views), tsc);
+
+	if (tsc == NULL) {
+		printf("Unable to find parent to remove image view\n");
+		return 0;
+	}
+
+	nimages = (uint32_t)talloc_get_size(image_views) / sizeof(VkImageView);
+
+	for (uint32_t i = 0 ; i < nimages ; i ++) {
+		vkDestroyImageView(tsc->turtle->device, image_views[i], NULL);
+	}
+
+	return 0;
+}
+
 VkImageView *
 create_image_views(struct turtle *turtle, VkImage *images, uint32_t nimages)
 {
 	VkImageView *image_views;
-	image_views = talloc_array(NULL, VkImageView, nimages);
+	image_views = talloc_array(turtle->tsc, VkImageView, nimages);
+	talloc_set_destructor(image_views, image_view_array_destroy);
 
 	for (uint32_t i = 0; i < nimages; i++) {
 		image_views[i] = create_image_view(turtle, images[i], turtle->image_format,
