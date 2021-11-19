@@ -29,22 +29,30 @@ struct trtl_object_sprite {
 
 	uint32_t nframes;
 	VkDescriptorSetLayout descriptor_set_layout;
-	VkDescriptorSet *descriptor_set;
-	struct trtl_uniform_info *uniform_info;
 
 	struct trtl_pipeline_info *pipeline_info;
+
+	uint32_t max_sprites;
+	uint32_t nsprites;
+	struct trtl_uniform_info *uniform_info;
 
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
 
 	VkExtent2D size;
+	VkDescriptorSet *descriptor_set;
 
 	struct trtl_sprite_subsprite *subsprite;
 };
 
 struct trtl_sprite_subsprite {
+	// FIXME: Need a generic linked list implementation
+	struct trtl_sprite_subsprite *next;
+
 	// The sprite itself.
 	struct trtl_object_sprite *sprite;
+
+	uint32_t uniform_index;
 
 	VkImageView texture_image_view;
 
@@ -56,8 +64,8 @@ struct trtl_sprite_subsprite {
 
 struct sprite_shader_params {
 	vec2 position;
-	//vec2 screenSize;
-	//float time;
+	// vec2 screenSize;
+	// float time;
 };
 
 trtl_alloc static VkDescriptorSet *
@@ -101,9 +109,9 @@ sprite_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 	vkCmdBindIndexBuffer(cmd_buffer, sprite->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				sprite->pipeline_info->pipeline_layout, 0, 1, sprite->descriptor_set,
-				0, NULL);
-	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
+			sprite->pipeline_info->pipeline_layout, 0, 1,
+			sprite->descriptor_set, 0, NULL);
+	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, sprite->nsprites, 0, offset, 0);
 }
 
 static bool
@@ -111,14 +119,21 @@ sprite_update(struct trtl_object *obj, trtl_arg_unused int frame)
 {
 	struct trtl_object_sprite *sprite = trtl_object_sprite(obj);
 	struct sprite_shader_params *params;
+	struct trtl_sprite_subsprite *subsprite;
 
 	params = trtl_uniform_info_address(sprite->uniform_info, frame);
 
-	//params->time = time(NULL);
-	//params->screenSize[0] = 1.0; // sprite->size.width;
-	//params->screenSize[1] = 0.5; // sprite->size.height;
-	params->position[0] = sprite->subsprite->pos.x;
-	params->position[1] = sprite->subsprite->pos.y;
+	subsprite = sprite->subsprite;
+	while (subsprite) {
+
+		// params->time = time(NULL);
+		// params->screenSize[0] = 1.0; // sprite->size.width;
+		// params->screenSize[1] = 0.5; // sprite->size.height;
+		params[subsprite->uniform_index * 2].position[0] = subsprite->pos.x;
+		params[subsprite->uniform_index * 2].position[1] = subsprite->pos.y;
+
+		subsprite = subsprite->next;
+	}
 
 	// We updated
 	return true;
@@ -131,7 +146,7 @@ sprite_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 	// FIXME: Handle the empty case.
 	struct trtl_object_sprite *sprite = trtl_object_sprite(obj);
 	sprite->size = size;
-	sprite->descriptor_set = create_sprite_descriptor_sets(sprite, sprite->subsprite);
+	// sprite->descriptor_set = create_sprite_descriptor_sets(sprite, sprite->subsprite);
 	// FIXME: Alternative is sprite-red-boder - which has a cool red border instead
 	// of alpha.
 	sprite->pipeline_info =
@@ -159,7 +174,7 @@ sprite_create_descriptor_set_layout(VkDevice device)
 	sampler_layout_binding.pImmutableSamplers = NULL;
 	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 
-	VkDescriptorSetLayoutBinding bindings[2] = {ubo_layout_binding, sampler_layout_binding};
+	VkDescriptorSetLayoutBinding bindings[] = {ubo_layout_binding, sampler_layout_binding};
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
@@ -172,29 +187,34 @@ sprite_create_descriptor_set_layout(VkDevice device)
 	return descriptor_set_layout;
 }
 
-// FIXME: Just imp
 trtl_alloc struct trtl_sprite_subsprite *
 trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
 {
 	struct trtl_object_sprite *sprite = trtl_object_sprite(object);
 	assert(image != NULL);
+	assert(sprite->nsprites < sprite->max_sprites);
 
 	struct trtl_sprite_subsprite *subsprite;
 
 	subsprite = talloc_zero(sprite, struct trtl_sprite_subsprite);
+	subsprite->next = sprite->subsprite;
 	sprite->subsprite = subsprite;
 
-	// FIXME: Leaky
-	subsprite->texture_image_view =
-	    create_texture_image_view(sprite->turtle, create_texture_image(sprite->turtle, image));
+	subsprite->uniform_index = sprite->nsprites;
+	sprite->nsprites ++;
 
-	sprite->uniform_info =
-	    trtl_uniform_alloc_type(sprite->turtle->uniforms, struct sprite_shader_params);
-	sprite->descriptor_set = create_sprite_descriptor_sets(sprite, subsprite);
+	// FIXME: Leaky
+	// FIXME: FIrst image only
+	if (!sprite->descriptor_set) {
+		subsprite->texture_image_view =
+			create_texture_image_view(sprite->turtle, create_texture_image(sprite->turtle, image));
+		sprite->descriptor_set = create_sprite_descriptor_sets(sprite, subsprite);
+	}
 
 	subsprite->sprite = sprite;
 
 	subsprite->pos.x = subsprite->pos.y = 0;
+
 	return subsprite;
 }
 
@@ -216,12 +236,16 @@ trtl_sprite_subsprite_position_set(struct trtl_sprite_subsprite *subsprite,
 }
 
 trtl_alloc struct trtl_object *
-trtl_sprite_create(struct turtle *turtle)
+trtl_sprite_create(struct turtle *turtle, uint32_t nsprites)
 {
 	struct trtl_object_sprite *sprite;
 
+	if (nsprites < 1) nsprites = 1;
+
 	sprite = talloc_zero(NULL, struct trtl_object_sprite);
 	sprite->turtle = turtle;
+	sprite->max_sprites = nsprites;
+	sprite->nsprites = 0; // None so far
 
 	// FIXME: Set a destructor and cleanup
 
@@ -230,6 +254,10 @@ trtl_sprite_create(struct turtle *turtle)
 	sprite->parent.relayer = sprite_resize;
 
 	sprite->nframes = turtle->tsc->nimages;
+
+	// We allocate the maximum number of sprites to avoid a realloc later
+	sprite->uniform_info = trtl_uniform_alloc_type_array(
+	    sprite->turtle->uniforms, struct sprite_shader_params, sprite->max_sprites);
 
 	sprite->descriptor_set_layout = sprite_create_descriptor_set_layout(turtle->device);
 
