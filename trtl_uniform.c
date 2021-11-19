@@ -190,7 +190,7 @@ trtl_uniform_info_address(struct trtl_uniform_info *info, int frame)
  *
  * @parma info A trtl uniform info pointer.
  * @param frame The frame we are getting info for.
- * @return VkDescriptorBufferInfo with the base, offset and size of the unifrom filled.
+ * @return VkDescriptorBufferInfo with the base, offset and size of the uniform filled.
  */
 VkDescriptorBufferInfo
 trtl_uniform_buffer_get_descriptor(struct trtl_uniform_info *info, int frame)

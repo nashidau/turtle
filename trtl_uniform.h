@@ -9,6 +9,8 @@ void *trtl_uniform_buffer_base_get(struct trtl_uniform *uniforms, uint8_t nframe
 
 struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size);
 #define trtl_uniform_alloc_type(uniforms, obj) trtl_uniform_alloc(uniforms, sizeof(obj))
+#define trtl_uniform_alloc_type_array(uniforms, obj, count)                                        \
+	trtl_uniform_alloc(uniforms, (count) * sizeof(obj))
 
 void trtl_uniform_update(struct trtl_uniform *uniforms, uint32_t frame);
 
