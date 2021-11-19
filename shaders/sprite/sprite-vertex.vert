@@ -6,7 +6,7 @@ layout(constant_id = 1) const int screenHeight = 600;
 layout(constant_id = 2) const int tileSize = 128;
 
 layout(binding = 0) uniform pos2d {
-    vec2 pos;
+    vec2[2] pos;
     //vec3 size;
 } u_sprite;
 
@@ -58,7 +58,7 @@ void main() {
     //pos.y -= centerPos.y;
 
     // rotate
-    vec2 pos = rotate2d(degree45) * u_sprite.pos;
+    vec2 pos = rotate2d(degree45) * u_sprite.pos[gl_InstanceIndex];
 
     // Flattern to isometric
     pos.y = pos.y / 2.0;
