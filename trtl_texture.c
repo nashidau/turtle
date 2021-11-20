@@ -14,7 +14,7 @@ transitionImageLayout(VkImage image,
 		      trtl_arg_unused VkFormat format, VkImageLayout oldLayout,
 		      VkImageLayout newLayout)
 {
-	struct trtl_solo *solo = trtl_solo_get();
+	struct trtl_solo *solo = trtl_solo_start();
 
 	VkImageMemoryBarrier barrier = {0};
 	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
@@ -60,7 +60,7 @@ void
 copyBufferToImage(trtl_arg_unused struct turtle *turtle, VkBuffer buffer, VkImage image,
 		  uint32_t width, uint32_t height)
 {
-	struct trtl_solo *solo = trtl_solo_get();
+	struct trtl_solo *solo = trtl_solo_start();
 
 	VkBufferImageCopy region = {0};
 	region.bufferOffset = 0;
@@ -145,7 +145,7 @@ static void
 copy_buffer_to_image(trtl_arg_unused struct turtle *turtle, VkBuffer buffer, VkImage image,
 		     uint32_t width, uint32_t height)
 {
-	struct trtl_solo *solo = trtl_solo_get();
+	struct trtl_solo *solo = trtl_solo_start();
 
 	VkBufferImageCopy region = {0};
 	region.bufferOffset = 0;
@@ -161,7 +161,7 @@ copy_buffer_to_image(trtl_arg_unused struct turtle *turtle, VkBuffer buffer, VkI
 	vkCmdCopyBufferToImage(solo->command_buffer, buffer, image,
 			       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 
-	trtl_solo_done(solo);
+	trtl_solo_end(solo);
 }
 
 VkImage

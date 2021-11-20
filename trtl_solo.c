@@ -29,7 +29,8 @@ trtl_solo_init(struct turtle *turtle)
 }
 
 static int
-trtl_solo_destroy(struct trtl_solo_internal *solo) {
+trtl_solo_destroy(struct trtl_solo_internal *solo)
+{
 	vkEndCommandBuffer(solo->solo.command_buffer);
 
 	VkSubmitInfo submit_info = {0};
@@ -46,7 +47,7 @@ trtl_solo_destroy(struct trtl_solo_internal *solo) {
 }
 
 struct trtl_solo *
-trtl_solo_get(void)
+trtl_solo_start(void)
 {
 	struct trtl_solo_internal *solo;
 
@@ -72,4 +73,3 @@ trtl_solo_get(void)
 
 	return &solo->solo;
 }
-

@@ -16,7 +16,7 @@ void endSingleTimeCommands(struct render_context *render, VkCommandBuffer comman
 static void
 copyBuffer(VkBuffer srcBuffer, VkBuffer dstBuffer, VkDeviceSize size)
 {
-	struct trtl_solo *solo = trtl_solo_get();
+	struct trtl_solo *solo = trtl_solo_start();
 
 	VkBufferCopy copyRegion = {0};
 	copyRegion.size = size;
