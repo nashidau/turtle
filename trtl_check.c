@@ -15,6 +15,7 @@ static test_module test_modules[] = {
 	//trtl_uniform_suite,
 	trtl_shader_suite,
 	trtl_timer_suite,
+	trtl_solo_suite,
 };
 #define N_MODULES ((int)(sizeof(test_modules)/sizeof(test_modules[0])))
 

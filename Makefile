@@ -63,14 +63,16 @@ endif
 SHADERCC?=~/work/vulkan/turtle-support/mac/glslc
 
 TESTS=	\
-	trtl_shader.o \
-	trtl_timer.o \
-	trtl_uniform.o \
 	helpers.o \
-	turtle.o \
+	trtl_shader.o \
 	trtl_shader_check.o \
+	trtl_solo.o \
+	trtl_solo_check.o \
+	trtl_timer.o \
 	trtl_timer_check.o \
-	trtl_uniform_check.o
+	trtl_uniform.o \
+	trtl_uniform_check.o \
+	turtle.o
 
 SOURCES= \
 	vertex.c	\
