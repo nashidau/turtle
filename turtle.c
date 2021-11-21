@@ -427,17 +427,17 @@ turtle_init(int nlayers, const struct trtl_layer_info *layers)
 
 	VkPhysicalDeviceProperties properties = {0};
 	vkGetPhysicalDeviceProperties(turtle->physical_device, &properties);
-	printf("Vulkan API Version: %d.%d.%d\n", 
-			VK_VERSION_MAJOR(properties.apiVersion),
-			VK_VERSION_MINOR(properties.apiVersion),
-			VK_VERSION_PATCH(properties.apiVersion));
+	printf("Vulkan API Version: %d.%d.%d\n", VK_VERSION_MAJOR(properties.apiVersion),
+	       VK_VERSION_MINOR(properties.apiVersion), VK_VERSION_PATCH(properties.apiVersion));
 
 	turtle->device = create_logical_device(turtle->physical_device, turtle->surface,
 					       &turtle->graphicsQueue, &turtle->presentQueue);
 
 	turtle->shader_cache = trtl_shader_cache_init(turtle);
 	// FIXME: Should get the graphics family once and keep it.
-	trtl_solo_init(turtle->device, find_queue_families(turtle->physical_device, turtle->surface).graphics_family);
+	trtl_solo_init(
+	    turtle->device, turtle->graphicsQueue,
+	    find_queue_families(turtle->physical_device, turtle->surface).graphics_family);
 
 	turtle->tsc = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
 	turtle->tsc->turtle = turtle;
@@ -594,12 +594,12 @@ turtle_destructor(struct turtle *turtle)
 	talloc_free(turtle->seer);
 
 	// This is obivoulsy no longer useful, free early
-	// FIXME: Explicit free is really useful for vulkan, I should 
+	// FIXME: Explicit free is really useful for vulkan, I should
 	// make sure destructor order is explicit.  Maybe remove the reference
 	// or something.
-//	printf("free shader cache\n");
-//	talloc_free(turtle->shader_cache);
-//	turtle->shader_cache = NULL;
+	//	printf("free shader cache\n");
+	//	talloc_free(turtle->shader_cache);
+	//	turtle->shader_cache = NULL;
 
 	// we need to free the swap before local clean ups
 	talloc_free(turtle->tsc);

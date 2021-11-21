@@ -18,6 +18,7 @@ FAKE_VALUE_FUNC(VkResult, vkCreateCommandPool, VkDevice, const VkCommandPoolCrea
 		const VkAllocationCallbacks *, VkCommandPool *);
 
 static const VkDevice fake_device = (VkDevice)0xfeedcafe;
+static const VkQueue fake_queue = (VkQueue)0xdeadbeef;
 static VkCommandPool fake_command_pool = (VkCommandPool)0xba5eba11;
 
 static VkResult
@@ -35,7 +36,7 @@ vkCreateCommandPool_custom(trtl_arg_unused VkDevice device,
 START_TEST(test_solo_create)
 {
 	vkCreateCommandPool_fake.custom_fake = vkCreateCommandPool_custom;
-	trtl_solo_init(fake_device, 27);
+	trtl_solo_init(fake_device, fake_queue, 27);
 
 	struct trtl_solo *solo = trtl_solo_start();
 	talloc_free(solo);
@@ -45,7 +46,7 @@ END_TEST
 // Simply add and then delete a solor instance.
 START_TEST(test_solo_executes)
 {
-	trtl_solo_init(fake_device, 27);
+	trtl_solo_init(fake_device, fake_queue, 27);
 
 	struct trtl_solo *solo = trtl_solo_start();
 
@@ -58,6 +59,9 @@ START_TEST(test_solo_executes)
 	ck_assert_int_eq(vkEndCommandBuffer_fake.call_count, 1);
 	ck_assert_int_eq(vkQueueSubmit_fake.call_count, 1);
 	ck_assert_int_eq(vkQueueWaitIdle_fake.call_count, 1);
+
+	ck_assert_ptr_eq(vkQueueSubmit_fake.arg0_val, fake_queue);
+	ck_assert_ptr_eq(vkQueueWaitIdle_fake.arg0_val, fake_queue);
 
 }
 END_TEST

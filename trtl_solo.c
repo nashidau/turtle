@@ -7,8 +7,8 @@
 
 static VkCommandPool solo_pool;
 
-static VkDevice device;
-static VkQueue queue;
+static VkDevice solo_device;
+static VkQueue solo_queue;
 
 struct trtl_solo_internal {
 	struct trtl_solo solo;
@@ -19,7 +19,7 @@ VkCommandPool create_command_pool(VkDevice device, VkPhysicalDevice physical_dev
 				  VkSurfaceKHR surface);
 
 void
-trtl_solo_init(VkDevice device, uint32_t graphics_family)
+trtl_solo_init(VkDevice device, VkQueue queue, uint32_t graphics_family)
 {
 	// Create a command pool for us
 	VkCommandPoolCreateInfo pool_info = {0};
@@ -27,6 +27,9 @@ trtl_solo_init(VkDevice device, uint32_t graphics_family)
 	pool_info.queueFamilyIndex = graphics_family;
 	// FIXME: Should check this
 	pool_info.flags = 0;
+
+	solo_device = device;
+	solo_queue = queue;
 
 	assert(vkCreateCommandPool(device, &pool_info, NULL, &solo_pool) == 0);
 
@@ -42,10 +45,10 @@ trtl_solo_destroy(struct trtl_solo_internal *solo)
 	submit_info.commandBufferCount = 1;
 	submit_info.pCommandBuffers = &solo->solo.command_buffer;
 
-	vkQueueSubmit(queue, 1, &submit_info, VK_NULL_HANDLE);
-	vkQueueWaitIdle(queue);
+	vkQueueSubmit(solo_queue, 1, &submit_info, VK_NULL_HANDLE);
+	vkQueueWaitIdle(solo_queue);
 
-	vkFreeCommandBuffers(device, solo_pool, 1, &solo->solo.command_buffer);
+	vkFreeCommandBuffers(solo_device, solo_pool, 1, &solo->solo.command_buffer);
 
 	return 0;
 }
@@ -65,7 +68,7 @@ trtl_solo_start(void)
 	alloc_info.commandBufferCount = 1;
 
 	VkCommandBuffer command_buffer;
-	vkAllocateCommandBuffers(device, &alloc_info, &command_buffer);
+	vkAllocateCommandBuffers(solo_device, &alloc_info, &command_buffer);
 
 	VkCommandBufferBeginInfo beginInfo = {0};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;

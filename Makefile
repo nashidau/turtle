@@ -9,7 +9,7 @@ endif
 
 VULKANLIBS="unknown"
 ifeq ($(detected_OS),Darwin)
-	VULKANLIBS=-lMoltenVK
+	VULKANLIBS=-lvulkan
 		# -all_load is only needed for a static library; move to dynamicl and it goes away
 	PLATFORM_LDFLAGS=-framework Cocoa -framework IOSurface -framework IOKit \
 			 -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
