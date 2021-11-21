@@ -436,7 +436,8 @@ turtle_init(int nlayers, const struct trtl_layer_info *layers)
 					       &turtle->graphicsQueue, &turtle->presentQueue);
 
 	turtle->shader_cache = trtl_shader_cache_init(turtle);
-	trtl_solo_init(turtle);
+	// FIXME: Should get the graphics family once and keep it.
+	trtl_solo_init(turtle->device, find_queue_families(turtle->physical_device, turtle->surface).graphics_family);
 
 	turtle->tsc = create_swap_chain(turtle, turtle->physical_device, turtle->surface);
 	turtle->tsc->turtle = turtle;

@@ -23,7 +23,7 @@ struct trtl_solo {
 	VkCommandBuffer command_buffer;
 };
 
-void trtl_solo_init(struct turtle *turtle);
+void trtl_solo_init(VkDevice device, uint32_t graphics_family);
 
 struct trtl_solo *trtl_solo_start(void);
 
