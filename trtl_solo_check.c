@@ -35,6 +35,7 @@ vkCreateCommandPool_custom(trtl_arg_unused VkDevice device,
 // Simply add and then delete a solor instance.
 START_TEST(test_solo_create)
 {
+	// FIXME: This should test the command pool is created correctly.
 	vkCreateCommandPool_fake.custom_fake = vkCreateCommandPool_custom;
 	trtl_solo_init(fake_device, fake_queue, 27);
 
