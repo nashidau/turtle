@@ -7,9 +7,8 @@ else
     detected_OS := $(shell uname)
 endif
 
-VULKANLIBS="unknown"
+VULKANLIBS?=-lvulkan
 ifeq ($(detected_OS),Darwin)
-	VULKANLIBS=-lvulkan
 		# -all_load is only needed for a static library; move to dynamicl and it goes away
 	PLATFORM_LDFLAGS=-framework Cocoa -framework IOSurface -framework IOKit \
 			 -framework CoreGraphics -framework QuartzCore -lstdc++ -framework Metal \
@@ -19,7 +18,6 @@ ifeq ($(detected_OS),Darwin)
 	ARCOMMAND?=ru
 endif
 ifeq ($(detected_OS),Linux)
-	VULKANLIBS=-lvulkan
 	PLATFORM_LDFLAGS=-lasan -lcheck -ldl
 	AR?=ar
 	ARCOMMAND?=r
