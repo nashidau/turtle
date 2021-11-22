@@ -102,8 +102,9 @@ create_instance(const char *name)
 	create_info.ppEnabledExtensionNames = (const char *const *)allExtensions;
 	trtl_scribe_upadate_validation(&create_info);
 
-	if (vkCreateInstance(&create_info, NULL, &instance) != VK_SUCCESS) {
-		error("Unable to create instance");
+	VkResult result = vkCreateInstance(&create_info, NULL, &instance);
+	if (result != VK_SUCCESS) {
+		error_msg(result, "Unable to create instance\n");
 	}
 
 	talloc_free(allExtensions);
