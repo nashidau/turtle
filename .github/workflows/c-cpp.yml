@@ -51,7 +51,7 @@ jobs:
           SHADERCC: ./tools/fake-shadercc.sh
           # By default -lMoltenVK avoids the loader, which means we can't create
           # a window.  Since we are just running unit tests... thats' fine.
-          VULKANLIBS=-lMoltenVK
+          VULKANLIBS: -lMoltenVK
       - name: make test
         run: make trtl_check
       - name: Run tests
