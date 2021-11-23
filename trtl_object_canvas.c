@@ -35,11 +35,28 @@ struct trtl_object_canvas {
 	VkBuffer vertex_buffer;
 
 	VkExtent2D size;
+
+	struct canvas_type *type;
 };
 
 struct canvas_shader_params {
 	vec2 screenSize;
 	float time;
+};
+
+#define PREFIX "shaders/canvas/"
+#define PREFIX_GRID "shaders/grid/"
+
+struct canvas_type {
+	const char *name;
+	struct {
+		const char *vertex;
+		const char *fragment;
+	} shader;
+} canvas_types[] = {
+	{ "stars", { PREFIX "canvas-vertex.spv", PREFIX "stars-1.spv" } },
+	{ "rainbow", { PREFIX "canvas-vertex.spv", PREFIX "test-color-fill.spv" } },
+	{ "red", { PREFIX "canvas-vertex.spv", PREFIX_GRID "red.spv" } },
 };
 
 trtl_alloc static VkDescriptorSet *create_canvas_descriptor_sets(struct trtl_object_canvas *canvas,
@@ -122,7 +139,7 @@ canvas_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 	canvas->pipeline_info = trtl_pipeline_create(
 	    turtle, renderpass, size, canvas->descriptor_set_layout,
-	    "shaders/canvas/canvas-vertex.spv", "shaders/canvas/stars-1.spv", NULL, NULL, 0, false);
+	    canvas->type->shader.vertex, canvas->type->shader.fragment, NULL, NULL, 0, false);
 }
 
 static VkDescriptorSetLayout
@@ -152,11 +169,26 @@ canvas_create_descriptor_set_layout(VkDevice device)
 }
 
 trtl_alloc struct trtl_object *
-trtl_canvas_create(struct turtle *turtle)
+trtl_canvas_create(struct turtle *turtle, const char *typename)
 {
 	struct trtl_object_canvas *canvas;
+	struct canvas_type *type = NULL;
+
+	if (typename == NULL) {
+		type = &canvas_types[0];
+	} else {
+		for (uint32_t i = 0 ; i < TRTL_ARRAY_SIZE(canvas_types) ; i ++) {
+			if (streq(typename, canvas_types[i].name)) {
+				type = &canvas_types[i];
+			}
+		}
+		if (type == NULL) {
+			error("Unknown canvsa type %s\n", typename);
+		}
+	}
 
 	canvas = talloc_zero(NULL, struct trtl_object_canvas);
+	canvas->type = type;
 
 	// FIXME: Set a destructor and cleanup
 

@@ -86,7 +86,7 @@ seer_destroy(struct trtl_seer *seer)
 
 struct trtl_seer *
 trtl_seer_init(struct turtle *turtle, VkExtent2D extent, trtl_render_layer_t nlayers,
-		const struct trtl_layer_info *layer_info)
+	       const struct trtl_layer_info *layer_info)
 {
 	struct trtl_seer *seer;
 
@@ -128,7 +128,7 @@ trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			if (layer->objects[obj]->relayer) {
 				layer->objects[obj]->relayer(layer->objects[obj], turtle,
-							    layer->render_pass, new_size);
+							     layer->render_pass, new_size);
 			}
 		}
 	}
@@ -223,7 +223,9 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		//  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
 		// scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "background")) {
-		object = trtl_canvas_create(turtle);
+		object = trtl_canvas_create(turtle, NULL);
+	} else if (strncmp(name, "background:", 11) == 0) {
+		object = trtl_canvas_create(turtle, name + 11);
 	} else if (streq(name, "grid")) {
 		object = trtl_grid_create(turtle);
 		trtl_grid_fill_rectangle(object, 3, 5);
