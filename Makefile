@@ -104,6 +104,7 @@ SHADERS= \
 	shaders/vert.spv \
 	shaders/canvas/test-color-fill.spv \
 	shaders/canvas/stars-1.spv \
+	shaders/canvas/sepia.spv \
 	shaders/canvas/canvas-vertex.spv \
 	shaders/grid/lines.spv \
 	shaders/grid/grid-vertex.spv \
