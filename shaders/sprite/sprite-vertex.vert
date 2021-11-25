@@ -5,10 +5,14 @@ layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
 layout(constant_id = 2) const int tileSize = 128;
 
-layout(binding = 0) uniform pos2d {
-    vec2[2] pos;
-    //vec3 size;
-} u_sprite;
+struct sprite_info {
+    vec2 pos;
+    float textureIndex;
+};
+
+layout(binding = 0) uniform uSpriteInfo {
+    sprite_info sprite[2];
+};
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
@@ -16,6 +20,7 @@ layout(location = 2) in vec2 inTexCoord;
 
 layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
+layout(location = 2) out float textureIndex;
 
 // FIXME: Shader lib too
 const float pi = 3.141592653589793;
@@ -58,7 +63,7 @@ void main() {
     //pos.y -= centerPos.y;
 
     // rotate
-    vec2 pos = rotate2d(degree45) * u_sprite.pos[gl_InstanceIndex];
+    vec2 pos = rotate2d(degree45) * sprite[gl_InstanceIndex].pos;
 
     // Flattern to isometric
     pos.y = pos.y / 2.0;
@@ -74,6 +79,8 @@ void main() {
 
     gl_Position = vec4(pos, 0.0, 1.0);
     fragTexCoord = textureCoords[gl_VertexIndex];
+
+    textureIndex = int(sprite[gl_InstanceIndex].textureIndex);
 
 //    vec2 screenSize = vec2(screenWidth, screenHeight);
 //    gl_Position = positions[gl_VertexIndex];

@@ -59,18 +59,18 @@ struct trtl_sprite_subsprite {
 	// FIXME: Instance variable
 	struct {
 		int x, y;
+		int image_index;
 	} pos;
 };
 
 struct sprite_shader_params {
 	vec2 position;
+	// Which texture (sprite) to use
 	float texture;
-	float padding;
+	float padding; // align is 16, FIXME: do this saner.
 };
 
-trtl_alloc static VkDescriptorSet *
-create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
-			      struct trtl_sprite_subsprite *subsprite);
+trtl_alloc static VkDescriptorSet *create_sprite_descriptor_sets(struct trtl_object_sprite *sprite);
 
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
@@ -125,9 +125,9 @@ sprite_update(struct trtl_object *obj, trtl_arg_unused int frame)
 
 	subsprite = sprite->subsprite;
 	while (subsprite) {
-
 		params[subsprite->uniform_index].position[0] = subsprite->pos.x;
 		params[subsprite->uniform_index].position[1] = subsprite->pos.y;
+		params[subsprite->uniform_index].texture = subsprite->pos.image_index;
 
 		subsprite = subsprite->next;
 	}
@@ -153,7 +153,7 @@ sprite_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 }
 
 static VkDescriptorSetLayout
-sprite_create_descriptor_set_layout(VkDevice device)
+sprite_create_descriptor_set_layout(struct trtl_object_sprite *sprite)
 {
 	VkDescriptorSetLayout descriptor_set_layout;
 
@@ -166,7 +166,7 @@ sprite_create_descriptor_set_layout(VkDevice device)
 
 	VkDescriptorSetLayoutBinding sampler_layout_binding = {0};
 	sampler_layout_binding.binding = 1;
-	sampler_layout_binding.descriptorCount = 1;
+	sampler_layout_binding.descriptorCount = sprite->nsprites;
 	sampler_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
 	sampler_layout_binding.pImmutableSamplers = NULL;
 	sampler_layout_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -177,8 +177,8 @@ sprite_create_descriptor_set_layout(VkDevice device)
 	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
 	layoutInfo.pBindings = bindings;
 
-	if (vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &descriptor_set_layout) !=
-	    VK_SUCCESS) {
+	if (vkCreateDescriptorSetLayout(sprite->turtle->device, &layoutInfo, NULL,
+					&descriptor_set_layout) != VK_SUCCESS) {
 		error("failed to create descriptor set layout!");
 	}
 	return descriptor_set_layout;
@@ -197,16 +197,19 @@ trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
 	subsprite->next = sprite->subsprite;
 	sprite->subsprite = subsprite;
 
+	// FIXME: This is totally wrong for multiple
 	subsprite->uniform_index = sprite->nsprites;
+
+	subsprite->pos.image_index = sprite->nsprites;
 	sprite->nsprites++;
 
-	// FIXME: Leaky
-	// FIXME: FIrst image only
-	if (!sprite->descriptor_set) {
-		subsprite->texture_image_view = create_texture_image_view(
-		    sprite->turtle, create_texture_image(sprite->turtle, image));
-		sprite->descriptor_set = create_sprite_descriptor_sets(sprite, subsprite);
-	}
+	subsprite->texture_image_view =
+	    create_texture_image_view(sprite->turtle, create_texture_image(sprite->turtle, image));
+	printf("Added texture %p\n", subsprite->texture_image_view);
+
+	// FIXME: need to free the old one when I add oneo.
+	sprite->descriptor_set_layout = sprite_create_descriptor_set_layout(sprite);
+	sprite->descriptor_set = create_sprite_descriptor_sets(sprite);
 
 	subsprite->sprite = sprite;
 
@@ -256,7 +259,6 @@ trtl_sprite_create(struct turtle *turtle, uint32_t nsprites)
 	sprite->uniform_info = trtl_uniform_alloc_type_array(
 	    sprite->turtle->uniforms, struct sprite_shader_params, sprite->max_sprites);
 
-	sprite->descriptor_set_layout = sprite_create_descriptor_set_layout(turtle->device);
 
 	{
 		struct trtl_seer_vertexset vertices;
@@ -278,8 +280,7 @@ trtl_sprite_create(struct turtle *turtle, uint32_t nsprites)
 }
 
 trtl_alloc static VkDescriptorSet *
-create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
-			      struct trtl_sprite_subsprite *subsprite)
+create_sprite_descriptor_sets(struct trtl_object_sprite *sprite)
 {
 	VkDescriptorSet *sets = talloc_zero_array(sprite, VkDescriptorSet, sprite->nframes);
 	VkDescriptorSetLayout *layouts =
@@ -299,15 +300,21 @@ create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
 		error("failed to allocate descriptor sets!");
 	}
 
+	VkDescriptorImageInfo *image_info =
+	    talloc_zero_array(layouts, VkDescriptorImageInfo, sprite->nsprites);
+	uint32_t index = 0;
+	for (struct trtl_sprite_subsprite *sub = sprite->subsprite; sub != NULL;
+	     sub = sub->next, index++) {
+		assert(index < sprite->nsprites);
+		image_info[index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+		printf(" Adding %p %d %d\n", sub->texture_image_view, index, sprite->nsprites);
+		image_info[index].imageView = sub->texture_image_view;
+		image_info[index].sampler = sprite->turtle->texture_sampler;
+	}
+
 	for (uint32_t i = 0; i < sprite->nframes; i++) {
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(sprite->uniform_info, i);
-
-		VkDescriptorImageInfo image_info = {0};
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		image_info.imageView = subsprite->texture_image_view;
-		image_info.sampler = sprite->turtle->texture_sampler;
-
 		VkWriteDescriptorSet descriptorWrites[2] = {0};
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -323,8 +330,8 @@ create_sprite_descriptor_sets(struct trtl_object_sprite *sprite,
 		descriptorWrites[1].dstBinding = 1;
 		descriptorWrites[1].dstArrayElement = 0;
 		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pImageInfo = &image_info;
+		descriptorWrites[1].descriptorCount = sprite->nsprites;
+		descriptorWrites[1].pImageInfo = image_info;
 
 		vkUpdateDescriptorSets(sprite->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
 				       descriptorWrites, 0, NULL);
