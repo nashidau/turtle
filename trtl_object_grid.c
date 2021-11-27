@@ -18,12 +18,24 @@
 #include "turtle.h"
 #include "vertex.h"
 
-#define FRAG_SHADER "shaders/grid/lines.spv"
+#define PRE "shaders/grid/"
+#define VDEFAULT PRE "lines.spv"
+
+static const struct grid_shaders {
+	const char *name;
+	const char *vertex;
+	const char *fragment;
+} grid_shaders[] = {
+	{ "cobblestons", VDEFAULT, PRE "lines.spv" },
+	{ "timber", VDEFAULT, PRE "lines.spv" },
+};
 
 struct trtl_object_grid {
 	struct trtl_object parent;
 
 	struct turtle *turtle;
+
+	const struct grid_shaders *shader;
 
 	// This is the current active 'title'
 	struct {
@@ -196,8 +208,8 @@ grid_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderp
 	grid->descriptor_set_layout = grid_create_descriptor_set_layout(turtle->device);
 	grid->descriptor_set = grid_create_descriptor_sets(grid, turtle->tsc);
 	grid->pipeline_info = trtl_pipeline_create(
-	    turtle, renderpass, size, grid->descriptor_set_layout, "shaders/grid/grid-vertex.spv",
-	    FRAG_SHADER, &grid_binding_descriptor, grid_vertex_description,
+	    turtle, renderpass, size, grid->descriptor_set_layout, grid->shader->vertex,
+	    grid->shader->fragment, &grid_binding_descriptor, grid_vertex_description,
 	    N_VERTEX_ATTRIBUTE_DESCRIPTORS, false);
 }
 
@@ -257,6 +269,8 @@ trtl_grid_create(struct turtle *turtle)
 	grid = talloc_zero(NULL, struct trtl_object_grid);
 	grid->turtle = turtle;
 
+	grid->shader = grid_shaders;
+
 	// FIXME: Set a destructor and cleanup
 
 	grid->parent.draw = grid_draw;
@@ -271,6 +285,35 @@ trtl_grid_create(struct turtle *turtle)
 	    trtl_uniform_alloc_type(turtle->uniforms, struct UniformBufferObject);
 
 	return (struct trtl_object *)grid;
+}
+
+/**
+ * Set the current texture type.
+ *
+ * @param obj Object to set
+ * @param type Type to set
+ * @return 0 if set, -1 if not found.
+ */
+int
+trtl_grid_set_type(struct trtl_object *obj, const char *type) {
+	struct trtl_object_grid *grid = trtl_object_grid(obj);
+	
+	if (!type) return -1;
+
+	for (uint32_t i = 0; i < TRTL_ARRAY_SIZE(grid_shaders) ; i ++){
+		if (streq(type, grid_shaders[i].name)) {
+			// found it
+			grid->shader = grid_shaders + i;
+			if (grid->pipeline_info) {
+				talloc_free(grid->pipeline_info);
+				grid->pipeline_info = NULL;
+			}
+			return 0;
+		}
+	}
+
+	warning("%s: Unable to find shader %s\n", __FUNCTION__, type);
+	return -1;
 }
 
 /**
