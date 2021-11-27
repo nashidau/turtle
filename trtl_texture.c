@@ -105,7 +105,9 @@ create_image_view(struct turtle *turtle, VkImage image, VkFormat format,
 	debug_name.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_VIEW_EXT;
 	debug_name.object = (uint64_t)imageView;
 	debug_name.pObjectName = "Image View X";
-	turtle->set_object_name(turtle->device, &debug_name);
+	if (turtle->set_object_name) {
+		turtle->set_object_name(turtle->device, &debug_name);
+	}
 
 	return imageView;
 }
