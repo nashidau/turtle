@@ -19,7 +19,7 @@
 #include "vertex.h"
 
 #define PRE "shaders/grid/"
-#define VDEFAULT PRE "lines.spv"
+#define VDEFAULT PRE "grid-vertex.spv"
 
 static const struct grid_shaders {
 	const char *name;
