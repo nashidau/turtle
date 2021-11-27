@@ -60,6 +60,8 @@ struct turtle {
 	struct trtl_timer *timers;
 
 	struct trtl_timer *render_timer;
+
+	PFN_vkDebugMarkerSetObjectNameEXT set_object_name;
 };
 
 struct trtl_swap_chain {

@@ -45,6 +45,7 @@ static const char *required_extensions[] = {
 #ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
     VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
 #endif
+    VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
 };
 #define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
 
@@ -433,6 +434,10 @@ turtle_init(int nlayers, const struct trtl_layer_info *layers)
 
 	turtle->device = create_logical_device(turtle->physical_device, turtle->surface,
 					       &turtle->graphicsQueue, &turtle->presentQueue);
+
+	// FIXME: SHould be guarded by a debug flag or something
+	turtle->set_object_name = (typeof(turtle->set_object_name))vkGetDeviceProcAddr(
+	    turtle->device, "vkDebugMarkerSetObjectNameEXT");
 
 	turtle->shader_cache = trtl_shader_cache_init(turtle);
 	// FIXME: Should get the graphics family once and keep it.
