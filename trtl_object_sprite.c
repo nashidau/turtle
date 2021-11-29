@@ -188,14 +188,22 @@ trtl_alloc struct trtl_sprite_subsprite *
 trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
 {
 	struct trtl_object_sprite *sprite = trtl_object_sprite(object);
+	struct trtl_sprite_subsprite *subsprite;
+	struct trtl_sprite_subsprite *tmp;
 	assert(image != NULL);
 	assert(sprite->nsprites < sprite->max_sprites);
 
-	struct trtl_sprite_subsprite *subsprite;
 
 	subsprite = talloc_zero(sprite, struct trtl_sprite_subsprite);
-	subsprite->next = sprite->subsprite;
-	sprite->subsprite = subsprite;
+	if (sprite->subsprite == NULL) {
+		sprite->subsprite = subsprite;
+	} else {
+		for (tmp = sprite->subsprite; tmp->next != NULL; tmp = tmp->next)
+			;
+		tmp->next = subsprite;
+	}
+	subsprite->next = NULL;
+
 
 	// FIXME: This is totally wrong for multiple
 	subsprite->uniform_index = sprite->nsprites;
@@ -307,7 +315,6 @@ create_sprite_descriptor_sets(struct trtl_object_sprite *sprite)
 	     sub = sub->next, index++) {
 		assert(index < sprite->nsprites);
 		image_info[index].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		printf(" Adding %p %d %d\n", sub->texture_image_view, index, sprite->nsprites);
 		image_info[index].imageView = sub->texture_image_view;
 		image_info[index].sampler = sprite->turtle->texture_sampler;
 	}
