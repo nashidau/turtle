@@ -11,7 +11,7 @@ struct sprite_info {
 };
 
 layout(binding = 0) uniform uSpriteInfo {
-    sprite_info sprite[2];
+    sprite_info sprite[30];
 };
 
 layout(location = 0) in vec3 inPosition;

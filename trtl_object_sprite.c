@@ -3,6 +3,9 @@
  * using the tempplate object.  Each different sprite is identified by a referene object (subsprite)
  * and then an instance of the subsprite.
  *
+ * A future update could have the subsprite data stored in a form tha can be literally memcopied
+ * into the uniform data.  Also we should fork this for 3d images.
+ *
  */
 #include <assert.h>
 #include <time.h>
@@ -22,6 +25,9 @@
 #include "turtle.h"
 #include "vertex.h"
 
+// FIXME: So so terrible
+#define N_INSTANCES 30
+
 struct trtl_object_sprite {
 	struct trtl_object parent;
 
@@ -32,8 +38,10 @@ struct trtl_object_sprite {
 
 	struct trtl_pipeline_info *pipeline_info;
 
+	// There is way too much here
 	uint32_t max_sprites;
 	uint32_t nsprites;
+	uint32_t next_uniform;
 	struct trtl_uniform_info *uniform_info;
 
 	VkBuffer index_buffer;
@@ -43,6 +51,11 @@ struct trtl_object_sprite {
 	VkDescriptorSet *descriptor_set;
 
 	struct trtl_sprite_subsprite *subsprite;
+};
+
+struct subsprite_instance {
+	int x, y;
+	int image_index;
 };
 
 struct trtl_sprite_subsprite {
@@ -56,11 +69,10 @@ struct trtl_sprite_subsprite {
 
 	VkImageView texture_image_view;
 
-	// FIXME: Instance variable
-	struct {
-		int x, y;
-		int image_index;
-	} pos;
+	// FIXME:So need a helper for this
+	uint32_t ninstances;
+	uint32_t instance_alloced;
+	struct subsprite_instance *instances;
 };
 
 struct sprite_shader_params {
@@ -125,9 +137,9 @@ sprite_update(struct trtl_object *obj, trtl_arg_unused int frame)
 
 	subsprite = sprite->subsprite;
 	while (subsprite) {
-		params[subsprite->uniform_index].position[0] = subsprite->pos.x;
-		params[subsprite->uniform_index].position[1] = subsprite->pos.y;
-		params[subsprite->uniform_index].texture = subsprite->pos.image_index;
+		params[subsprite->uniform_index].position[0] = subsprite->instances[0].x;
+		params[subsprite->uniform_index].position[1] = subsprite->instances[0].y;
+		params[subsprite->uniform_index].texture = subsprite->instances[0].image_index;
 
 		subsprite = subsprite->next;
 	}
@@ -143,6 +155,9 @@ sprite_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 	// FIXME: Handle the empty case.
 	struct trtl_object_sprite *sprite = trtl_object_sprite(obj);
 	sprite->size = size;
+
+	talloc_free(sprite->pipeline_info);
+
 	// sprite->descriptor_set = create_sprite_descriptor_sets(sprite, sprite->subsprite);
 	// FIXME: Alternative is sprite-red-boder - which has a cool red border instead
 	// of alpha.
@@ -193,8 +208,11 @@ trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
 	assert(image != NULL);
 	assert(sprite->nsprites < sprite->max_sprites);
 
-
 	subsprite = talloc_zero(sprite, struct trtl_sprite_subsprite);
+	subsprite->instances = talloc_zero_array(subsprite, struct subsprite_instance, N_INSTANCES);
+	subsprite->ninstances = 1;
+	subsprite->instance_alloced = N_INSTANCES;
+
 	if (sprite->subsprite == NULL) {
 		sprite->subsprite = subsprite;
 	} else {
@@ -205,28 +223,37 @@ trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
 	subsprite->next = NULL;
 
 
-	// FIXME: This is totally wrong for multiple
-	subsprite->uniform_index = sprite->nsprites;
+	subsprite->uniform_index = sprite->next_uniform ++;
 
-	subsprite->pos.image_index = sprite->nsprites;
+	subsprite->instances[0].image_index = sprite->nsprites;
 	sprite->nsprites++;
 
 	subsprite->texture_image_view =
 	    create_texture_image_view(sprite->turtle, create_texture_image(sprite->turtle, image));
-	printf("Added texture %p\n", subsprite->texture_image_view);
 
 	// FIXME: need to free the old one when I add oneo.
 	sprite->descriptor_set_layout = sprite_create_descriptor_set_layout(sprite);
 	sprite->descriptor_set = create_sprite_descriptor_sets(sprite);
 
 	subsprite->sprite = sprite;
-
-	subsprite->pos.x = subsprite->pos.y = 0;
+	subsprite->instances[0].x = subsprite->instances[0].y = 0;
 
 	return subsprite;
 }
 
-trtl_subsprite_index trtl_sprite_subsprite_instance_add(struct trtl_sprite_subsprite *subsprite);
+trtl_subsprite_index
+trtl_sprite_subsprite_instance_add(struct trtl_sprite_subsprite *subsprite)
+{
+	assert(subsprite);
+	trtl_subsprite_index index = { 0 };
+
+	index.index = subsprite->ninstances ++;
+	assert(subsprite->ninstances < N_INSTANCES);
+
+	subsprite->uniform_index = subsprite->sprite->next_uniform ++;
+
+	return index;
+}
 
 int
 trtl_sprite_subsprite_position_set(struct trtl_sprite_subsprite *subsprite,
@@ -235,10 +262,8 @@ trtl_sprite_subsprite_position_set(struct trtl_sprite_subsprite *subsprite,
 	assert(subsprite);
 	// struct trtl_object_sprite *sprite = subsprite->sprite;
 
-	assert(index.index == 0);
-
-	subsprite->pos.x = x;
-	subsprite->pos.y = y;
+	subsprite->instances[index.index].x = x;
+	subsprite->instances[index.index].y = y;
 
 	return 0;
 }
@@ -266,7 +291,6 @@ trtl_sprite_create(struct turtle *turtle, uint32_t nsprites)
 	// We allocate the maximum number of sprites to avoid a realloc later
 	sprite->uniform_info = trtl_uniform_alloc_type_array(
 	    sprite->turtle->uniforms, struct sprite_shader_params, sprite->max_sprites);
-
 
 	{
 		struct trtl_seer_vertexset vertices;
