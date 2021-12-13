@@ -81,7 +81,7 @@ SOURCES= \
 	blobby.c	\
 	trtl_barriers.c \
 	trtl_uniform.c	\
-	trtl_object_mesh.c	\
+	trtl_object_mesh_old.c	\
 	trtl_object_canvas.c	\
 	trtl_object_grid.c	\
 	trtl_object_sprite.c	\
@@ -179,7 +179,7 @@ triangles: triangles.o libturtle.a
 
 .PHONY: clean
 clean:
-	rm -f ${OBJECTS} triangles triangles.o ${SHADERS} ${SHADER_OBJECTS}
+	rm -f ${OBJECTS} triangles triangles.o ${SHADERS} ${SHADER_OBJECTS} libturtle.a
 
 .PHONY: fixme
 fixme:

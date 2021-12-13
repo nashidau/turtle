@@ -4,7 +4,7 @@
 #include <vulkan/vulkan.h>
 
 #include "helpers.h"
-#include "trtl_object_mesh.h"
+#include "trtl_object_mesh_old.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "trtl_shell.h"
