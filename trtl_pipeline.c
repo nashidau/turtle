@@ -18,7 +18,6 @@
 
 #include "helpers.h"
 #include "trtl_object_canvas.h"
-#include "trtl_object_mesh.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
