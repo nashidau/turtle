@@ -47,6 +47,26 @@ add_library(turtle
 target_include_directories(turtle PRIVATE ./third-party)
 target_include_directories(turtle PRIVATE ./third-party/cglm/include)
 
+
+find_package(Vulkan REQUIRED FATAL_ERROR) # error
+find_package(glfw3 3.3 REQUIRED)
+
+###
+# Triangles
+##
+# Simple test application; triangle
+###
+add_executable(triangles triangles.c)
+target_include_directories(triangles PRIVATE ./third-party)
+target_include_directories(triangles PRIVATE ./third-party/cglm/include)
+target_link_libraries(triangles PUBLIC talloc turtle glfw ${Vulkan_LIBRARIES})
+#target_link_libraries(triangles PUBLIC turtle)
+#target_link_libraries(triangles glfw)
+#target_link_libraries(triangles ${VULKAN_LIB_LIST})
+
+
+
+
 # FIXME: Add static and dynamic libraries:
 # https://stackoverflow.com/questions/2152077/is-it-possible-to-get-cmake-to-build-both-a-static-and-shared-library-at-the-sam
 
