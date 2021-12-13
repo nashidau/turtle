@@ -17,9 +17,9 @@
 #include "vulkan/vulkan_core.h"
 
 #include "helpers.h"
+#include "trtl_object.h"
 #include "trtl_object_canvas.h"
 #include "trtl_object_grid.h"
-#include "trtl_object_mesh.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
 #include "turtle.h"
