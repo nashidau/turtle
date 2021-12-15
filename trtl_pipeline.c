@@ -93,6 +93,10 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 	struct trtl_shader *vert = talloc_steal(info, trtl_shader_get(turtle, vertex_shader));
 	struct trtl_shader *frag = talloc_steal(info, trtl_shader_get(turtle, fragment_shader));
 
+	// FIXME: Handle this a little more gracefully.
+	assert(vert != NULL);
+	assert(frag != NULL);
+
 	VkSpecializationInfo *specialisationInfo = set_specialise_info(&extent);
 	VkVertexInputAttributeDescription *tofree = NULL;
 
