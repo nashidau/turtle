@@ -7,11 +7,6 @@ project(turtle VERSION 0.1)
 
 configure_file(turtle_config.h.in turtle_config.h)
 
-# Project binary dir is the output dir
-#target_include_directories(turtle PUBLIC
-#                           "${PROJECT_BINARY_DIR}"
-#                           )
-
 # specify the C standard (want to be C23 ASAP)
 set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED True)
@@ -19,7 +14,7 @@ set(CMAKE_C_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Our main turtle library
-add_library(turtle 
+add_library(turtleobjs OBJECT
 	blobby.c
 	helpers.c
 	images.c
@@ -43,10 +38,15 @@ add_library(turtle
 	trtl_vulkan.c
 	turtle.c
 	vertex.c)
+# shared libraries need PIC
+set_property(TARGET turtleobjs PROPERTY POSITION_INDEPENDENT_CODE 1)
 
-target_include_directories(turtle PRIVATE ./third-party)
-target_include_directories(turtle PRIVATE ./third-party/cglm/include)
+# shared and static libraries built from the same object files
+add_library(turtle SHARED $<TARGET_OBJECTS:turtleobjs>)
+add_library(turtlestatic STATIC $<TARGET_OBJECTS:turtleobjs>)
 
+target_include_directories(turtleobjs PRIVATE ./third-party)
+target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
 find_package(Vulkan REQUIRED FATAL_ERROR) # error
 find_package(glfw3 3.3 REQUIRED)
@@ -60,13 +60,21 @@ add_executable(triangles triangles.c)
 target_include_directories(triangles PRIVATE ./third-party)
 target_include_directories(triangles PRIVATE ./third-party/cglm/include)
 target_link_libraries(triangles PUBLIC talloc turtle glfw ${Vulkan_LIBRARIES})
-#target_link_libraries(triangles PUBLIC turtle)
-#target_link_libraries(triangles glfw)
-#target_link_libraries(triangles ${VULKAN_LIB_LIST})
+target_link_libraries(turtle PUBLIC talloc glfw ${Vulkan_LIBRARIES})
+target_link_libraries(turtlestatic PUBLIC talloc glfw ${Vulkan_LIBRARIES})
 
 
-
-
-# FIXME: Add static and dynamic libraries:
-# https://stackoverflow.com/questions/2152077/is-it-possible-to-get-cmake-to-build-both-a-static-and-shared-library-at-the-sam
+###
+# Test Suite
+##
+# Test suite target.  Uses static library so we can mock the turtle and vulkan symbols.
+###
+add_executable(trtl_check
+	trtl_check.c
+	trtl_shader_check.c
+	trtl_solo_check.c
+	trtl_timer_check.c
+	trtl_uniform_check.c)
+target_link_libraries(trtl_check PUBLIC turtlestatic talloc check)
+target_include_directories(trtl_check PRIVATE ./third-party)
 
