@@ -14,8 +14,6 @@ done
 shift $((OPTIND-1))
 infilename=$1
 
-echo Fake shader Compiler  $infilename to $oufilename
+echo Fake shader Compiler $infilename to $oufilename
 cat $infilename > $outfilename
-
-
 
