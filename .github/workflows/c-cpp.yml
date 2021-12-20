@@ -21,13 +21,13 @@ jobs:
       with:
         submodules: recursive
     - name: Linux Dependencies
-      if: startsWith(matrix.os, "ubuntu")
+      if: startsWith(matrix.os, 'ubuntu')
       run: >
         sudo apt-get update &&
         sudo apt-get install -y libtalloc-dev libglfw3-dev check &&
         sudo apt-get install -y libvulkan-dev vulkan-validationlayers-dev
     - name: Mac Dependencies
-      if: startsWith(matrix.os, "macos")
+      if: startsWith(matrix.os, 'macos')
       run: brew install talloc glfw3 check vulkan-headers molten-vk
     - name: Make directories
       run: mkdir build
