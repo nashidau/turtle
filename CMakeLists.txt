@@ -78,3 +78,8 @@ add_executable(trtl_check
 target_link_libraries(trtl_check PUBLIC turtlestatic talloc check)
 target_include_directories(trtl_check PRIVATE ./third-party)
 
+add_custom_target(graphviz ALL
+    COMMAND ${CMAKE_COMMAND} "--graphviz=turtle.dot" .
+    COMMAND dot -Tpng turtle.dot -o turtle-depends.png
+    WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
+)
