@@ -57,7 +57,12 @@ target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
 find_package(Vulkan REQUIRED FATAL_ERROR)
 find_package(glfw3 3.3 REQUIRED)
-find_program(glslc_executable NAMES glslc ENV SHADERCC HINTS Vulkan::glslc)
+if ($ENV{GITHUB}) 
+	set(glslc_executable ./tools/fake-shadercc.sh)
+else()
+	find_program(glslc_executable NAMES glslc  HINTS Vulkan::glslc)
+endif()
+message(${glslc_executable})
 
 list(APPEND SHADERS 
 	${SHADERS_SOURCE_DIR}/canvas/test-color-fill.frag 
