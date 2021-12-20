@@ -1,0 +1,3 @@
+// the configured options and settings for Tutorial
+#define TURTLE_VERSION_MAJOR @Turtle_VERSION_MAJOR@
+#define TURTLE_VERSION_MINOR @Turtle_VERSION_MINOR@
