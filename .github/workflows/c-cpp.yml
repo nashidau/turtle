@@ -8,11 +8,12 @@ on:
 
 env:
   GITHUB: true
-  SHADERCC: ./tools/fake-shadercc.sh
+  SHADERCC: ../tools/fake-shadercc.sh
 
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-11]
     runs-on: ${{matrix.os}}
