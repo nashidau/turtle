@@ -19,14 +19,20 @@
 #include "trtl_object_sprite.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
+#include "trtl_shader.h"
 #include "trtl_shell.h"
 #include "trtl_texture.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
 
+EMBED_SHADER(sprite_vertex, "sprite-vertex.spv");
+EMBED_SHADER(sprite_fragment, "sprite-fragment.spv");
+
 // FIXME: So so terrible
 #define N_INSTANCES 30
+
+
 
 struct trtl_object_sprite {
 	struct trtl_object parent;
@@ -163,8 +169,7 @@ sprite_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 	// of alpha.
 	sprite->pipeline_info =
 	    trtl_pipeline_create(turtle, renderpass, size, sprite->descriptor_set_layout,
-				 "shaders/sprite/sprite-vertex.spv",
-				 "shaders/sprite/sprite-fragment.spv", NULL, NULL, 0, true);
+			    "sprite_vertex", "sprite_fragment", NULL, NULL, 0, true);
 }
 
 static VkDescriptorSetLayout
