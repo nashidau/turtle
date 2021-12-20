@@ -6,21 +6,29 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  GITHUB: true
+  SHADERCC: ./tools/fake-shadercc.sh
+
 jobs:
-  linux:
-
-    runs-on: ubuntu-latest
-
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-11]
+        cc: clang
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
-    - name: update Dependances
-      run: sudo apt-get update
-    - name: Install Dependances
-      run: sudo apt-get install -y libtalloc-dev libglfw3-dev check
-    - name: Install Vulkan
-      run: sudo apt-get install -y libvulkan-dev vulkan-validationlayers-dev
+    - name: Linux Dependencies
+      if: startsWith(matrix.os, "ubuntu")
+      run: >
+        sudo apt-get update &&
+        sudo apt-get install -y libtalloc-dev libglfw3-dev check &&
+        sudo apt-get install -y libvulkan-dev vulkan-validationlayers-dev
+    - name: Mac Dependencies
+      if: startsWith(matrix.os, "macos")
+      run: brew install talloc glfw3 check vulkan-headers molten-vk
     - name: Make directories
       run: mkdir build
     - name: configure
@@ -29,32 +37,6 @@ jobs:
       run: (cd build && make)
       env:
         CC: clang
-        GITHUB: true
-        SHADERCC: ./tools/fake-shadercc.sh
+        VULKANLIBS: -lMoltenVK
     - name: Tests
       run: ./build/trtl_check
-
-  mac:
-    runs-on: macos-11
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-      - name: install dependancies
-        run: brew install talloc glfw3 check vulkan-headers molten-vk
-      - name: configure
-        run: ./configure
-      - name: make
-        run: make
-        env:
-          GITHUB: true
-          SHADERCC: ./tools/fake-shadercc.sh
-          # By default -lMoltenVK avoids the loader, which means we can't create
-          # a window.  Since we are just running unit tests... thats' fine.
-          VULKANLIBS: -lMoltenVK
-      - name: make test
-        run: make trtl_check
-      - name: Run tests
-        run: ./trtl_check
