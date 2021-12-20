@@ -14,20 +14,23 @@
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "trtl_shell.h"
+#include "trtl_shader.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
 
-#define PRE "shaders/grid/"
-#define VDEFAULT PRE "grid-vertex.spv"
+#define VDEFAULT "grid_vertex"
+
+EMBED_SHADER(grid_vertex, "grid-vertex.spv");
+EMBED_SHADER(lines, "lines.spv");
 
 static const struct grid_shaders {
 	const char *name;
 	const char *vertex;
 	const char *fragment;
 } grid_shaders[] = {
-	{ "cobblestons", VDEFAULT, PRE "lines.spv" },
-	{ "timber", VDEFAULT, PRE "lines.spv" },
+    {"cobblestons", VDEFAULT,  "lines"},
+    {"timber", VDEFAULT, "lines"},
 };
 
 struct trtl_object_grid {
@@ -295,12 +298,13 @@ trtl_grid_create(struct turtle *turtle)
  * @return 0 if set, -1 if not found.
  */
 int
-trtl_grid_set_type(struct trtl_object *obj, const char *type) {
+trtl_grid_set_type(struct trtl_object *obj, const char *type)
+{
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
-	
+
 	if (!type) return -1;
 
-	for (uint32_t i = 0; i < TRTL_ARRAY_SIZE(grid_shaders) ; i ++){
+	for (uint32_t i = 0; i < TRTL_ARRAY_SIZE(grid_shaders); i++) {
 		if (streq(type, grid_shaders[i].name)) {
 			// found it
 			grid->shader = grid_shaders + i;

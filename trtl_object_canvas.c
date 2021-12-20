@@ -17,6 +17,7 @@
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "trtl_shell.h"
+#include "trtl_shader.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
@@ -44,9 +45,6 @@ struct canvas_shader_params {
 	float time;
 };
 
-#define PREFIX "shaders/canvas/"
-#define PREFIX_GRID "shaders/grid/"
-
 struct canvas_type {
 	const char *name;
 	struct {
@@ -54,10 +52,14 @@ struct canvas_type {
 		const char *fragment;
 	} shader;
 } canvas_types[] = {
-	{ "stars", { PREFIX "canvas-vertex.spv", PREFIX "stars-1.spv" } },
-	{ "rainbow", { PREFIX "canvas-vertex.spv", PREFIX "test-color-fill.spv" } },
-	{ "red", { PREFIX "canvas-vertex.spv", PREFIX_GRID "red.spv" } },
+	{ "stars", { "canvas_vertex", "stars_1" } },
+	{ "rainbow", { "canvas_vertex", "test_color_fill" } },
+	//{ "red", { "canvas_vertex", PREFIX_GRID "red.spv" } },
 };
+
+EMBED_SHADER(canvas_vertex, "canvas-vertex.spv");
+EMBED_SHADER(stars_1, "stars-1.spv");
+EMBED_SHADER(test_color_fill, "test-color-fill.spv");
 
 trtl_alloc static VkDescriptorSet *create_canvas_descriptor_sets(struct trtl_object_canvas *canvas,
 								 struct trtl_swap_chain *scd);

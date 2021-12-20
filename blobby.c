@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include <assert.h>
 #include <dlfcn.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -59,7 +60,7 @@ static char *
 make_safe_str(const char *prefix, const char *path)
 {
 	char *dest;
-	dest = talloc_asprintf(NULL, "data_%s_%s", prefix, path);
+	dest = talloc_asprintf(NULL, "shader_%s_%s", prefix, path);
 	for (size_t i = 0; dest[i]; i++) {
 		if (dest[i] == '/' || dest[i] == '-' || dest[i] == '.') dest[i] = '_';
 	}
@@ -72,16 +73,14 @@ struct blobby *
 blobby_binary(const char *path)
 {
 	struct blobby *blobby = talloc(NULL, struct blobby);
-	char *blob_start = talloc_steal(blobby, make_safe_str("start", path));
-	char *blob_end = talloc_steal(blobby, make_safe_str("end", path));
+	char *blob_start = talloc_steal(blobby, make_safe_str(path, "start"));
+	char *blob_end = talloc_steal(blobby, make_safe_str(path, "end"));
 
-#ifdef __APPLE__
-	char *start = dlsym(RTLD_SELF, blob_start);
-	char *end = dlsym(RTLD_SELF, blob_end);
-#else
 	char *start = dlsym(RTLD_DEFAULT, blob_start);
 	char *end = dlsym(RTLD_DEFAULT, blob_end);
-#endif
+
+	assert(start);
+	assert(end);
 
 	blobby->len = end - start;
 	blobby->data = start;

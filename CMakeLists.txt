@@ -41,6 +41,13 @@ add_library(turtleobjs OBJECT
 # shared libraries need PIC
 set_property(TARGET turtleobjs PROPERTY POSITION_INDEPENDENT_CODE 1)
 
+add_dependencies(turtleobjs shaders)
+
+set(SHADERS_SOURCE_DIR ${PROJECT_SOURCE_DIR}/shaders)
+set(SHADERS_BINARY_DIR ${PROJECT_BINARY_DIR}/shaderspvs)
+
+target_compile_definitions(turtleobjs PUBLIC COMPILED_SHADER_DIR="${SHADERS_BINARY_DIR}")
+
 # shared and static libraries built from the same object files
 add_library(turtle SHARED $<TARGET_OBJECTS:turtleobjs>)
 add_library(turtlestatic STATIC $<TARGET_OBJECTS:turtleobjs>)
@@ -48,8 +55,44 @@ add_library(turtlestatic STATIC $<TARGET_OBJECTS:turtleobjs>)
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
-find_package(Vulkan REQUIRED FATAL_ERROR) # error
+find_package(Vulkan REQUIRED FATAL_ERROR)
 find_package(glfw3 3.3 REQUIRED)
+find_program(glslc_executable NAMES glslc HINTS Vulkan::glslc)
+
+list(APPEND SHADERS 
+	${SHADERS_SOURCE_DIR}/canvas/test-color-fill.frag 
+	${SHADERS_SOURCE_DIR}/canvas/stars-1.frag
+	${SHADERS_SOURCE_DIR}/canvas/sepia.frag
+	${SHADERS_SOURCE_DIR}/canvas/canvas-vertex.vert
+	${SHADERS_SOURCE_DIR}/grid/lines.frag
+	${SHADERS_SOURCE_DIR}/grid/grid-vertex.vert
+	${SHADERS_SOURCE_DIR}/grid/browns.frag
+	${SHADERS_SOURCE_DIR}/grid/red.frag
+	${SHADERS_SOURCE_DIR}/sprite/sprite-vertex.vert
+	${SHADERS_SOURCE_DIR}/sprite/sprite-fragment.frag)
+
+add_custom_command(
+  COMMAND
+    ${CMAKE_COMMAND} -E make_directory ${SHADERS_BINARY_DIR}
+  OUTPUT ${SHADERS_BINARY_DIR}
+  COMMENT "Creating ${SHADERS_BINARY_DIR}"
+)
+
+foreach(source IN LISTS SHADERS)
+  get_filename_component(FILENAME ${source} NAME_WLE)
+  add_custom_command(
+    COMMAND
+      ${glslc_executable}
+      -o ${SHADERS_BINARY_DIR}/${FILENAME}.spv
+      ${source}
+    OUTPUT ${SHADERS_BINARY_DIR}/${FILENAME}.spv
+    DEPENDS ${SHADERS_BINARY_DIR}
+    COMMENT "Compiling Shader ${FILENAME}"
+  )
+  list(APPEND SPV_SHADERS ${SHADERS_BINARY_DIR}/${FILENAME}.spv)
+endforeach()
+
+add_custom_target(shaders DEPENDS ${SPV_SHADERS})
 
 ###
 # Triangles
