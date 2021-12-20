@@ -21,27 +21,29 @@ jobs:
       run: sudo apt-get install -y libtalloc-dev libglfw3-dev check
     - name: Install Vulkan
       run: sudo apt-get install -y libvulkan-dev vulkan-validationlayers-dev
+    - name: Make directories
+      run: mkdir build
     - name: configure
-      run: ./configure
+      run: (cd build && cmake ..)
     - name: make
-      run: make -k
+      run: (cd build && make)
       env:
         CC: clang
         GITHUB: true
         SHADERCC: ./tools/fake-shadercc.sh
-    - name: ./trtl_check
-      run: ./trtl_check
+    - name: Tests
+      run: ./build/trtl_check
 
   mac:
     runs-on: macos-11
 
     steps:
-      - name: install dependancies
-        run: brew install talloc glfw3 check vulkan-headers molten-vk
       - name: Checkout code
         uses: actions/checkout@v2
         with:
           submodules: recursive
+      - name: install dependancies
+        run: brew install talloc glfw3 check vulkan-headers molten-vk
       - name: configure
         run: ./configure
       - name: make
