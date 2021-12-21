@@ -52,9 +52,11 @@ target_compile_definitions(turtleobjs PUBLIC COMPILED_SHADER_DIR="${SHADERS_BINA
 add_library(turtle SHARED $<TARGET_OBJECTS:turtleobjs>)
 add_library(turtlestatic STATIC $<TARGET_OBJECTS:turtleobjs>)
 
+target_link_libraries(turtle PUBLIC dl)
+target_link_libraries(turtlestatic PUBLIC dl)
+
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
-target_link_libraries(trtlobjs PUBLIC dl)
 
 find_package(Vulkan REQUIRED FATAL_ERROR)
 find_package(glfw3 3.3 REQUIRED)
