@@ -54,6 +54,7 @@ add_library(turtlestatic STATIC $<TARGET_OBJECTS:turtleobjs>)
 
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
+target_link_libraries(trtlobjs PUBLIC dl)
 
 find_package(Vulkan REQUIRED FATAL_ERROR)
 find_package(glfw3 3.3 REQUIRED)
@@ -126,6 +127,7 @@ add_executable(trtl_check
 target_link_libraries(trtl_check PUBLIC turtlestatic talloc check)
 target_include_directories(trtl_check PRIVATE ./third-party)
 target_link_libraries(trtl_check PRIVATE m)
+target_link_libraries(trtl_check PRIVATE dl)
 
 add_custom_target(graphviz ALL
     COMMAND ${CMAKE_COMMAND} "--graphviz=turtle.dot" .
