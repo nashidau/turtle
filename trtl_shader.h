@@ -29,3 +29,9 @@ struct trtl_shader *trtl_shader_get(struct turtle *turtle, const char *path);
 		".incbin \"" COMPILED_SHADER_DIR "/" FILENAME "\"\n"                               \
 		"_shader_" #NAME "_end:\n"                                                         \
 		".previous\n")
+
+// Embeds an inline shader - doesn't set the _end token, sets a length token instead.
+// This is pretty much only for testing.
+#define EMBED_SHADER_STRING(NAME, STRING) \
+	uint8_t shader_##NAME##_start[] = STRING; \
+	uint32_t shader_##NAME##_length = sizeof(STRING)

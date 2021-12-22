@@ -17,6 +17,8 @@
 
 static VkShaderModule create_shader(VkDevice device, struct blobby *blobby);
 
+EMBED_SHADER_STRING(test_shader, "This is the test shader.  Pixels go 'brrr'.");
+
 // FIXME: Use something better then a linked list.
 struct shader_node {
 	struct shader_node *next;

@@ -77,13 +77,18 @@ blobby_binary(const char *path)
 	char *blob_end = talloc_steal(blobby, make_safe_str(path, "end"));
 
 	char *start = dlsym(RTLD_DEFAULT, blob_start);
-	char *end = dlsym(RTLD_DEFAULT, blob_end);
-
 	assert(start);
-	assert(end);
-
-	blobby->len = end - start;
 	blobby->data = start;
+
+	char *end = dlsym(RTLD_DEFAULT, blob_end);
+	if (end == NULL) {
+		char *blob_end = talloc_steal(blobby, make_safe_str(path, "length"));
+		uint32_t *len = dlsym(RTLD_DEFAULT, blob_end);
+		assert(len);
+		blobby->len = *len;
+	} else {
+		blobby->len = end - start;
+	}
 
 	return blobby;
 }
