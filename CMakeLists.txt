@@ -130,7 +130,7 @@ add_executable(trtl_check
 	trtl_uniform_check.c)
 target_link_libraries(trtl_check PRIVATE turtlestatic talloc check)
 target_include_directories(trtl_check PRIVATE ./third-party)
-target_link_libraries(trtl_check PRIVATE m dl pthread rt subunit)
+target_link_libraries(trtl_check PRIVATE ${CHECK_LIBRARIES} m dl pthread)
 
 add_custom_target(graphviz ALL
     COMMAND ${CMAKE_COMMAND} "--graphviz=turtle.dot" .
