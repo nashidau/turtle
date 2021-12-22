@@ -58,6 +58,8 @@ target_link_libraries(turtlestatic PUBLIC dl)
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
+INCLUDE(FindPkgConfig)
+pkg_check_modules(CHECK check)
 find_package(Vulkan REQUIRED FATAL_ERROR)
 find_package(glfw3 3.3 REQUIRED)
 if ($ENV{GITHUB}) 
@@ -65,7 +67,7 @@ if ($ENV{GITHUB})
 else()
 	find_program(glslc_executable NAMES glslc  HINTS Vulkan::glslc)
 endif()
-message(${glslc_executable})
+
 
 list(APPEND SHADERS 
 	${SHADERS_SOURCE_DIR}/canvas/test-color-fill.frag 

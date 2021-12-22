@@ -29,7 +29,7 @@ jobs:
                libvulkan-dev vulkan-validationlayers-dev
     - name: Mac Dependencies
       if: startsWith(matrix.os, 'macos')
-      run: brew install talloc glfw3 check vulkan-headers molten-vk
+      run: brew install talloc glfw3 check vulkan-headers molten-vk graphviz
     - name: Make directories
       run: mkdir build
     - name: configure
