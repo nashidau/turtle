@@ -10,3 +10,4 @@ trtl_check
 compile_commands.json
 libturtle.a
 .clangd
+build
