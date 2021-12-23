@@ -106,10 +106,18 @@ struct trtl_shader *
 trtl_shader_get(struct turtle *turtle, const char *path)
 {
 	struct trtl_shader_cache *shader_cache = turtle->shader_cache;
+	struct blobby *blobby;
 
 	for (struct shader_node *node = shader_cache->shaders ; node ; node = node->next) {
 		if (streq(node->path, path)) {
 			return shader_create(node);	
+		}
+	}
+
+	blobby = blobby_binary(path);
+	if (blobby == NULL) {
+		if (streq(path, "test_shader")) {
+			blobby = blobby_from_string(shader_test_shader_start);
 		}
 	}
 
@@ -121,7 +129,7 @@ trtl_shader_get(struct turtle *turtle, const char *path)
 	shader_cache->shaders = node;
 	node->cache = shader_cache;
 	node->count = 1;
-	node->shader = create_shader(turtle->device, blobby_binary(path));
+	node->shader = create_shader(turtle->device, blobby);
 
 	return shader_create(node);
 }

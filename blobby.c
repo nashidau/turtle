@@ -9,6 +9,7 @@
 
 #include <talloc.h>
 
+#include "helpers.h"
 #include "blobby.h"
 
 /**
@@ -57,6 +58,16 @@ blobby_from_file(const char *path)
 	return blobby_from_file_ctx(NULL, path);
 }
 
+struct blobby *
+blobby_from_string(const char *string) {
+	struct blobby *blobby;
+
+	blobby = talloc(blobby, struct blobby);
+	blobby->len = strlen(string);
+	blobby->data = talloc_strdup(blobby, string);
+	return blobby;
+}
+
 static char *
 make_safe_str(const char *prefix, const char *path)
 {
@@ -78,18 +89,14 @@ blobby_binary(const char *path)
 	char *blob_end = talloc_steal(blobby, make_safe_str(path, "end"));
 
 	char *start = dlsym(RTLD_DEFAULT, blob_start);
-	assert(start);
-	blobby->data = start;
-
 	char *end = dlsym(RTLD_DEFAULT, blob_end);
-	if (end == NULL) {
-		char *blob_end = talloc_steal(blobby, make_safe_str(path, "length"));
-		uint32_t *len = dlsym(RTLD_DEFAULT, blob_end);
-		assert(len);
-		blobby->len = *len;
-	} else {
-		blobby->len = end - start;
+
+	if (start == NULL || end == NULL) {
+		return NULL;
 	}
+
+	blobby->data = start;
+	blobby->len = end - start;
 
 	return blobby;
 }

@@ -9,4 +9,4 @@ struct blobby {
 struct blobby *blobby_from_file(const char *path);
 struct blobby *blobby_from_file_ctx(void *ctx, const char *path);
 struct blobby *blobby_binary(const char *path);
-
+struct blobby *blobby_from_string(const char *string);

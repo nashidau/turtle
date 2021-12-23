@@ -100,5 +100,7 @@ trtl_shader_suite(trtl_arg_unused void *ctx)
 		tcase_add_test(tc_get, test_shader_get);
 		tcase_add_test(tc_get, test_shader_get_multiple);
 	}
+
+
 	return s;
 }
