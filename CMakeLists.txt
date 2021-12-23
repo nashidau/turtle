@@ -3,6 +3,8 @@
 # ubuntu 18.04 (github actions) 3.12.4 apparently
 cmake_minimum_required(VERSION 3.10)
 
+set(CMAKE_BUILD_TYPE Debug)
+
 project(turtle VERSION 0.1)
 
 configure_file(turtle_config.h.in turtle_config.h)
