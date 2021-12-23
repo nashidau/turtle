@@ -117,7 +117,7 @@ trtl_shader_get(struct turtle *turtle, const char *path)
 	blobby = blobby_binary(path);
 	if (blobby == NULL) {
 		if (streq(path, "test_shader")) {
-			blobby = blobby_from_string(shader_test_shader_start);
+			blobby = blobby_from_string((const char*)shader_test_shader_start);
 		}
 	}
 
