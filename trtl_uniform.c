@@ -54,7 +54,7 @@ struct trtl_uniform_info {
 	off_t offset;
 };
 
-static size_t TRTL_DEFAULT_SIZE = 2 * 1024;
+static const size_t TRTL_DEFAULT_SIZE = 2 * 1024;
 
 static int trtl_uniform_destructor(struct trtl_uniform *x);
 
