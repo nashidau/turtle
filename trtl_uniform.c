@@ -26,6 +26,7 @@
 #include "trtl_uniform.h"
 #include "turtle.h"
 
+#define BLOCK_SIZE 16
 #define ROUND_UP(N, S) ((((N) + (S)-1) / (S)) * (S))
 
 /**
@@ -80,6 +81,7 @@ trtl_uniform_init(struct turtle *turtle, uint8_t nframes, size_t size)
 	if (size == 0) {
 		size = TRTL_DEFAULT_SIZE;
 	}
+	size = ROUND_UP(size, BLOCK_SIZE);
 
 	uniforms = talloc_size(turtle, offsetof(struct trtl_uniform, buffers[nframes]));
 	assert(uniforms);
@@ -143,10 +145,10 @@ trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size)
 	struct trtl_uniform_info *info;
 
 	// FIXME: Check size is nicely aligned
-	size = ROUND_UP(size, 16);
+	size = ROUND_UP(size, BLOCK_SIZE);
 
 	if (uniforms->bump.offset + size > uniforms->buffer_size) {
-		warning("Allocation too large for uniform allocator (%d + %d > %d)",
+		warning("Allocation too large for uniform allocator (%d + %d > %d)\n",
 				uniforms->bump.offset, size, uniforms->buffer_size);
 		return NULL;
 	}

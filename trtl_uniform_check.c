@@ -50,6 +50,20 @@ START_TEST(test_uniform_alloc)
 }
 END_TEST
 
+
+START_TEST(test_uniform_alloc_all)
+{
+	struct turtle *turtle = create_fake_turtle();
+	// Init with an odd size, but reasonable default
+	struct trtl_uniform *uniforms = trtl_uniform_init(turtle, 2, 12);
+
+	// Allocate the same size; should work
+	struct trtl_uniform_info *info = trtl_uniform_alloc(uniforms, 12);
+	ck_assert_ptr_ne(info, NULL);
+
+	talloc_free(uniforms);
+} END_TEST
+
 START_TEST(test_uniform_alloc_too_much)
 {
 	struct turtle *turtle = create_fake_turtle();
@@ -80,6 +94,7 @@ trtl_uniform_suite(trtl_arg_unused void *ctx)
 
 		tcase_add_test(tc_alloc, test_uniform_init);
 		tcase_add_test(tc_alloc, test_uniform_alloc);
+		tcase_add_test(tc_alloc, test_uniform_alloc_all);
 		tcase_add_test(tc_alloc, test_uniform_alloc_too_much);
 	}
 
