@@ -36,8 +36,8 @@ struct trtl_shader *trtl_shader_get(struct turtle *turtle, const char *path);
 	extern uint8_t shader_##NAME##_start[];                                                    \
 	__asm__(".data\n"                                                                          \
 		".align 4\n"                                                                       \
-		".global shader_" #NAME "_start\n"                                                 \
-		".global shader_" #NAME "_end\n"                                                   \
+		".global _shader_" #NAME "_start\n"                                                \
+		".global _ hader_" #NAME "_end\n"                                                  \
 		"_shader_" #NAME "_start:\n"                                                       \
 		".asciz \"" STRING "\"\n"                                                          \
 		"_shader_" #NAME "_end:\n"                                                         \
