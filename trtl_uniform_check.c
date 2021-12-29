@@ -15,6 +15,15 @@ FAKE_VOID_FUNC(create_buffer, struct turtle *, VkDeviceSize, VkBufferUsageFlags,
 FAKE_VOID_FUNC(vkDestroyBuffer, VkDevice, VkBuffer, const VkAllocationCallbacks *);
 FAKE_VOID_FUNC(vkFreeMemory, VkDevice, VkDeviceMemory, const VkAllocationCallbacks*);
 
+static const VkDevice fake_device = (VkDevice)0xfeedcafe;
+
+static struct turtle *
+create_fake_turtle(void) {
+	struct turtle *turtle = talloc_zero(NULL, struct turtle);
+	turtle->device = fake_device;
+	return turtle;
+}
+
 START_TEST(test_uniform_init)
 {
 	struct turtle *turtle;
@@ -43,7 +52,8 @@ END_TEST
 
 START_TEST(test_uniform_alloc_too_much)
 {
-	struct trtl_uniform *uniforms = trtl_uniform_init(NULL, 2, 100);
+	struct turtle *turtle = create_fake_turtle();
+	struct trtl_uniform *uniforms = trtl_uniform_init(turtle, 2, 100);
 
 	struct trtl_uniform_info *info = trtl_uniform_alloc(uniforms, 96);
 	ck_assert_ptr_ne(info, NULL);

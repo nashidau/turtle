@@ -143,10 +143,11 @@ trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size)
 	struct trtl_uniform_info *info;
 
 	// FIXME: Check size is nicely aligned
-	size = ROUND_UP(size, 64);
+	size = ROUND_UP(size, 16);
 
 	if (uniforms->bump.offset + size > uniforms->buffer_size) {
-		warning("Allocation too large for uniform allocator");
+		warning("Allocation too large for uniform allocator (%d + %d > %d)",
+				uniforms->bump.offset, size, uniforms->buffer_size);
 		return NULL;
 	}
 

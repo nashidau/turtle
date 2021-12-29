@@ -12,7 +12,7 @@ Suite *blam_suite(void *ctx);
 typedef Suite *(*test_module)(void *ctx);
 
 static test_module test_modules[] = {
-	//trtl_uniform_suite,
+	trtl_uniform_suite,
 	trtl_shader_suite,
 	trtl_timer_suite,
 	trtl_solo_suite,
