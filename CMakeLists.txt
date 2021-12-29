@@ -60,6 +60,8 @@ target_link_libraries(turtlestatic PUBLIC dl)
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
+add_compile_options(-Wall -Werror -O2)
+
 INCLUDE(FindPkgConfig)
 pkg_check_modules(CHECK check)
 find_package(Vulkan REQUIRED FATAL_ERROR)
