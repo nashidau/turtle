@@ -62,7 +62,7 @@ struct blobby *
 blobby_from_string(const char *string) {
 	struct blobby *blobby;
 
-	blobby = talloc(blobby, struct blobby);
+	blobby = talloc(NULL, struct blobby);
 	blobby->len = strlen(string);
 	blobby->data = talloc_strdup(blobby, string);
 	return blobby;
