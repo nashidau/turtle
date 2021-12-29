@@ -12,14 +12,14 @@ FAKE_VALUE_FUNC(VkResult, vkCreateShaderModule, VkDevice, const VkShaderModuleCr
 		const VkAllocationCallbacks*, VkShaderModule *);
 FAKE_VOID_FUNC(vkDestroyShaderModule, VkDevice, VkShaderModule, const VkAllocationCallbacks *);
 
-static const VkDevice device_const = (void *)(uintptr_t)0xdeadbeef;
+static const VkDevice fake_device = (VkDevice)0xfeedcafe;
 
 static struct turtle *
 init_shader(void)
 {
 	struct trtl_shader_cache *cache;
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	turtle->device = device_const;
+	turtle->device = fake_device;
 	cache = trtl_shader_cache_init(turtle);
 	turtle->shader_cache = cache;
 	ck_assert_ptr_nonnull(cache);
@@ -30,7 +30,7 @@ START_TEST(test_shader_create)
 {
 	struct trtl_shader_cache *cache;
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	turtle->device = device_const;
+	turtle->device = fake_device;
 	cache = trtl_shader_cache_init(turtle);
 	ck_assert_ptr_nonnull(cache);
 	// Freed with parent
