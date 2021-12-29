@@ -33,11 +33,12 @@ struct trtl_shader *trtl_shader_get(struct turtle *turtle, const char *path);
 // Embeds an inline shader - doesn't set the _end token, sets a length token instead.
 // This is pretty much only for testing.
 #define EMBED_SHADER_STRING(NAME, STRING)                                                          \
-	extern uint8_t shader_##NAME##_start[];                                                    \
+	extern uint8_t _shader_##NAME##_start[];                                                   \
+	extern uint8_t _shader_##NAME##_end;                                                       \
 	__asm__(".data\n"                                                                          \
 		".align 4\n"                                                                       \
 		".global _shader_" #NAME "_start\n"                                                \
-		".global _ hader_" #NAME "_end\n"                                                  \
+		".global _shader_" #NAME "_end\n"                                                  \
 		"_shader_" #NAME "_start:\n"                                                       \
 		".asciz \"" STRING "\"\n"                                                          \
 		"_shader_" #NAME "_end:\n"                                                         \
