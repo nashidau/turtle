@@ -4,6 +4,8 @@
 layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
 
+#include "../trtl_system.include"
+
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;
 
@@ -18,9 +20,10 @@ vec4 positions[3] = vec4[](
 );
 
 void main() {
-    screenSize = vec2(screenWidth, screenHeight);
+    screenSize = trtl_system.screensize;
     gl_Position = positions[gl_VertexIndex];
     fragTexCoord = gl_Position.xy / 4.0;
+    time = trtl_system.time;
 }
 
 /* vim: set sw=4 sts=4 : */

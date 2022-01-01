@@ -20,6 +20,7 @@
 #include "trtl_object.h"
 #include "trtl_object_canvas.h"
 #include "trtl_object_grid.h"
+#include "trtl_strata_base.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
 #include "turtle.h"
@@ -47,6 +48,8 @@ struct trtl_seer {
 
 	uint32_t nframebuffers;
 	VkFramebuffer *framebuffers;
+
+	struct trtl_strata *base;
 };
 
 struct objlayer {
@@ -111,6 +114,9 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent, trtl_render_layer_t nla
 	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
 		seer->layers[i].render_pass = create_render_pass(turtle, layer_info + i);
 	}
+
+	// Create our strata
+	seer->base = trtl_strata_base_init(turtle);
 
 	return seer;
 }

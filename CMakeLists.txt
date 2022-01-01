@@ -34,6 +34,7 @@ add_library(turtleobjs OBJECT
 	trtl_shader.c
 	trtl_shell.c
 	trtl_solo.c
+	trtl_strata_base.c
 	trtl_texture.c
 	trtl_timer.c
 	trtl_uniform.c
@@ -97,6 +98,7 @@ foreach(source IN LISTS SHADERS)
   add_custom_command(
     COMMAND
       ${glslc_executable}
+      -DTRTL_SHADER=1
       -o ${SHADERS_BINARY_DIR}/${FILENAME}.spv
       ${source}
     OUTPUT ${SHADERS_BINARY_DIR}/${FILENAME}.spv

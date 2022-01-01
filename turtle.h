@@ -108,10 +108,19 @@ struct queue_family_indices {
 
 int trtl_main_loop(struct turtle *turtle);
 
+typedef enum {
+	// Nothing bound; you are on your own.
+	TRTL_STRATA_NONE = 0,
+	// Standard Turtle strata - Time and Screensize - most layers want this
+	TRTL_STRATA_BASE = 0x1 << 0,
+	// Orthographic Strata - Time, screensize (base), plus new one with sreen center and sizes
+	TRTL_STRATA_ORTHOGRAPHIC = 0x1 << 1 || TRTL_STRATA_BASE,
+} trtl_strata_t;
 
 struct trtl_layer_info {
 	bool has_depth;
 	bool clear_on_load;
+	trtl_strata_t strata;
 };
 
 struct turtle *turtle_init(int nlayers, const struct trtl_layer_info *layers);

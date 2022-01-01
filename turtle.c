@@ -17,6 +17,7 @@
 #include "trtl_scribe.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
+#include "trtl_strata_base.h"
 #include "trtl_solo.h"
 #include "trtl_texture.h"
 #include "trtl_timer.h"

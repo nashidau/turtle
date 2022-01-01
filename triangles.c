@@ -119,8 +119,11 @@ int
 main(int argc, char **argv)
 {
 	static const struct trtl_layer_info layers[] = {
-		/* background */ { .has_depth = true, .clear_on_load = true },
-		/* Grid */ { .has_depth = true, .clear_on_load = false },
+	    /* background */ {.has_depth = true, .clear_on_load = true, .strata = TRTL_STRATA_BASE},
+	    /* Grid */
+	    {.has_depth = true,
+	     .clear_on_load = false,
+	     .strata = TRTL_STRATA_ORTHOGRAPHIC | TRTL_STRATA_BASE},
 	};
 	struct turtle *turtle;
 
