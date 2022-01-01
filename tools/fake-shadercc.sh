@@ -5,7 +5,7 @@
 #
 #  fake-shadercc.sh -o ${OUT} ${IN}
 
-while getopts o: flag
+while getopts o:D: flag
 do
     case "${flag}" in
         o) outfilename=${OPTARG};;
