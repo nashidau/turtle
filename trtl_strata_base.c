@@ -8,6 +8,7 @@
  * Should be added to the seer in the system layer.
  */
 #include <sys/time.h>
+#include <time.h>
 
 #include <vulkan/vulkan.h>
 
