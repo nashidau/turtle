@@ -4,7 +4,7 @@
 layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
 
-#include "../trtl_system.include"
+#include "../trtl_strata_base.include"
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in vec3 inColor;

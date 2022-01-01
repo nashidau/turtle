@@ -1,0 +1,20 @@
+/**
+ * Standard include for trtl system shaders.
+ */
+#ifndef TRTL_SHADER
+#include "../vertex.h"
+#endif
+
+#ifdef TRTL_SHADER
+/* FIXME: This should be generated */
+layout(binding = 0) uniform TrtlSystemObject {
+    vec2 screensize;
+    float time;
+} trtl_system;
+#else
+struct trtl_system_uniforms {
+  vec2 screen_size;
+  float time;
+};
+#endif
+// vim: set syn=glsl sw=4 sts=4 :

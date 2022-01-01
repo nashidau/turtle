@@ -19,7 +19,7 @@
 #include "trtl_uniform.h"
 #include "turtle.h"
 
-#include "shaders/trtl_system.include"
+#include "shaders/trtl_strata_base.include"
 
 struct trtl_strata_base {
 	struct trtl_strata strata;
