@@ -63,6 +63,8 @@ EMBED_SHADER(test_color_fill, "test-color-fill.spv");
 
 trtl_alloc static VkDescriptorSet *create_canvas_descriptor_sets(struct trtl_object_canvas *canvas,
 								 struct trtl_swap_chain *scd);
+static VkDescriptorSetLayout canvas_create_descriptor_set_layout(VkDevice device);
+
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
 // static const struct vertex2d vertices[] = {
@@ -136,6 +138,8 @@ canvas_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass rende
 		talloc_free(canvas->pipeline_info);
 	}
 	
+	canvas->descriptor_set_layout = canvas_create_descriptor_set_layout(turtle->device);
+	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 
 	canvas->size = size;
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
@@ -203,8 +207,6 @@ trtl_canvas_create(struct turtle *turtle, const char *typename)
 	canvas->uniform_info =
 	    trtl_uniform_alloc_type(turtle->uniforms, struct canvas_shader_params);
 
-	canvas->descriptor_set_layout = canvas_create_descriptor_set_layout(turtle->device);
-	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 
 	{
 		struct trtl_seer_vertexset vertices;
