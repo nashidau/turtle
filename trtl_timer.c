@@ -255,7 +255,8 @@ trtl_timer_timeout_get(struct turtle *turtle)
 	clock_gettime(TRTL_CLOCK, &now);
 	trtl_timer_timespec_difference(&res, &turtle->timers->due, &now);
 
-	return trtl_timer_timespec_to_double(&res);
+	double timeout = trtl_timer_timespec_to_double(&res);
+	return MAX(timeout, 0.0);
 }
 
 int
