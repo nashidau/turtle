@@ -126,6 +126,7 @@ START_TEST(test_crier_cb_register_multiple)
 	ck_assert(trtl_crier_post(crier, cry2, "Local"));
 
 	ck_assert_int_eq(callback1_fake.call_count, 1);
+	ck_assert_int_eq(callback2_fake.call_count, 1);
 
 	talloc_free(crier);
 }
