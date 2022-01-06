@@ -61,7 +61,9 @@ target_link_libraries(turtlestatic PUBLIC dl)
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
-add_compile_options(-Wall -Werror -O2)
+
+target_compile_options(turtle PRIVATE -Werror -Wall -Wextra)
+target_compile_options(turtlestatic PRIVATE -Werror -Wall -Wextra)
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(CHECK check)
@@ -137,6 +139,7 @@ add_executable(trtl_check
 target_link_libraries(trtl_check PRIVATE turtlestatic talloc check)
 target_include_directories(trtl_check PRIVATE ./third-party)
 target_link_libraries(trtl_check PRIVATE ${CHECK_LIBRARIES} m dl pthread)
+target_compile_options(trtl_check PRIVATE -Werror -Wall -Wextra)
 
 add_custom_target(graphviz ALL
     COMMAND ${CMAKE_COMMAND} "--graphviz=turtle.dot" .
