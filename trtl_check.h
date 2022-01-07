@@ -9,6 +9,7 @@ Suite *trtl_timer_suite(trtl_arg_unused void *ctx);
 Suite *trtl_shader_suite(trtl_arg_unused void *ctx);
 Suite *trtl_solo_suite(trtl_arg_unused void *ctx);
 Suite *trtl_crier_suite(trtl_arg_unused void *ctx);
+Suite *trtl_events_suite(trtl_arg_unused void *ctx);
 
 // The ubuntu 20.04 version of check is ancient
 #ifndef ck_assert_double_eq

@@ -13,6 +13,7 @@ typedef Suite *(*test_module)(void *ctx);
 
 static test_module test_modules[] = {
 	trtl_crier_suite,
+	trtl_events_suite,
 	trtl_uniform_suite,
 	trtl_shader_suite,
 	trtl_timer_suite,

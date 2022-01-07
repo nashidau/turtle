@@ -14,6 +14,7 @@
 
 #include "helpers.h"
 #include "trtl_barriers.h"
+#include "trtl_events.h"
 #include "trtl_scribe.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
@@ -419,6 +420,8 @@ turtle_init(int nlayers, const struct trtl_layer_info *layers)
 	printf("Validation Layer Support: %s\n",
 	       trtl_scribe_check_validation_layer_support() ? "Yes" : "No");
 
+	turtle->events = talloc_steal(turtle, trtl_event_init());
+
 	window_init(turtle, "Turtle");
 
 	turtle->instance = create_instance("Turtle");
@@ -749,6 +752,9 @@ recreate_swap_chain(struct turtle *turtle)
 	create_depth_resources(turtle);
 
 	turtle->tsc->descriptor_pool = create_descriptor_pool(turtle->tsc);
+
+	trtl_event_resize(turtle, size);
+
 	trtl_seer_resize(size, turtle);
 
 	tsc->command_buffers = trtl_seer_create_command_buffers(turtle, tsc->command_pool);

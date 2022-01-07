@@ -25,6 +25,7 @@ add_library(turtleobjs OBJECT
 	stringlist.c
 	trtl_barriers.c
 	trtl_crier.c
+	trtl_events.c
 	trtl_object_canvas.c
 	trtl_object_grid.c
 	trtl_object_mesh_old.c
@@ -134,6 +135,7 @@ target_link_libraries(turtlestatic PUBLIC talloc glfw ${Vulkan_LIBRARIES})
 add_executable(trtl_check
 	trtl_check.c
 	trtl_crier_check.c
+	trtl_events_check.c
 	trtl_shader_check.c
 	trtl_solo_check.c
 	trtl_timer_check.c

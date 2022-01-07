@@ -44,6 +44,9 @@ struct turtle {
 
 	VkInstance instance;
 
+	// Default synchronous message service.
+	struct trtl_events *events;
+
 	struct trtl_swap_chain *tsc;
 	struct trtl_shader_cache *shader_cache;
 	struct trtl_seer *seer;
