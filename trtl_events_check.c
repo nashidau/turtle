@@ -6,6 +6,7 @@
 #include "fff/fff.h"
 
 #include "helpers.h"
+#include "trtl_check.h"
 #include "trtl_events.h"
 #include "turtle.h"
 
