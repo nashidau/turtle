@@ -17,6 +17,7 @@
 #include "helpers.h"
 #include "trtl_strata.h"
 #include "trtl_strata_base.h"
+#include "trtl_events.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 
@@ -43,6 +44,16 @@ trtl_strata_base(struct trtl_strata *strata)
 	return sbase;
 }
 
+static void
+resize_callback(void *sbasev, trtl_arg_unused trtl_crier_cry_t cry, const void *event) {
+	struct trtl_event_resize *resize = talloc_get_type(event, struct trtl_event_resize);
+	struct trtl_strata_base *sbase = talloc_get_type(sbasev, struct trtl_strata_base);
+
+
+	sbase->width = resize->new_size.width;
+	sbase->height = resize->new_size.height;
+}
+
 struct trtl_strata *
 trtl_strata_base_init(struct turtle *turtle)
 {
@@ -64,6 +75,9 @@ trtl_strata_base_init(struct turtle *turtle)
 	sbase->width = 800;
 	sbase->height = 640;
 
+	trtl_crier_listen(turtle->events->crier, "trtl_event_resize", resize_callback,
+			sbase);
+
 	return &sbase->strata;
 }
 
@@ -71,7 +85,6 @@ static bool
 sysm_update(struct trtl_strata *strata, int frame)
 {
 	struct trtl_strata_base *sbase = trtl_strata_base(strata);
-	struct trtl_system_object *uniform;
 	struct trtl_system_uniforms *uniforms =
 	    trtl_uniform_info_address(sbase->uniform_info, frame);
 
