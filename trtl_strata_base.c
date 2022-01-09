@@ -15,9 +15,9 @@
 #include <talloc.h>
 
 #include "helpers.h"
+#include "trtl_events.h"
 #include "trtl_strata.h"
 #include "trtl_strata_base.h"
-#include "trtl_events.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 
@@ -32,8 +32,8 @@ struct trtl_strata_base {
 };
 
 static bool sysm_update(struct trtl_strata *obj, int frame);
-static void sysm_resize(struct trtl_strata *, const VkRenderPass renderpass,
-			VkExtent2D extent);
+static void sysm_resize(struct trtl_strata *, const VkRenderPass renderpass, VkExtent2D extent);
+static VkDescriptorSetLayout strata_base_descriptor_set_layout(struct trtl_strata *strata);
 
 static inline struct trtl_strata_base *
 trtl_strata_base(struct trtl_strata *strata)
@@ -45,7 +45,8 @@ trtl_strata_base(struct trtl_strata *strata)
 }
 
 static void
-resize_callback(void *sbasev, trtl_arg_unused trtl_crier_cry_t cry, const void *event) {
+resize_callback(void *sbasev, trtl_arg_unused trtl_crier_cry_t cry, const void *event)
+{
 	struct trtl_event_resize *resize = talloc_get_type(event, struct trtl_event_resize);
 	struct trtl_strata_base *sbase = talloc_get_type(sbasev, struct trtl_strata_base);
 
@@ -66,6 +67,7 @@ trtl_strata_base_init(struct turtle *turtle)
 	sbase->strata.turtle = turtle;
 	sbase->strata.update = sysm_update;
 	sbase->strata.resize = sysm_resize;
+	sbase->strata.descriptor_set_layout = strata_base_descriptor_set_layout;
 
 	sbase->uniform =
 	    trtl_uniform_init(turtle, turtle->tsc->nimages, sizeof(struct trtl_system_uniforms));
@@ -74,8 +76,7 @@ trtl_strata_base_init(struct turtle *turtle)
 	sbase->width = 800;
 	sbase->height = 640;
 
-	trtl_crier_listen(turtle->events->crier, "trtl_event_resize", resize_callback,
-			sbase);
+	trtl_crier_listen(turtle->events->crier, "trtl_event_resize", resize_callback, sbase);
 
 	return &sbase->strata;
 }
@@ -96,10 +97,37 @@ sysm_update(struct trtl_strata *strata, int frame)
 }
 
 static void
-sysm_resize(struct trtl_strata *strata, trtl_arg_unused const VkRenderPass renderpass, VkExtent2D extent)
+sysm_resize(struct trtl_strata *strata, trtl_arg_unused const VkRenderPass renderpass,
+	    VkExtent2D extent)
 {
 	struct trtl_strata_base *sbase = trtl_strata_base(strata);
 
 	sbase->width = extent.width;
 	sbase->height = extent.height;
+}
+
+static VkDescriptorSetLayout
+strata_base_descriptor_set_layout(struct trtl_strata *strata)
+{
+	VkDescriptorSetLayout descriptor_set_layout;
+
+	VkDescriptorSetLayoutBinding ubo_layout_binding = {0};
+	ubo_layout_binding.binding = 0;
+	ubo_layout_binding.descriptorCount = 1;
+	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	ubo_layout_binding.pImmutableSamplers = NULL;
+	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkDescriptorSetLayoutBinding bindings[1];
+	bindings[0] = ubo_layout_binding;
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
+	layoutInfo.pBindings = bindings;
+
+	if (vkCreateDescriptorSetLayout(strata->turtle->device, &layoutInfo, NULL,
+					&descriptor_set_layout) != VK_SUCCESS) {
+		error("failed to create descriptor set layout!");
+	}
+	return descriptor_set_layout;
 }

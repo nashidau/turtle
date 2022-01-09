@@ -21,6 +21,7 @@
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
+#include "trtl_strata.h"
 #include "turtle.h"
 #include "vertex.h"
 
@@ -276,7 +277,6 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 struct trtl_pipeline_info *
 trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer,
 				 struct trtl_strata *strata,
-				 VkDescriptorSetLayout descriptor_set_layout,
 				 const char *vertex_shader, const char *fragment_shader,
 				 const VkVertexInputBindingDescription *binding_description,
 				 const VkVertexInputAttributeDescription *attribute_description,
@@ -425,6 +425,8 @@ trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamicState.dynamicStateCount = 2;
 	dynamicState.pDynamicStates = dynamicStates;
+
+	VkDescriptorSetLayout descriptor_set_layout = strata->descriptor_set_layout(strata);
 
 	VkPipelineLayoutCreateInfo pipeline_layout_info = {0};
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;

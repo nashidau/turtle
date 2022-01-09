@@ -16,4 +16,6 @@ struct trtl_strata {
 
 	// Resize the object
 	void (*resize)(struct trtl_strata *strata, const VkRenderPass pass, VkExtent2D size);
+
+	VkDescriptorSetLayout (*descriptor_set_layout)(struct trtl_strata *strata);
 };
