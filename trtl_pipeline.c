@@ -26,10 +26,8 @@
 
 #include "blobby.h"
 
-extern int zoom;
-
 // FIXME: Is this freed correctly?
-static VkSpecializationInfo *
+trtl_alloc static VkSpecializationInfo *
 set_specialise_info(VkExtent2D *extent)
 {
 	VkSpecializationInfo *info = talloc_zero(NULL, VkSpecializationInfo);
@@ -54,9 +52,9 @@ set_specialise_info(VkExtent2D *extent)
 	// Tile size
 	entries[2].constantID = 2;
 	entries[2].size = sizeof(int);
-	// FIXME: This whole thing should be a stricut, then the casing is much better
+	// FIXME: This whole thing should be a struct, then the casing is much better
 	entries[2].offset = 2 * sizeof(int);
-	data[2] = zoom;
+	data[2] = 128;
 
 	info->dataSize = entries[2].offset + entries[2].size;
 	info->pData = data;

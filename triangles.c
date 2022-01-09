@@ -32,7 +32,6 @@
 
 struct trtl_stringlist *objs_to_load[2] = {NULL};
 
-extern int zoom;
 extern bool frame_buffer_resized;
 
 static void
