@@ -5,6 +5,7 @@
 #include <vulkan/vulkan.h>
 
 struct turtle;
+struct trtl_layer;
 
 // Interface for render objects; implement these methods
 struct trtl_object {
@@ -14,6 +15,5 @@ struct trtl_object {
 
 	// Triggered when an object is first added to a layer or on resize.
 	// The object should create it's pipeline based on the info in this call
-	void (*relayer)(struct trtl_object *obj, struct turtle *turtle, VkRenderPass pass,
-		       VkExtent2D size);
+	void (*relayer)(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *layer);
 };

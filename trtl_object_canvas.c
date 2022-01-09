@@ -16,8 +16,8 @@
 #include "trtl_object_canvas.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
-#include "trtl_shell.h"
 #include "trtl_shader.h"
+#include "trtl_shell.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
@@ -55,9 +55,8 @@ struct canvas_type {
 		const char *fragment;
 	} shader;
 } canvas_types[] = {
-	{ "stars", { "canvas_vertex", "stars_1" } },
-	{ "rainbow", { "canvas_vertex", "test_color_fill" } },
-	//{ "red", { "canvas_vertex", PREFIX_GRID "red.spv" } },
+    {"stars", {"canvas_vertex", "stars_1"}}, {"rainbow", {"canvas_vertex", "test_color_fill"}},
+    //{ "red", { "canvas_vertex", PREFIX_GRID "red.spv" } },
 };
 
 EMBED_SHADER(canvas_vertex, "canvas-vertex.spv");
@@ -105,8 +104,8 @@ canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 	vkCmdBindIndexBuffer(cmd_buffer, canvas->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				canvas->pipeline_info->pipeline_layout, 0, 1, canvas->descriptor_set,
-				0, NULL);
+				canvas->pipeline_info->pipeline_layout, 0, 1,
+				canvas->descriptor_set, 0, NULL);
 	vkCmdDrawIndexed(cmd_buffer, CANVAS_OBJECT_NINDEXES, 1, 0, offset, 0);
 }
 
@@ -129,26 +128,25 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 }
 
 static void
-canvas_relayer(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
-	      VkExtent2D size)
+canvas_relayer(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *layer)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
-	
+
 	if (canvas->descriptor_set) {
 		talloc_free(canvas->descriptor_set);
 	}
 	if (canvas->pipeline_info) {
 		talloc_free(canvas->pipeline_info);
 	}
-	
+
 	canvas->descriptor_set_layout = canvas_create_descriptor_set_layout(turtle->device);
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
 
-	canvas->size = size;
+	canvas->size = layer->rect.extent;
 	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
-	canvas->pipeline_info = trtl_pipeline_create(
-	    turtle, renderpass, size, canvas->descriptor_set_layout,
-	    canvas->type->shader.vertex, canvas->type->shader.fragment, NULL, NULL, 0, false);
+	canvas->pipeline_info = trtl_pipeline_create_with_strata(
+	    turtle, layer, layer->rect.extent, canvas->descriptor_set_layout,
+	    canvas->type->shader.vertex, canvas->type->shader.fragment, NULL, NULL, 0);
 }
 
 static VkDescriptorSetLayout
@@ -186,7 +184,7 @@ trtl_canvas_create(struct turtle *turtle, const char *typename)
 	if (typename == NULL) {
 		type = &canvas_types[0];
 	} else {
-		for (uint32_t i = 0 ; i < TRTL_ARRAY_SIZE(canvas_types) ; i ++) {
+		for (uint32_t i = 0; i < TRTL_ARRAY_SIZE(canvas_types); i++) {
 			if (streq(typename, canvas_types[i].name)) {
 				type = &canvas_types[i];
 			}

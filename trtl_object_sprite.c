@@ -32,8 +32,6 @@ EMBED_SHADER(sprite_fragment, "sprite-fragment.spv");
 // FIXME: So so terrible
 #define N_INSTANCES 30
 
-
-
 struct trtl_object_sprite {
 	struct trtl_object parent;
 
@@ -155,21 +153,20 @@ sprite_update(struct trtl_object *obj, trtl_arg_unused int frame)
 }
 
 static void
-sprite_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
-	      VkExtent2D size)
+sprite_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *layer)
 {
 	// FIXME: Handle the empty case.
 	struct trtl_object_sprite *sprite = trtl_object_sprite(obj);
-	sprite->size = size;
+	sprite->size = layer->rect.extent;
 
 	talloc_free(sprite->pipeline_info);
 
 	// sprite->descriptor_set = create_sprite_descriptor_sets(sprite, sprite->subsprite);
 	// FIXME: Alternative is sprite-red-boder - which has a cool red border instead
 	// of alpha.
-	sprite->pipeline_info =
-	    trtl_pipeline_create(turtle, renderpass, size, sprite->descriptor_set_layout,
-			    "sprite_vertex", "sprite_fragment", NULL, NULL, 0, true);
+	sprite->pipeline_info = trtl_pipeline_create(turtle, layer->render_pass, layer->rect.extent,
+						     sprite->descriptor_set_layout, "sprite_vertex",
+						     "sprite_fragment", NULL, NULL, 0, true);
 }
 
 static VkDescriptorSetLayout
@@ -227,8 +224,7 @@ trtl_sprite_subsprite_add(struct trtl_object *object, const char *image)
 	}
 	subsprite->next = NULL;
 
-
-	subsprite->uniform_index = sprite->next_uniform ++;
+	subsprite->uniform_index = sprite->next_uniform++;
 
 	subsprite->instances[0].image_index = sprite->nsprites;
 	sprite->nsprites++;
@@ -250,12 +246,12 @@ trtl_subsprite_index
 trtl_sprite_subsprite_instance_add(struct trtl_sprite_subsprite *subsprite)
 {
 	assert(subsprite);
-	trtl_subsprite_index index = { 0 };
+	trtl_subsprite_index index = {0};
 
-	index.index = subsprite->ninstances ++;
+	index.index = subsprite->ninstances++;
 	assert(subsprite->ninstances < N_INSTANCES);
 
-	subsprite->uniform_index = subsprite->sprite->next_uniform ++;
+	subsprite->uniform_index = subsprite->sprite->next_uniform++;
 
 	return index;
 }

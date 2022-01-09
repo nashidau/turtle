@@ -105,6 +105,7 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent, trtl_render_layer_t nla
 
 	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
 		seer->layers[i].render_pass = create_render_pass(turtle, layer_info + i);
+		seer->layers[i].rect = (VkRect2D){{0, 0}, {extent.width, extent.height}};
 	}
 
 	// Create our strata
@@ -123,10 +124,10 @@ trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 
 	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
 		struct trtl_layer *layer = seer->layers + i;
+		layer->rect.extent = new_size;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			if (layer->objects[obj]->relayer) {
-				layer->objects[obj]->relayer(layer->objects[obj], turtle,
-							     layer->render_pass, new_size);
+				layer->objects[obj]->relayer(layer->objects[obj], turtle, layer);
 			}
 		}
 	}
@@ -190,7 +191,7 @@ trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_ren
 	layer->objects[layer->nobjects++] = object;
 
 	talloc_steal(seer, object);
-	object->relayer(object, turtle, layer->render_pass, seer->size);
+	object->relayer(object, turtle, layer);
 
 	return 0;
 }

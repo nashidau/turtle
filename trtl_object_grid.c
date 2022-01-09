@@ -13,8 +13,8 @@
 #include "trtl_object_grid.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
-#include "trtl_shell.h"
 #include "trtl_shader.h"
+#include "trtl_shell.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
@@ -29,7 +29,7 @@ static const struct grid_shaders {
 	const char *vertex;
 	const char *fragment;
 } grid_shaders[] = {
-    {"cobblestons", VDEFAULT,  "lines"},
+    {"cobblestons", VDEFAULT, "lines"},
     {"timber", VDEFAULT, "lines"},
 };
 
@@ -204,16 +204,15 @@ generate_grid(struct trtl_object_grid *grid, uint16_t width, uint16_t height)
 }
 
 static void
-grid_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
-	    VkExtent2D size)
+grid_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *layer)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
 	grid->descriptor_set_layout = grid_create_descriptor_set_layout(turtle->device);
 	grid->descriptor_set = grid_create_descriptor_sets(grid, turtle->tsc);
 	grid->pipeline_info = trtl_pipeline_create(
-	    turtle, renderpass, size, grid->descriptor_set_layout, grid->shader->vertex,
-	    grid->shader->fragment, &grid_binding_descriptor, grid_vertex_description,
-	    N_VERTEX_ATTRIBUTE_DESCRIPTORS, false);
+	    turtle, layer->render_pass, layer->rect.extent, grid->descriptor_set_layout,
+	    grid->shader->vertex, grid->shader->fragment, &grid_binding_descriptor,
+	    grid_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS, false);
 }
 
 static void

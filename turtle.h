@@ -137,7 +137,8 @@ struct trtl_layer {
 	bool has_depth;
 	bool clear_on_load;
 	trtl_strata_t strata;
-	// FIXME: Extent/size of the layer
+
+	VkRect2D rect;
 };
 
 struct turtle *turtle_init(int nlayers, const struct trtl_layer_info *layers);
