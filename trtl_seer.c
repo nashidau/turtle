@@ -52,18 +52,6 @@ struct trtl_seer {
 	struct trtl_strata *base;
 };
 
-struct trtl_layer {
-	uint32_t nobjects;
-	uint32_t nalloced;
-	struct trtl_object **objects;
-
-	VkRenderPass render_pass;
-
-	bool has_depth;
-	bool clear_on_load;
-	trtl_strata_t strata;
-};
-
 static VkRenderPass create_render_pass(struct turtle *turtle, const struct trtl_layer_info *info);
 VkCommandBuffer *create_command_buffers(struct turtle *turtle, struct trtl_swap_chain *scd,
 					VkCommandPool command_pool, VkFramebuffer *framebuffers);

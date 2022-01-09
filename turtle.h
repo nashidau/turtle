@@ -126,6 +126,20 @@ struct trtl_layer_info {
 	trtl_strata_t strata;
 };
 
+
+struct trtl_layer {
+	uint32_t nobjects;
+	uint32_t nalloced;
+	struct trtl_object **objects;
+
+	VkRenderPass render_pass;
+
+	bool has_depth;
+	bool clear_on_load;
+	trtl_strata_t strata;
+	// FIXME: Extent/size of the layer
+};
+
 struct turtle *turtle_init(int nlayers, const struct trtl_layer_info *layers);
 
 // FIXME: Should be turtle_create() and render_context should be a struct turtle.
