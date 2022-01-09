@@ -275,7 +275,7 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 }
 
 struct trtl_pipeline_info *
-trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer,  VkExtent2D extent,
+trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer,
 		VkDescriptorSetLayout descriptor_set_layout,
 		     const char *vertex_shader,
 		     const char *fragment_shader,
@@ -294,7 +294,7 @@ trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer
 	assert(vert != NULL);
 	assert(frag != NULL);
 
-	VkSpecializationInfo *specialisationInfo = set_specialise_info(&extent);
+	VkSpecializationInfo *specialisationInfo = set_specialise_info(&layer->rect.extent);
 	VkVertexInputAttributeDescription *tofree = NULL;
 
 	VkPipelineShaderStageCreateInfo vertShaderStageInfo = {0};
@@ -342,24 +342,19 @@ trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer
 	inputAssembly.primitiveRestartEnable = VK_FALSE;
 
 	VkViewport viewport = {0};
-	viewport.x = 0.0f;
-	viewport.y = 0.0f;
-	viewport.width = (float)extent.width;
-	viewport.height = (float)extent.height;
+	viewport.x = (float)layer->rect.offset.x;
+	viewport.y = (float)layer->rect.offset.y;
+	viewport.width = (float)layer->rect.extent.width;
+	viewport.height = (float)layer->rect.extent.height;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
-
-	VkRect2D scissor = {0};
-	scissor.offset.x = 0;
-	scissor.offset.y = 0;
-	scissor.extent = extent;
 
 	VkPipelineViewportStateCreateInfo viewportState = {0};
 	viewportState.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 	viewportState.viewportCount = 1;
 	viewportState.pViewports = &viewport;
 	viewportState.scissorCount = 1;
-	viewportState.pScissors = &scissor;
+	viewportState.pScissors = &layer->rect;
 
 	VkPipelineRasterizationStateCreateInfo rasterizer = {0};
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
