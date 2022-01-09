@@ -42,7 +42,7 @@ struct trtl_seer {
 	uint32_t nobjects;
 
 	trtl_render_layer_t nlayers;
-	struct objlayer *layers;
+	struct trtl_layer *layers;
 
 	VkExtent2D size;
 
@@ -52,12 +52,16 @@ struct trtl_seer {
 	struct trtl_strata *base;
 };
 
-struct objlayer {
+struct trtl_layer {
 	uint32_t nobjects;
 	uint32_t nalloced;
 	struct trtl_object **objects;
 
 	VkRenderPass render_pass;
+
+	bool has_depth;
+	bool clear_on_load;
+	trtl_strata_t strata;
 };
 
 static VkRenderPass create_render_pass(struct turtle *turtle, const struct trtl_layer_info *info);
@@ -73,7 +77,7 @@ seer_destroy(struct trtl_seer *seer)
 
 	// For each layer; destroy our objects
 	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
-		struct objlayer *layer = seer->layers + i;
+		struct trtl_layer *layer = seer->layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			talloc_free(layer->objects[obj]);
 		}
@@ -105,7 +109,7 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent, trtl_render_layer_t nla
 	seer = talloc_zero(turtle, struct trtl_seer);
 	talloc_set_destructor(seer, seer_destroy);
 
-	seer->layers = talloc_zero_array(seer, struct objlayer, nlayers);
+	seer->layers = talloc_zero_array(seer, struct trtl_layer, nlayers);
 	seer->nlayers = nlayers;
 	seer->size = extent;
 
@@ -130,7 +134,7 @@ trtl_seer_resize(VkExtent2D new_size, struct turtle *turtle)
 	// recreate pipelines
 
 	for (trtl_render_layer_t i = 0; i < seer->nlayers; i++) {
-		struct objlayer *layer = seer->layers + i;
+		struct trtl_layer *layer = seer->layers + i;
 		for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 			if (layer->objects[obj]->relayer) {
 				layer->objects[obj]->relayer(layer->objects[obj], turtle,
@@ -167,7 +171,7 @@ int
 trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_render_layer_t layerid)
 {
 	struct trtl_seer *seer;
-	struct objlayer *layer;
+	struct trtl_layer *layer;
 
 	if (turtle == NULL || object == NULL) {
 		return -1;
@@ -268,7 +272,7 @@ trtl_seer_update(struct turtle *turtle, uint32_t image_index)
 	struct trtl_seer *seer = turtle->seer;
 
 	for (trtl_render_layer_t layerid = 0; layerid < seer->nlayers; layerid++) {
-		struct objlayer *layer = seer->layers + layerid;
+		struct trtl_layer *layer = seer->layers + layerid;
 		for (uint32_t i = 0; i < layer->nobjects; i++) {
 			layer->objects[i]->update(layer->objects[i], image_index);
 			count++;
@@ -299,7 +303,7 @@ trtl_seer_draw(struct turtle *turtle, VkCommandBuffer buffer, trtl_render_layer_
 
 	assert(layerid < seer->nlayers);
 
-	struct objlayer *layer = seer->layers + layerid;
+	struct trtl_layer *layer = seer->layers + layerid;
 
 	for (uint32_t obj = 0; obj < layer->nobjects; obj++) {
 		layer->objects[obj]->draw(layer->objects[obj], buffer, offset);
