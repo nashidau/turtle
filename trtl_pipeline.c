@@ -62,13 +62,13 @@ set_specialise_info(VkExtent2D *extent)
 }
 
 static int
-pipeline_destroy(struct trtl_pipeline_info *info) {
+pipeline_destroy(struct trtl_pipeline_info *info)
+{
 	// free the pipeline
 	vkDestroyPipeline(info->device, info->pipeline, NULL);
 	vkDestroyPipelineLayout(info->device, info->pipeline_layout, NULL);
 	return 0;
 }
-
 
 /*
  * FIXME: We creeate a pipeline layout and a pipeline here.  The layout is pretty much the same so
@@ -81,8 +81,7 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 		     const char *fragment_shader,
 		     const VkVertexInputBindingDescription *binding_description,
 		     const VkVertexInputAttributeDescription *attribute_description,
-		     uint32_t nattributes,
-		     bool layer_blend)
+		     uint32_t nattributes, bool layer_blend)
 {
 	struct trtl_pipeline_info *info = talloc_zero(turtle, struct trtl_pipeline_info);
 	info->device = turtle->device;
@@ -199,7 +198,7 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 					      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	colorBlendAttachment.blendEnable = layer_blend;
 	/* FIXME: Sort out if I can just use hte blnd flag.
-	 * this is the original; I think ignored if layer_blend is false 
+	 * this is the original; I think ignored if layer_blend is false
 	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;	 // Optional
 	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
 	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;		 // Optional
@@ -276,12 +275,12 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 
 struct trtl_pipeline_info *
 trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer,
-		VkDescriptorSetLayout descriptor_set_layout,
-		     const char *vertex_shader,
-		     const char *fragment_shader,
-		     const VkVertexInputBindingDescription *binding_description,
-		     const VkVertexInputAttributeDescription *attribute_description,
-		     uint32_t nattributes)
+				 struct trtl_strata *strata,
+				 VkDescriptorSetLayout descriptor_set_layout,
+				 const char *vertex_shader, const char *fragment_shader,
+				 const VkVertexInputBindingDescription *binding_description,
+				 const VkVertexInputAttributeDescription *attribute_description,
+				 uint32_t nattributes)
 {
 	struct trtl_pipeline_info *info = talloc_zero(turtle, struct trtl_pipeline_info);
 	info->device = turtle->device;
@@ -392,9 +391,9 @@ trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer
 	colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
 					      VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	// FIXME: Should be from ovjlayer
-	colorBlendAttachment.blendEnable = false; //layer_blend;
+	colorBlendAttachment.blendEnable = false; // layer_blend;
 	/* FIXME: Sort out if I can just use hte blnd flag.
-	 * this is the original; I think ignored if layer_blend is false 
+	 * this is the original; I think ignored if layer_blend is false
 	colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;	 // Optional
 	colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO; // Optional
 	colorBlendAttachment.colorBlendOp = VK_BLEND_OP_ADD;		 // Optional
