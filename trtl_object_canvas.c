@@ -38,6 +38,9 @@ struct trtl_object_canvas {
 	VkExtent2D size;
 
 	struct canvas_type *type;
+
+	// My strata
+	struct trtl_strata *base;
 };
 
 struct canvas_shader_params {
@@ -126,7 +129,7 @@ canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
 }
 
 static void
-canvas_resize(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
+canvas_relayer(struct trtl_object *obj, struct turtle *turtle, VkRenderPass renderpass,
 	      VkExtent2D size)
 {
 	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
@@ -200,13 +203,14 @@ trtl_canvas_create(struct turtle *turtle, const char *typename)
 
 	canvas->parent.draw = canvas_draw;
 	canvas->parent.update = canvas_update;
-	canvas->parent.relayer = canvas_resize;
+	canvas->parent.relayer = canvas_relayer;
 
 	canvas->nframes = turtle->tsc->nimages;
 
+	canvas->base = trtl_seer_strata_get(turtle, "base");
+
 	canvas->uniform_info =
 	    trtl_uniform_alloc_type(turtle->uniforms, struct canvas_shader_params);
-
 
 	{
 		struct trtl_seer_vertexset vertices;

@@ -42,3 +42,8 @@ struct trtl_seer_indexset *trtl_seer_indexset_get(trtl_render_layer_t, uint32_t 
 // FIXME: Hackery here
 trtl_must_check VkCommandBuffer *trtl_seer_create_command_buffers(struct turtle *turtle,
 								  VkCommandPool command_pool);
+
+// FIXME: This shouldn;t be needed - it should be done automatically by object creation or
+// insertion or something
+struct trtl_strata *trtl_seer_strata_get(struct turtle *turtle, const char *name);
+

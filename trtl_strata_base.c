@@ -49,7 +49,6 @@ resize_callback(void *sbasev, trtl_arg_unused trtl_crier_cry_t cry, const void *
 	struct trtl_event_resize *resize = talloc_get_type(event, struct trtl_event_resize);
 	struct trtl_strata_base *sbase = talloc_get_type(sbasev, struct trtl_strata_base);
 
-
 	sbase->width = resize->new_size.width;
 	sbase->height = resize->new_size.height;
 }

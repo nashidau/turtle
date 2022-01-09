@@ -20,9 +20,9 @@
 #include "trtl_object.h"
 #include "trtl_object_canvas.h"
 #include "trtl_object_grid.h"
-#include "trtl_strata_base.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
+#include "trtl_strata_base.h"
 #include "turtle.h"
 
 // FIXME: These should be in some loaded metadata
@@ -509,4 +509,13 @@ create_frame_buffers(VkDevice device, struct trtl_swap_chain *scd, VkRenderPass 
 	}
 
 	return framebuffers;
+}
+
+struct trtl_strata *
+trtl_seer_strata_get(struct turtle *turtle, const char *name)
+{
+	if (streq(name, "base")) {
+		return turtle->seer->base;
+	}
+	return NULL;
 }
