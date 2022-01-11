@@ -53,12 +53,15 @@ struct canvas_type {
 		const char *fragment;
 	} shader;
 } canvas_types[] = {
-    {"stars", {"canvas_vertex", "stars_1"}}, {"rainbow", {"canvas_vertex", "test_color_fill"}},
+    {"stars", {"canvas_vertex", "stars_1"}},
+    {"rainbow", {"canvas_vertex", "test_color_fill"}},
+    {"clouds", {"canvas_vertex", "clouds"}},
     //{ "red", { "canvas_vertex", PREFIX_GRID "red.spv" } },
 };
 
 EMBED_SHADER(canvas_vertex, "canvas-vertex.spv");
 EMBED_SHADER(stars_1, "stars-1.spv");
+EMBED_SHADER(clouds, "clouds.spv");
 EMBED_SHADER(test_color_fill, "test-color-fill.spv");
 
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and

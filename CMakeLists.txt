@@ -79,6 +79,7 @@ endif()
 
 
 list(APPEND SHADERS 
+	${SHADERS_SOURCE_DIR}/canvas/clouds.frag
 	${SHADERS_SOURCE_DIR}/canvas/test-color-fill.frag 
 	${SHADERS_SOURCE_DIR}/canvas/stars-1.frag
 	${SHADERS_SOURCE_DIR}/canvas/sepia.frag
