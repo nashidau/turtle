@@ -8,13 +8,12 @@
 #ifdef TRTL_SHADER
 /* FIXME: This should be generated */
 layout(binding = 0) uniform TrtlSystemObject {
-    vec2 screensize;
-    float time;
+    vec4 screensize_time_unused;
 } trtl_system;
 #else
 struct trtl_system_uniforms {
-  vec2 screen_size;
-  float time;
+  vec4 screen_size;
+  //float time;
 };
 #endif
 // vim: set syn=glsl sw=4 sts=4 :

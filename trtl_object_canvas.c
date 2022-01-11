@@ -18,7 +18,7 @@
 #include "trtl_seer.h"
 #include "trtl_shader.h"
 #include "trtl_shell.h"
-#include "trtl_uniform.h"
+#include "trtl_strata.h"
 #include "turtle.h"
 #include "vertex.h"
 
@@ -26,9 +26,7 @@ struct trtl_object_canvas {
 	struct trtl_object parent;
 
 	uint32_t nframes;
-	VkDescriptorSetLayout descriptor_set_layout;
 	VkDescriptorSet *descriptor_set;
-	struct trtl_uniform_info *uniform_info;
 
 	struct trtl_pipeline_info *pipeline_info;
 
@@ -62,10 +60,6 @@ struct canvas_type {
 EMBED_SHADER(canvas_vertex, "canvas-vertex.spv");
 EMBED_SHADER(stars_1, "stars-1.spv");
 EMBED_SHADER(test_color_fill, "test-color-fill.spv");
-
-trtl_alloc static VkDescriptorSet *create_canvas_descriptor_sets(struct trtl_object_canvas *canvas,
-								 struct trtl_swap_chain *scd);
-static VkDescriptorSetLayout canvas_create_descriptor_set_layout(VkDevice device);
 
 // FIXME: Should be a vertex2d here - it's a 2d object - fix this and
 // allow 2d objects to be return from indices get.
@@ -110,19 +104,8 @@ canvas_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
 }
 
 static bool
-canvas_update(struct trtl_object *obj, trtl_arg_unused int frame)
+canvas_update(trtl_arg_unused struct trtl_object *obj, trtl_arg_unused int frame)
 {
-	struct trtl_object_canvas *canvas = trtl_object_canvas(obj);
-	struct canvas_shader_params *params;
-
-	params = trtl_uniform_info_address(canvas->uniform_info, frame);
-
-	params->time = time(NULL);
-	params->screenSize[0] = 1.0; // canvas->size.width;
-	params->screenSize[1] = 0.5; // canvas->size.height;
-	// printf("%f %f %f\n", params->screenSize[0],
-	//		params->screenSize[1], params->time);
-
 	// We updated
 	return true;
 }
@@ -139,40 +122,11 @@ canvas_relayer(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer
 		talloc_free(canvas->pipeline_info);
 	}
 
-	canvas->descriptor_set_layout = canvas_create_descriptor_set_layout(turtle->device);
-	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
-
 	canvas->size = layer->rect.extent;
-	canvas->descriptor_set = create_canvas_descriptor_sets(canvas, turtle->tsc);
+	canvas->descriptor_set = canvas->base->descriptor_set(canvas->base);
 	canvas->pipeline_info = trtl_pipeline_create_with_strata(
 	    turtle, layer, canvas->base, canvas->type->shader.vertex, canvas->type->shader.fragment,
 	    NULL, NULL, 0);
-}
-
-static VkDescriptorSetLayout
-canvas_create_descriptor_set_layout(VkDevice device)
-{
-	VkDescriptorSetLayout descriptor_set_layout;
-
-	VkDescriptorSetLayoutBinding ubo_layout_binding = {0};
-	ubo_layout_binding.binding = 0;
-	ubo_layout_binding.descriptorCount = 1;
-	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubo_layout_binding.pImmutableSamplers = NULL;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkDescriptorSetLayoutBinding bindings[1];
-	bindings[0] = ubo_layout_binding;
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
-	layoutInfo.pBindings = bindings;
-
-	if (vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &descriptor_set_layout) !=
-	    VK_SUCCESS) {
-		error("failed to create descriptor set layout!");
-	}
-	return descriptor_set_layout;
 }
 
 trtl_alloc struct trtl_object *
@@ -207,9 +161,6 @@ trtl_canvas_create(struct turtle *turtle, const char *typename)
 
 	canvas->base = trtl_seer_strata_get(turtle, "base");
 
-	canvas->uniform_info =
-	    trtl_uniform_alloc_type(turtle->uniforms, struct canvas_shader_params);
-
 	{
 		struct trtl_seer_vertexset vertices;
 		vertices.nvertexes = TRTL_ARRAY_SIZE(canvas_vertices);
@@ -227,48 +178,4 @@ trtl_canvas_create(struct turtle *turtle, const char *typename)
 	}
 
 	return (struct trtl_object *)canvas;
-}
-
-trtl_alloc static VkDescriptorSet *
-create_canvas_descriptor_sets(struct trtl_object_canvas *canvas, struct trtl_swap_chain *scd)
-{
-	VkDescriptorSet *sets = talloc_zero_array(canvas, VkDescriptorSet, canvas->nframes);
-	VkDescriptorSetLayout *layouts =
-	    talloc_zero_array(NULL, VkDescriptorSetLayout, canvas->nframes);
-
-	for (uint32_t i = 0; i < canvas->nframes; i++) {
-		layouts[i] = canvas->descriptor_set_layout;
-	}
-
-	VkDescriptorSetAllocateInfo alloc_info = {0};
-	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	alloc_info.descriptorPool = scd->descriptor_pool;
-	alloc_info.descriptorSetCount = canvas->nframes;
-	alloc_info.pSetLayouts = layouts;
-
-	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
-		error("failed to allocate descriptor sets!");
-	}
-
-	for (uint32_t i = 0; i < canvas->nframes; i++) {
-		VkDescriptorBufferInfo buffer_info =
-		    trtl_uniform_buffer_get_descriptor(canvas->uniform_info, i);
-
-		VkWriteDescriptorSet descriptorWrites[1] = {0};
-
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = sets[i];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].pBufferInfo = &buffer_info;
-
-		vkUpdateDescriptorSets(scd->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
-				       descriptorWrites, 0, NULL);
-	}
-
-	talloc_free(layouts);
-
-	return sets;
 }

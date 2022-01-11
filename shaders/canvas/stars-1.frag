@@ -13,8 +13,6 @@ layout(location = 0) in vec2 fragTexCoord;
 layout(location = 1) in vec2 screenSize_in;
 layout(location = 2) in float time;
 
-
-
 vec3 nrand3( vec2 co )
 {
 	vec3 a = fract( cos( co.x*8.3e-3 + co.y )*vec3(1.3e5, 4.7e5, 2.9e5) );
@@ -22,7 +20,6 @@ vec3 nrand3( vec2 co )
 	vec3 c = mix(a, b, 0.5);
 	return c;
 }
-
 
 void main() {
 	vec2 screenSize = screenSize_in;
@@ -40,13 +37,13 @@ void main() {
 	//Thanks to http://glsl.heroku.com/e#6904.0
 	vec2 seed = p.xy * 2.0;	
 	seed = floor(seed * iResolution.x);
-	vec3 rnd = nrand3( seed );
+	vec3 rnd = nrand3(seed);
 	outColor += vec4(pow(rnd.y,40.0));
 
 	//Second Layer
 	vec2 seed2 = p2.xy * 2.0;
 	seed2 = floor(seed2 * iResolution.x);
-	vec3 rnd2 = nrand3( seed2 );
+	vec3 rnd2 = nrand3(seed2);
 	outColor += vec4(pow(rnd2.y,40.0));
 	
 	//fragColor = mix(freqs[3]-.3, 1., v) *

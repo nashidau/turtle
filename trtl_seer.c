@@ -22,6 +22,7 @@
 #include "trtl_object_grid.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
+#include "trtl_strata.h"
 #include "trtl_strata_base.h"
 #include "turtle.h"
 
@@ -260,6 +261,10 @@ trtl_seer_update(struct turtle *turtle, uint32_t image_index)
 	int count = 0;
 	struct trtl_seer *seer = turtle->seer;
 
+	// update strata
+	seer->base->update(seer->base, image_index);
+
+	// Update objects
 	for (trtl_render_layer_t layerid = 0; layerid < seer->nlayers; layerid++) {
 		struct trtl_layer *layer = seer->layers + layerid;
 		for (uint32_t i = 0; i < layer->nobjects; i++) {

@@ -34,6 +34,7 @@ struct trtl_strata_base {
 static bool sysm_update(struct trtl_strata *obj, int frame);
 static void sysm_resize(struct trtl_strata *, const VkRenderPass renderpass, VkExtent2D extent);
 static VkDescriptorSetLayout strata_base_descriptor_set_layout(struct trtl_strata *strata);
+trtl_alloc static VkDescriptorSet *strata_base_descriptor_set(struct trtl_strata *strata);
 
 static inline struct trtl_strata_base *
 trtl_strata_base(struct trtl_strata *strata)
@@ -68,6 +69,7 @@ trtl_strata_base_init(struct turtle *turtle)
 	sbase->strata.update = sysm_update;
 	sbase->strata.resize = sysm_resize;
 	sbase->strata.descriptor_set_layout = strata_base_descriptor_set_layout;
+	sbase->strata.descriptor_set = strata_base_descriptor_set;
 
 	sbase->uniform =
 	    trtl_uniform_init(turtle, turtle->tsc->nimages, sizeof(struct trtl_system_uniforms));
@@ -81,9 +83,11 @@ trtl_strata_base_init(struct turtle *turtle)
 	return &sbase->strata;
 }
 
+// FIXME: The names in this file are inconsistent (and wrong)
 static bool
 sysm_update(struct trtl_strata *strata, int frame)
 {
+	static float time = 0;
 	struct trtl_strata_base *sbase = trtl_strata_base(strata);
 	struct trtl_system_uniforms *uniforms =
 	    trtl_uniform_info_address(sbase->uniform_info, frame);
@@ -91,7 +95,11 @@ sysm_update(struct trtl_strata *strata, int frame)
 	uniforms->screen_size[0] = sbase->width;
 	uniforms->screen_size[1] = sbase->height;
 	// FIXME: Shoving an int into a float here.  Should get gettime of something to get a float
-	uniforms->time = time(NULL);
+	time += 0.1;
+	//uniforms->time = time;
+	uniforms->screen_size[2] = time;
+
+	trtl_uniform_update(sbase->uniform, frame);
 
 	return true;
 }
@@ -130,4 +138,50 @@ strata_base_descriptor_set_layout(struct trtl_strata *strata)
 		error("failed to create descriptor set layout!");
 	}
 	return descriptor_set_layout;
+}
+
+trtl_alloc static VkDescriptorSet *
+strata_base_descriptor_set(struct trtl_strata *strata)
+{
+	struct trtl_strata_base *sbase = talloc_get_type(strata, struct trtl_strata_base);
+	uint32_t nframes = strata->turtle->tsc->nimages;
+	VkDescriptorSet *sets = talloc_zero_array(strata, VkDescriptorSet, nframes);
+	VkDescriptorSetLayout *layouts= talloc_zero_array(NULL, VkDescriptorSetLayout, nframes);
+
+	for (uint32_t i = 0; i < nframes ; i++) {
+		// FIXME: Thsi should cache right
+		layouts[i] = strata->descriptor_set_layout(strata);
+	}
+
+	VkDescriptorSetAllocateInfo alloc_info = {0};
+	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	alloc_info.descriptorPool = strata->turtle->tsc->descriptor_pool;
+	alloc_info.descriptorSetCount = nframes;
+	alloc_info.pSetLayouts = layouts;
+
+	if (vkAllocateDescriptorSets(strata->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
+		error("failed to allocate descriptor sets!");
+	}
+
+	for (uint32_t i = 0; i < nframes; i++) {
+		VkDescriptorBufferInfo buffer_info =
+		    trtl_uniform_buffer_get_descriptor(sbase->uniform_info, i);
+
+		VkWriteDescriptorSet descriptorWrites[1] = {0};
+
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = sets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].dstArrayElement = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pBufferInfo = &buffer_info;
+
+		vkUpdateDescriptorSets(strata->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
+				       descriptorWrites, 0, NULL);
+	}
+
+	talloc_free(layouts);
+
+	return sets;
 }
