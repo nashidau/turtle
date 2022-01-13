@@ -11,11 +11,9 @@ struct turtle;
 struct trtl_strata {
 	struct turtle *turtle;
 	
-	// Update the layer
+	// Update the strata before drawing.
+	// Returns true if it was updated.
 	bool (*update)(struct trtl_strata *state, int frame);
-
-	// Resize the object
-	void (*resize)(struct trtl_strata *strata, const VkRenderPass pass, VkExtent2D size);
 
 	VkDescriptorSetLayout (*descriptor_set_layout)(struct trtl_strata *strata);
 	VkDescriptorSet *(*descriptor_set)(struct trtl_strata *strata);
