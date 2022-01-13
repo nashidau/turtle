@@ -66,11 +66,12 @@ static int trtl_uniform_destructor(struct trtl_uniform *x);
  * size.
  *
  * @param ctx Context pointer.
+ * @param name Name of the uniform context.
  * @param nframes Number of frames in flight at once.
  * @param size Size of the uniform pool.  Zero (0) indicates the default size.
  */
 struct trtl_uniform *
-trtl_uniform_init(struct turtle *turtle, uint8_t nframes, size_t size)
+trtl_uniform_init(struct turtle *turtle, const char *name, uint8_t nframes, size_t size)
 {
 	struct trtl_uniform *uniforms;
 
@@ -85,7 +86,7 @@ trtl_uniform_init(struct turtle *turtle, uint8_t nframes, size_t size)
 
 	uniforms = talloc_size(turtle, offsetof(struct trtl_uniform, buffers[nframes]));
 	assert(uniforms);
-	talloc_set_name(uniforms, "Uniform Buffer");
+	talloc_set_name(uniforms, "%s", name);
 
 	talloc_set_destructor(uniforms, trtl_uniform_destructor);
 
@@ -228,6 +229,8 @@ void
 trtl_uniform_update(struct trtl_uniform *uniforms, uint32_t frame)
 {
 	void *data;
+	if (uniforms->bump.offset == 0)
+		return;
 	vkMapMemory(uniforms->device, uniforms->uniform_buffers_memory[frame], 0,
 		    uniforms->bump.offset, 0, &data);
 	memcpy(data, uniforms->buffers[frame], uniforms->bump.offset);

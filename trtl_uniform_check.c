@@ -30,7 +30,7 @@ START_TEST(test_uniform_init)
 	struct trtl_uniform *uniforms;
 
 	turtle = talloc_zero(NULL, struct turtle);
-	uniforms = trtl_uniform_init(turtle, 2, 100);
+	uniforms = trtl_uniform_init(turtle, "Test", 2, 100);
 	ck_assert_ptr_ne(uniforms, NULL);
 	talloc_free(uniforms);
 	talloc_free(turtle);
@@ -40,7 +40,7 @@ END_TEST
 START_TEST(test_uniform_alloc)
 {
 	struct turtle *turtle = talloc_zero(NULL, struct turtle);
-	struct trtl_uniform *uniforms = trtl_uniform_init(turtle, 2, 100);
+	struct trtl_uniform *uniforms = trtl_uniform_init(turtle, "Test", 2, 100);
 
 	struct trtl_uniform_info *info = trtl_uniform_alloc(uniforms, 32);
 	ck_assert_ptr_ne(info, NULL);
@@ -55,7 +55,7 @@ START_TEST(test_uniform_alloc_all)
 {
 	struct turtle *turtle = create_fake_turtle();
 	// Init with an odd size, but reasonable default
-	struct trtl_uniform *uniforms = trtl_uniform_init(turtle, 2, 12);
+	struct trtl_uniform *uniforms = trtl_uniform_init(turtle, "Test", 2, 12);
 
 	// Allocate the same size; should work
 	struct trtl_uniform_info *info = trtl_uniform_alloc(uniforms, 12);
@@ -67,7 +67,7 @@ START_TEST(test_uniform_alloc_all)
 START_TEST(test_uniform_alloc_too_much)
 {
 	struct turtle *turtle = create_fake_turtle();
-	struct trtl_uniform *uniforms = trtl_uniform_init(turtle, 2, 100);
+	struct trtl_uniform *uniforms = trtl_uniform_init(turtle,"test", 2, 100);
 
 	struct trtl_uniform_info *info = trtl_uniform_alloc(uniforms, 96);
 	ck_assert_ptr_ne(info, NULL);

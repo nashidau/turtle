@@ -18,8 +18,8 @@
 #include "trtl_scribe.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
-#include "trtl_strata_base.h"
 #include "trtl_solo.h"
+#include "trtl_strata_base.h"
 #include "trtl_texture.h"
 #include "trtl_timer.h"
 #include "trtl_uniform.h"
@@ -47,7 +47,7 @@ static const char *required_extensions[] = {
 #ifdef VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME
     VK_KHR_PORTABILITY_SUBSET_EXTENSION_NAME,
 #endif
-//    VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
+    //    VK_EXT_DEBUG_MARKER_EXTENSION_NAME,
 };
 #define N_REQUIRED_EXTENSIONS TRTL_ARRAY_SIZE(required_extensions)
 
@@ -460,7 +460,8 @@ turtle_init(int nlayers, const struct trtl_layer_info *layers)
 
 	create_depth_resources(turtle);
 
-	turtle->uniforms = trtl_uniform_init(turtle, turtle->tsc->nimages, 1024);
+	turtle->uniforms =
+	    trtl_uniform_init(turtle, "Turtle Generic uniforms", turtle->tsc->nimages, 1024);
 	// trtl_barriers_init();
 	turtle->texture_sampler = create_texture_sampler(turtle);
 

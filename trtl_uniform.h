@@ -4,7 +4,8 @@
 #include <sys/types.h>
 #include <vulkan/vulkan.h>
 
-struct trtl_uniform *trtl_uniform_init(struct turtle *turtle, uint8_t nframes, size_t size);
+struct trtl_uniform *trtl_uniform_init(struct turtle *turtle, const char *name, uint8_t nframes,
+				       size_t size);
 void *trtl_uniform_buffer_base_get(struct trtl_uniform *uniforms, uint8_t nframes);
 
 struct trtl_uniform_info *trtl_uniform_alloc(struct trtl_uniform *uniforms, size_t size);
