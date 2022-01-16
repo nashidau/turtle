@@ -275,12 +275,11 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 }
 
 struct trtl_pipeline_info *
-trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer,
-				 struct trtl_strata *strata,
-				 const char *vertex_shader, const char *fragment_shader,
-				 const VkVertexInputBindingDescription *binding_description,
-				 const VkVertexInputAttributeDescription *attribute_description,
-				 uint32_t nattributes)
+trtl_pipeline_create_with_strata(
+    struct turtle *turtle, struct trtl_layer *layer, uint32_t ndescriptorsets,
+    VkDescriptorSetLayout descriptor_set_layout[static ndescriptorsets], const char *vertex_shader,
+    const char *fragment_shader, const VkVertexInputBindingDescription *binding_description,
+    const VkVertexInputAttributeDescription *attribute_description, uint32_t nattributes)
 {
 	struct trtl_pipeline_info *info = talloc_zero(turtle, struct trtl_pipeline_info);
 	info->device = turtle->device;
@@ -426,12 +425,13 @@ trtl_pipeline_create_with_strata(struct turtle *turtle, struct trtl_layer *layer
 	dynamicState.dynamicStateCount = 2;
 	dynamicState.pDynamicStates = dynamicStates;
 
-	VkDescriptorSetLayout descriptor_set_layout = strata->descriptor_set_layout(strata);
+	// This is just a sanity check
+	assert(ndescriptorsets < 20);
 
 	VkPipelineLayoutCreateInfo pipeline_layout_info = {0};
 	pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	pipeline_layout_info.setLayoutCount = 1;
-	pipeline_layout_info.pSetLayouts = &descriptor_set_layout;
+	pipeline_layout_info.setLayoutCount = ndescriptorsets;
+	pipeline_layout_info.pSetLayouts = descriptor_set_layout;
 	pipeline_layout_info.pushConstantRangeCount = 0; // Optional
 	pipeline_layout_info.pPushConstantRanges = NULL; // Optional
 

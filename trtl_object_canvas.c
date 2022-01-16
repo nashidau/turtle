@@ -27,6 +27,7 @@ struct trtl_object_canvas {
 
 	uint32_t nframes;
 	VkDescriptorSet *descriptor_set;
+	VkDescriptorSetLayout descriptor_set_layout;
 
 	struct trtl_pipeline_info *pipeline_info;
 
@@ -127,9 +128,10 @@ canvas_relayer(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer
 
 	canvas->size = layer->rect.extent;
 	canvas->descriptor_set = canvas->base->descriptor_set(canvas->base);
+	canvas->descriptor_set_layout = canvas->base->descriptor_set_layout(canvas->base);
 	canvas->pipeline_info = trtl_pipeline_create_with_strata(
-	    turtle, layer, canvas->base, canvas->type->shader.vertex, canvas->type->shader.fragment,
-	    NULL, NULL, 0);
+	    turtle, layer, 1, &canvas->descriptor_set_layout, canvas->type->shader.vertex,
+	    canvas->type->shader.fragment, NULL, NULL, 0);
 }
 
 trtl_alloc struct trtl_object *
