@@ -17,10 +17,10 @@ vec4 positions[3] = vec4[](
 );
 
 void main() {
-    screenSize = trtl_system.screensize_time_unused.xy;
+    screenSize = trtl_strata_base.screensize_time_unused.xy;
     gl_Position = positions[gl_VertexIndex];
     fragTexCoord = gl_Position.xy / 4.0;
-    time = trtl_system.screensize_time_unused.z;
+    time = trtl_strata_base.screensize_time_unused.z;
 }
 
 /* vim: set sw=4 sts=4 : */

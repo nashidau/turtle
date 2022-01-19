@@ -1,0 +1,18 @@
+/**
+ * Standard include for trtl grid strats.
+ */
+#ifndef TRTL_SHADER
+#include "../vertex.h"
+#endif
+
+#ifdef TRTL_SHADER
+layout(set = 1, binding = 0) uniform TrtlStrataGridObject {
+    vec2 camera_center;
+} trtl_strata_grid;
+#else
+struct trtl_strata_grid_uniforms {
+  // 0,1 is width, height, 2 is time,  3 is currently unused
+  vec2 camera_center;
+};
+#endif
+// vim: set syn=glsl sw=4 sts=4 :

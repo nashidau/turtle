@@ -24,6 +24,7 @@
 #include "trtl_shader.h"
 #include "trtl_strata.h"
 #include "trtl_strata_base.h"
+#include "trtl_strata_grid.h"
 #include "turtle.h"
 
 // FIXME: These should be in some loaded metadata
@@ -51,6 +52,7 @@ struct trtl_seer {
 	VkFramebuffer *framebuffers;
 
 	struct trtl_strata *base;
+	struct trtl_strata *grid;
 };
 
 static VkRenderPass create_render_pass(struct turtle *turtle, const struct trtl_layer_info *info);
@@ -111,6 +113,7 @@ trtl_seer_init(struct turtle *turtle, VkExtent2D extent, trtl_render_layer_t nla
 
 	// Create our strata
 	seer->base = trtl_strata_base_init(turtle);
+	seer->grid = trtl_strata_grid_init(turtle);
 
 	return seer;
 }
@@ -263,6 +266,7 @@ trtl_seer_update(struct turtle *turtle, uint32_t image_index)
 
 	// update strata
 	seer->base->update(seer->base, image_index);
+	seer->grid->update(seer->grid, image_index);
 
 	// Update objects
 	for (trtl_render_layer_t layerid = 0; layerid < seer->nlayers; layerid++) {
@@ -514,6 +518,10 @@ trtl_seer_strata_get(struct turtle *turtle, const char *name)
 {
 	if (streq(name, "base")) {
 		return turtle->seer->base;
+	} else if (streq(name, "grid")) {
+		return turtle->seer->grid;
 	}
+
+	assert(!name);
 	return NULL;
 }

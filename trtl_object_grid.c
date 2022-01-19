@@ -15,6 +15,7 @@
 #include "trtl_seer.h"
 #include "trtl_shader.h"
 #include "trtl_shell.h"
+#include "trtl_strata.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 #include "vertex.h"
@@ -51,8 +52,8 @@ struct trtl_object_grid {
 	} dest;
 
 	uint32_t nframes;
-	VkDescriptorSetLayout descriptor_set_layout;
-	VkDescriptorSet *descriptor_set;
+	VkDescriptorSetLayout descriptor_set_layout[2];
+	VkDescriptorSet *descriptor_set[2];
 	struct trtl_uniform_info *uniform_info;
 
 	struct trtl_pipeline_info *pipeline_info;
@@ -62,10 +63,12 @@ struct trtl_object_grid {
 
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
-};
 
-trtl_alloc static VkDescriptorSet *grid_create_descriptor_sets(struct trtl_object_grid *grid,
-							       struct trtl_swap_chain *scd);
+	struct {
+		struct trtl_strata *base;
+		struct trtl_strata *grid;
+	} strata;
+};
 
 struct grid_vertex {
 	struct pos3d pos;
@@ -207,12 +210,18 @@ static void
 grid_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *layer)
 {
 	struct trtl_object_grid *grid = trtl_object_grid(obj);
-	grid->descriptor_set_layout = grid_create_descriptor_set_layout(turtle->device);
-	grid->descriptor_set = grid_create_descriptor_sets(grid, turtle->tsc);
-	grid->pipeline_info = trtl_pipeline_create(
-	    turtle, layer->render_pass, layer->rect.extent, grid->descriptor_set_layout,
-	    grid->shader->vertex, grid->shader->fragment, &grid_binding_descriptor,
-	    grid_vertex_description, N_VERTEX_ATTRIBUTE_DESCRIPTORS, false);
+	grid->descriptor_set_layout[0] =
+	    grid->strata.base->descriptor_set_layout(grid->strata.base);
+	grid->descriptor_set_layout[1] =
+	    grid->strata.grid->descriptor_set_layout(grid->strata.grid);
+
+	grid->descriptor_set[0] = grid->strata.base->descriptor_set(grid->strata.base);
+	grid->descriptor_set[1] = grid->strata.grid->descriptor_set(grid->strata.grid);
+
+	grid->pipeline_info = trtl_pipeline_create_with_strata(
+	    turtle, layer, 2, grid->descriptor_set_layout, grid->shader->vertex,
+	    grid->shader->fragment, &grid_binding_descriptor, grid_vertex_description,
+	    N_VERTEX_ATTRIBUTE_DESCRIPTORS);
 }
 
 static void
@@ -228,7 +237,10 @@ grid_draw(struct trtl_object *obj, VkCommandBuffer cmd_buffer, trtl_arg_unused i
 	vkCmdBindIndexBuffer(cmd_buffer, grid->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				grid->pipeline_info->pipeline_layout, 0, 1, grid->descriptor_set, 0,
+				grid->pipeline_info->pipeline_layout, 0, 1, grid->descriptor_set[0], 0,
+				NULL);
+	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				grid->pipeline_info->pipeline_layout, 1, 1, grid->descriptor_set[1], 0,
 				NULL);
 	vkCmdDrawIndexed(cmd_buffer, grid->icount, 1, 0, offset, 0);
 }
@@ -285,6 +297,9 @@ trtl_grid_create(struct turtle *turtle)
 	    // FIXME: This causes a crash.
 	    // trtl_uniform_alloc_type(evil_global_uniform, struct pos2d);
 	    trtl_uniform_alloc_type(turtle->uniforms, struct UniformBufferObject);
+
+	grid->strata.base = trtl_seer_strata_get(turtle, "base");
+	grid->strata.grid = trtl_seer_strata_get(turtle, "grid");
 
 	return (struct trtl_object *)grid;
 }
@@ -460,48 +475,4 @@ grid_create_descriptor_set_layout(VkDevice device)
 		error("failed to create descriptor set layout!");
 	}
 	return descriptor_set_layout;
-}
-
-trtl_alloc static VkDescriptorSet *
-grid_create_descriptor_sets(struct trtl_object_grid *grid, struct trtl_swap_chain *scd)
-{
-	VkDescriptorSet *sets = talloc_zero_array(grid, VkDescriptorSet, grid->nframes);
-	VkDescriptorSetLayout *layouts =
-	    talloc_zero_array(NULL, VkDescriptorSetLayout, grid->nframes);
-
-	for (uint32_t i = 0; i < grid->nframes; i++) {
-		layouts[i] = grid->descriptor_set_layout;
-	}
-
-	VkDescriptorSetAllocateInfo alloc_info = {0};
-	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	alloc_info.descriptorPool = scd->descriptor_pool;
-	alloc_info.descriptorSetCount = grid->nframes;
-	alloc_info.pSetLayouts = layouts;
-
-	if (vkAllocateDescriptorSets(scd->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
-		error("failed to allocate descriptor sets!");
-	}
-
-	for (uint32_t i = 0; i < grid->nframes; i++) {
-		VkDescriptorBufferInfo buffer_info =
-		    trtl_uniform_buffer_get_descriptor(grid->uniform_info, i);
-
-		VkWriteDescriptorSet descriptorWrites[1] = {0};
-
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = sets[i];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].pBufferInfo = &buffer_info;
-
-		vkUpdateDescriptorSets(scd->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
-				       descriptorWrites, 0, NULL);
-	}
-
-	talloc_free(layouts);
-
-	return sets;
 }

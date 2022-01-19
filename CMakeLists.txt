@@ -37,6 +37,7 @@ add_library(turtleobjs OBJECT
 	trtl_shell.c
 	trtl_solo.c
 	trtl_strata_base.c
+	trtl_strata_grid.c
 	trtl_texture.c
 	trtl_timer.c
 	trtl_uniform.c

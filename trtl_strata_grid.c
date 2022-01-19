@@ -17,13 +17,13 @@
 #include "helpers.h"
 #include "trtl_events.h"
 #include "trtl_strata.h"
-#include "trtl_strata_base.h"
+#include "trtl_strata_grid.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
 
-#include "shaders/trtl_strata_base.include"
+#include "shaders/trtl_strata_grid.include"
 
-struct trtl_strata_base {
+struct trtl_strata_grid {
 	struct trtl_strata strata;
 	struct trtl_uniform *uniform;
 	struct trtl_uniform_info *uniform_info;
@@ -31,79 +31,74 @@ struct trtl_strata_base {
 	uint32_t width, height;
 };
 
-static bool sbase_update(struct trtl_strata *obj, int frame);
-static VkDescriptorSetLayout sbase_descriptor_set_layout(struct trtl_strata *strata);
-trtl_alloc static VkDescriptorSet *sbase_descriptor_set(struct trtl_strata *strata);
+static bool sgrid_update(struct trtl_strata *obj, int frame);
+static VkDescriptorSetLayout sgrid_descriptor_set_layout(struct trtl_strata *strata);
+trtl_alloc static VkDescriptorSet *sgrid_descriptor_set(struct trtl_strata *strata);
 
-static inline struct trtl_strata_base *
-trtl_strata_base(struct trtl_strata *strata)
+static inline struct trtl_strata_grid *
+trtl_strata_grid(struct trtl_strata *strata)
 {
-	struct trtl_strata_base *sbase;
-	sbase = talloc_get_type(strata, struct trtl_strata_base);
-	assert(sbase != NULL);
-	return sbase;
+	struct trtl_strata_grid *sgrid;
+	sgrid = talloc_get_type(strata, struct trtl_strata_grid);
+	assert(sgrid != NULL);
+	return sgrid;
 }
 
 static void
-resize_callback(void *sbasev, trtl_arg_unused trtl_crier_cry_t cry, const void *event)
+resize_callback(void *sgridv, trtl_arg_unused trtl_crier_cry_t cry, const void *event)
 {
 	struct trtl_event_resize *resize = talloc_get_type(event, struct trtl_event_resize);
-	struct trtl_strata_base *sbase = talloc_get_type(sbasev, struct trtl_strata_base);
+	struct trtl_strata_grid *sgrid = talloc_get_type(sgridv, struct trtl_strata_grid);
 
-	sbase->width = resize->new_size.width;
-	sbase->height = resize->new_size.height;
+	sgrid->width = resize->new_size.width;
+	sgrid->height = resize->new_size.height;
 }
 
 struct trtl_strata *
-trtl_strata_base_init(struct turtle *turtle)
+trtl_strata_grid_init(struct turtle *turtle)
 {
-	struct trtl_strata_base *sbase;
+	struct trtl_strata_grid *sgrid;
 
-	sbase = talloc(turtle, struct trtl_strata_base);
-	if (!sbase) {
+	sgrid = talloc(turtle, struct trtl_strata_grid);
+	if (!sgrid) {
 		return NULL;
 	}
 
-	sbase->strata.turtle = turtle;
-	sbase->strata.update = sbase_update;
-	sbase->strata.descriptor_set_layout = sbase_descriptor_set_layout;
-	sbase->strata.descriptor_set = sbase_descriptor_set;
+	sgrid->strata.turtle = turtle;
+	sgrid->strata.update = sgrid_update;
+	sgrid->strata.descriptor_set_layout = sgrid_descriptor_set_layout;
+	sgrid->strata.descriptor_set = sgrid_descriptor_set;
 
-	sbase->uniform = trtl_uniform_init(turtle, "Strata Base Uniforms", turtle->tsc->nimages,
-					   sizeof(struct trtl_strata_base_uniforms));
-	sbase->uniform_info =
-	    trtl_uniform_alloc_type(sbase->uniform, struct trtl_strata_base_uniforms);
+	sgrid->uniform = trtl_uniform_init(turtle, "Strata Base Uniforms", turtle->tsc->nimages,
+					   sizeof(struct trtl_strata_grid_uniforms));
+	sgrid->uniform_info =
+	    trtl_uniform_alloc_type(sgrid->uniform, struct trtl_strata_grid_uniforms);
 
-	sbase->width = 800;
-	sbase->height = 640;
+	sgrid->width = 800;
+	sgrid->height = 640;
 
-	trtl_crier_listen(turtle->events->crier, "trtl_event_resize", resize_callback, sbase);
+	trtl_crier_listen(turtle->events->crier, "trtl_event_resize", resize_callback, sgrid);
 
-	return &sbase->strata;
+	return &sgrid->strata;
 }
 
 static bool
-sbase_update(struct trtl_strata *strata, int frame)
+sgrid_update(struct trtl_strata *strata, int frame)
 {
-	static float time = 0;
-	struct trtl_strata_base *sbase = trtl_strata_base(strata);
-	struct trtl_strata_base_uniforms *uniforms =
-	    trtl_uniform_info_address(sbase->uniform_info, frame);
+	struct trtl_strata_grid *sgrid = trtl_strata_grid(strata);
+	struct trtl_strata_grid_uniforms *uniforms =
+	    trtl_uniform_info_address(sgrid->uniform_info, frame);
 
-	uniforms->screen_size[0] = sbase->width;
-	uniforms->screen_size[1] = sbase->height;
-	// FIXME: Shoving an int into a float here.  Should get gettime of something to get a float
-	time += 0.1;
-	// uniforms->time = time;
-	uniforms->screen_size[2] = time;
+	uniforms->camera_center[0] = 0;
+	uniforms->camera_center[1] = 0;
 
-	trtl_uniform_update(sbase->uniform, frame);
+	trtl_uniform_update(sgrid->uniform, frame);
 
 	return true;
 }
 
 static VkDescriptorSetLayout
-sbase_descriptor_set_layout(struct trtl_strata *strata)
+sgrid_descriptor_set_layout(struct trtl_strata *strata)
 {
 	VkDescriptorSetLayout descriptor_set_layout;
 
@@ -129,9 +124,9 @@ sbase_descriptor_set_layout(struct trtl_strata *strata)
 }
 
 trtl_alloc static VkDescriptorSet *
-sbase_descriptor_set(struct trtl_strata *strata)
+sgrid_descriptor_set(struct trtl_strata *strata)
 {
-	struct trtl_strata_base *sbase = talloc_get_type(strata, struct trtl_strata_base);
+	struct trtl_strata_grid *sgrid = talloc_get_type(strata, struct trtl_strata_grid);
 	uint32_t nframes = strata->turtle->tsc->nimages;
 	VkDescriptorSet *sets = talloc_zero_array(strata, VkDescriptorSet, nframes);
 	VkDescriptorSetLayout *layouts = talloc_zero_array(NULL, VkDescriptorSetLayout, nframes);
@@ -153,7 +148,7 @@ sbase_descriptor_set(struct trtl_strata *strata)
 
 	for (uint32_t i = 0; i < nframes; i++) {
 		VkDescriptorBufferInfo buffer_info =
-		    trtl_uniform_buffer_get_descriptor(sbase->uniform_info, i);
+		    trtl_uniform_buffer_get_descriptor(sgrid->uniform_info, i);
 
 		VkWriteDescriptorSet descriptorWrites[1] = {0};
 

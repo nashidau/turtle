@@ -6,10 +6,8 @@ layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
 layout(constant_id = 2) const int tileSize = 128;
 
-layout(binding = 0) uniform  pos2d {
-	float x;
-	float y;
-} centerPos;
+#include "../trtl_strata_base.include"
+#include "../trtl_strata_grid.include"
 
 layout(location = 0) in vec3 inPosition;
 layout(location = 1) in uvec3 tileData;
@@ -19,6 +17,7 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 layout(location = 2) out vec2 tilePos;
 layout(location = 3) out uvec3 tileDataOut;
+layout(location = 4) out float time;
 
 const float pi = 3.141592653589793;
 const float degree45 = pi / 4.0;
@@ -37,8 +36,8 @@ void main() {
     pos -= vec2(0.5, 0.5);
 
     // Move based on the current view position
-    pos.x -= centerPos.x;
-    pos.y -= centerPos.y;
+    pos.x -= trtl_strata_grid.camera_center.x;
+    pos.y -= trtl_strata_grid.camera_center.y;
 
     // rotate
     pos = rotate2d(degree45) * pos;
@@ -52,7 +51,8 @@ void main() {
 
     // That's our (2d) position
     gl_Position = vec4(pos, 0.0, 1.0);
-    if (inPosition.x == centerPos.x && inPosition.y == centerPos.y) {
+    if (inPosition.x == trtl_strata_grid.camera_center.x && inPosition.y ==
+		    trtl_strata_grid.camera_center.y) {
 	    fragColor = vec3(1.0, 0.0, 0.0);
     } else {
 	    fragColor = vec3(1.0, 1.0, 1.0);
@@ -61,5 +61,6 @@ void main() {
 
     tileDataOut = tileData;
     tilePos = vec2(tileData.x, tileData.y);
+    time = trtl_strata_base.screensize_time_unused.z;
 }
 
