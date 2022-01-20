@@ -11,7 +11,7 @@ layout(set = 1, binding = 0) uniform TrtlStrataGridObject {
 } trtl_strata_grid;
 #else
 struct trtl_strata_grid_uniforms {
-  // 0,1 is width, height, 2 is time,  3 is currently unused
+  // 0,1 is width, height
   vec2 camera_center;
 };
 #endif
