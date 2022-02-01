@@ -9,5 +9,4 @@ trtl_check
 .deps
 compile_commands.json
 libturtle.a
-.clangd
 build

@@ -16,6 +16,12 @@ struct trtl_shader *trtl_shader_get(struct turtle *turtle, const char *path);
 
 #define PRE COMPILED_SHADER_DIR "/"
 
+// Clangd barfs on this.  Lets not bother it.
+#ifdef _CLANGD
+#define EMBED_SHADER(NAME, FILENAME)                                                               \
+	uint8_t shader_##NAME##_start[] = FILENAME;                                                \
+	uint8_t shader_##NAME##_end;
+#else
 // Stolen from https://dox.ipxe.org/embedded_8c_source.html and
 // https://www.devever.net/~hl/incbin
 #define EMBED_SHADER(NAME, FILENAME)                                                               \
@@ -29,6 +35,7 @@ struct trtl_shader *trtl_shader_get(struct turtle *turtle, const char *path);
 		".incbin \"" COMPILED_SHADER_DIR "/" FILENAME "\"\n"                               \
 		"_shader_" #NAME "_end:\n"                                                         \
 		".previous\n")
+#endif
 
 // On mac the underscore is stripped in the assembler (or added by the compiler).  On
 // Linux it seems to preserved.  So adding a _ for Linux
