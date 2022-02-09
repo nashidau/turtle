@@ -108,6 +108,7 @@ trtl_shader_get(struct turtle *turtle, const char *path)
 	struct trtl_shader_cache *shader_cache = turtle->shader_cache;
 	struct blobby *blobby;
 
+	printf("searching for %s\n", path);
 	for (struct shader_node *node = shader_cache->shaders ; node ; node = node->next) {
 		if (streq(node->path, path)) {
 			return shader_create(node);	

@@ -12,8 +12,5 @@
 struct trtl_swap_chain;
 struct turtle;
 
-struct trtl_object *trtl_object_mesh_create(void *ctx, struct turtle *turtle,
-					    struct trtl_swap_chain *scd, VkRenderPass render_pass,
-					    VkExtent2D extent,
-					    VkDescriptorSetLayout descriptor_set_layout,
-					    const char *path, const char *texture);
+struct trtl_object *trtl_object_mesh_create_old(struct turtle *turtle, const char *path,
+						const char *texture);

@@ -290,7 +290,9 @@ trtl_pipeline_create_with_strata(
 
 	// FIXME: Handle this a little more gracefully.
 	assert(vert != NULL);
+	assert(vert->shader != NULL);
 	assert(frag != NULL);
+	assert(frag->shader != NULL);
 
 	VkSpecializationInfo *specialisationInfo = set_specialise_info(&layer->rect.extent);
 	VkVertexInputAttributeDescription *tofree = NULL;

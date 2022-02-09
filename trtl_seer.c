@@ -20,6 +20,8 @@
 #include "trtl_object.h"
 #include "trtl_object_canvas.h"
 #include "trtl_object_grid.h"
+#include "trtl_object_mesh.h"
+#include "trtl_object_mesh_old.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
 #include "trtl_strata.h"
@@ -36,6 +38,9 @@ static const trtl_arg_unused char *TEXTURE_PATH = "textures/viking_room.png";
 
 static const trtl_arg_unused char *MODEL_PATH2 = "models/StreetCouch/Day143.obj";
 static const trtl_arg_unused char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
+
+static const trtl_arg_unused char *DUCK_PATH = "models/Rubber_Duck/10602_Rubber_Duck_v1_L3.obj";
+static const trtl_arg_unused char *DUCK_TEXTURE_PATH = "models/Rubber_Duck/10602_Rubber_Duck_v1_diffuse.jpg";
 
 struct trtl_seer {
 	struct turtle *turtle;
@@ -221,10 +226,9 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		//   seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
 		// scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
 	} else if (streq(name, "room")) {
-		printf("room disabled\n");
-		// object = trtl_object_mesh_create(
-		//  seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
-		// scd->render->descriptor_set_layout, MODEL_PATH, TEXTURE_PATH);
+		object = trtl_object_mesh_create_old(turtle, MODEL_PATH, TEXTURE_PATH);
+	} else if (streq(name, "duck")) {
+		object = trtl_object_mesh_create_old(turtle, DUCK_PATH, DUCK_TEXTURE_PATH);
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(turtle, NULL);
 	} else if (strncmp(name, "background:", 11) == 0) {

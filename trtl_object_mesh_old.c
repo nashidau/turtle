@@ -1,3 +1,12 @@
+/**
+ * Simple 3d mesh object.
+ *
+ * Descriptor sets are:
+ * 	set 0: strata 'base', generic base
+ * 	set 1: strata 'grid', isometric rendering support
+ * 	set 2: binding 0:  Our uniform buffer
+ * 		binding 1: Texture
+ */
 #include <string.h>
 #include <talloc.h>
 
@@ -7,7 +16,9 @@
 #include "trtl_object_mesh_old.h"
 #include "trtl_pipeline.h"
 #include "trtl_seer.h"
+#include "trtl_shader.h"
 #include "trtl_shell.h"
+#include "trtl_strata.h"
 #include "trtl_texture.h"
 #include "trtl_uniform.h"
 #include "turtle.h"
@@ -15,12 +26,12 @@
 
 struct trtl_object_mesh {
 	struct trtl_object parent;
+	struct turtle *turtle;
 
 	// What we are drawing (sadly one for now)
 	struct trtl_model *model;
 
 	uint32_t nframes;
-	VkDescriptorSet *descriptor_set;
 
 	VkDeviceMemory texture_image_memory;
 	VkImage texture_image;
@@ -30,11 +41,23 @@ struct trtl_object_mesh {
 
 	struct trtl_pipeline_info *pipeline_info;
 
+	VkDescriptorSetLayout descriptor_set_layout[3];
+	VkDescriptorSet *descriptor_set[3];
+
 	VkBuffer index_buffer;
 	VkBuffer vertex_buffer;
 
-	bool reverse;
+	struct {
+		struct trtl_strata *base;
+		struct trtl_strata *grid;
+	} strata;
 };
+
+EMBED_SHADER(mesh_vertex, "mesh-vert.spv");
+EMBED_SHADER(mesh_fragment, "mesh.spv");
+
+trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mesh *mesh);
+static VkDescriptorSetLayout descriptor_set_layout(struct trtl_object_mesh *mesh);
 
 // Inline function to cast from abstract to concrete type.
 // FIXME: Make Debug and non-debug do different things
@@ -46,10 +69,6 @@ trtl_object_mesh(struct trtl_object *obj)
 	assert(mesh != NULL);
 	return mesh;
 }
-
-trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mesh *mesh,
-							  struct turtle *turtle,
-							  struct trtl_swap_chain *scd);
 
 static void
 trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset)
@@ -64,8 +83,15 @@ trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t o
 	vkCmdBindIndexBuffer(cmd_buffer, mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
 
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-				mesh->pipeline_info->pipeline_layout, 0, 1, mesh->descriptor_set, 0,
-				NULL);
+				mesh->pipeline_info->pipeline_layout, 0, 1, mesh->descriptor_set[0],
+				0, NULL);
+	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				mesh->pipeline_info->pipeline_layout, 1, 1, mesh->descriptor_set[1],
+				0, NULL);
+	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
+				mesh->pipeline_info->pipeline_layout, 2, 1, mesh->descriptor_set[2],
+				0, NULL);
+
 	vkCmdDrawIndexed(cmd_buffer, mesh->model->nindices, 1, 0, offset, 0);
 }
 
@@ -90,11 +116,7 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 	ubo = trtl_uniform_info_address(mesh->uniform_info, frame);
 
 	glm_mat4_identity(ubo->model);
-	if (mesh->reverse) {
-		glm_rotate(ubo->model, glm_rad(time), GLM_ZUP);
-	} else {
-		glm_rotate(ubo->model, -glm_rad(time), GLM_ZUP);
-	}
+	glm_rotate(ubo->model, -glm_rad(time), GLM_ZUP);
 
 	{
 		vec3 y = {0, 0, 0};
@@ -110,21 +132,42 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 	return true;
 }
 
+static void
+mesh_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *layer)
+{
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	mesh->descriptor_set_layout[0] =
+	    mesh->strata.base->descriptor_set_layout(mesh->strata.base);
+	mesh->descriptor_set_layout[1] =
+	    mesh->strata.grid->descriptor_set_layout(mesh->strata.grid);
+	mesh->descriptor_set_layout[2] = descriptor_set_layout(mesh);
+
+	mesh->descriptor_set[0] = mesh->strata.base->descriptor_set(mesh->strata.base);
+	mesh->descriptor_set[1] = mesh->strata.grid->descriptor_set(mesh->strata.grid);
+	mesh->descriptor_set[2] = create_descriptor_sets(mesh);
+
+	uint32_t count;
+	VkVertexInputAttributeDescription *vkx = get_attribute_description_pair(&count);
+	VkVertexInputBindingDescription vkb = vertex_binding_description_get();
+	mesh->pipeline_info = trtl_pipeline_create_with_strata(
+	    turtle, layer, TRTL_ARRAY_SIZE(mesh->descriptor_set_layout),
+	    mesh->descriptor_set_layout, "mesh_vertex", "mesh_fragment", &vkb, vkx, count);
+}
+
 struct trtl_object *
-trtl_object_mesh_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain *scd,
-			VkRenderPass render_pass, VkExtent2D extent,
-			VkDescriptorSetLayout descriptor_set_layout, const char *path,
-			const char *texture)
+trtl_object_mesh_create_old(struct turtle *turtle, const char *path, const char *texture)
 {
 	struct trtl_object_mesh *mesh;
 
-	mesh = talloc_zero(ctx, struct trtl_object_mesh);
+	mesh = talloc_zero(NULL, struct trtl_object_mesh);
 
 	talloc_set_destructor(mesh, trtl_object_mesh_destructor);
+	mesh->turtle = turtle;
 	mesh->parent.draw = trtl_object_draw_;
 	mesh->parent.update = trtl_object_update_;
+	mesh->parent.relayer = mesh_resize;
 
-	mesh->nframes = scd->nimages;
+	mesh->nframes = turtle->tsc->nimages;
 	mesh->model = load_model(path);
 	if (!mesh->model) {
 		talloc_free(mesh);
@@ -136,59 +179,93 @@ trtl_object_mesh_create(void *ctx, struct turtle *turtle, struct trtl_swap_chain
 
 	// FIXME: So leaky (create_texture_image never freed);
 	mesh->texture_image_view =
-	    create_texture_image_view(scd->turtle, create_texture_image(turtle, texture));
+	    create_texture_image_view(turtle, create_texture_image(turtle, texture));
 
-	mesh->descriptor_set = create_descriptor_sets(mesh, turtle, scd);
+	mesh->strata.base = trtl_seer_strata_get(turtle, "base");
+	mesh->strata.grid = trtl_seer_strata_get(turtle, "grid");
+	// mesh->descriptor_set = create_descriptor_sets(mesh, turtle, turtle->tsc);
 
-	// FIXME: Need to not leak this; and reuse other function
-	mesh->pipeline_info =
-	    trtl_pipeline_create(turtle, render_pass, extent, descriptor_set_layout,
-				 "shaders/vert.spv", "shaders/frag.spv", NULL, NULL, 0, false);
+	mesh->uniform_info = trtl_uniform_alloc_type(turtle->uniforms, struct UniformBufferObject);
 
 	{
 		struct trtl_seer_vertexset vertices;
 		vertices.nvertexes = mesh->model->nvertices;
 		vertices.vertices = mesh->model->vertices;
+		vertices.vertex_size = sizeof(struct vertex);
 
-		mesh->vertex_buffer = create_vertex_buffers(scd->turtle, &vertices);
+		// so creash is vertices->vertex_size is rubbish
+		mesh->vertex_buffer = create_vertex_buffers(turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = mesh->model->nindices;
 		indexes.indexes = mesh->model->indices;
-		mesh->index_buffer = create_index_buffer(scd->turtle, &indexes);
+		mesh->index_buffer = create_index_buffer(turtle, &indexes);
 	}
-
-	if (strstr(path, "Couch")) mesh->reverse = 1;
 
 	return (struct trtl_object *)mesh;
 }
 
+static VkDescriptorSetLayout
+descriptor_set_layout(struct trtl_object_mesh *mesh)
+{
+	VkDescriptorSetLayout descriptor_set_layout;
+
+	VkDescriptorSetLayoutBinding ubo_layout_binding = {0};
+	ubo_layout_binding.binding = 0;
+	ubo_layout_binding.descriptorCount = 1;
+	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	ubo_layout_binding.pImmutableSamplers = NULL;
+	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+
+	VkDescriptorSetLayoutBinding shader_layer_binding = {0};
+	shader_layer_binding.binding = 1;
+	shader_layer_binding.descriptorCount = 1;
+	shader_layer_binding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	shader_layer_binding.pImmutableSamplers = NULL;
+	shader_layer_binding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+
+	VkDescriptorSetLayoutBinding bindings[2];
+	bindings[0] = ubo_layout_binding;
+	bindings[1] = shader_layer_binding;
+	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
+	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
+	layoutInfo.pBindings = bindings;
+
+	if (vkCreateDescriptorSetLayout(mesh->turtle->device, &layoutInfo, NULL,
+					&descriptor_set_layout) != VK_SUCCESS) {
+		error("failed to create descriptor set layout!");
+	}
+	return descriptor_set_layout;
+}
+
 trtl_alloc static VkDescriptorSet *
-create_descriptor_sets(struct trtl_object_mesh *mesh, struct turtle *turtle,
-		       struct trtl_swap_chain *scd)
+create_descriptor_sets(struct trtl_object_mesh *mesh)
 {
 	VkDescriptorSet *sets = talloc_zero_array(mesh, VkDescriptorSet, mesh->nframes);
+	uint32_t nframes = mesh->turtle->tsc->nimages;
 	VkDescriptorSetLayout *layouts =
 	    talloc_zero_array(NULL, VkDescriptorSetLayout, mesh->nframes);
 
-	// FIXME: Allocate own descriptor set
-	// for (uint32_t i = 0; i < mesh->nframes; i++) {
-	//		layouts[i] = scd->render->descriptor_set_layout;
-	//	}
+	for (uint32_t i = 0; i < nframes; i++) {
+		// FIXME: Thsi should cache right
+		layouts[i] = descriptor_set_layout(mesh);
+	}
 
 	VkDescriptorSetAllocateInfo alloc_info = {0};
 	alloc_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-	alloc_info.descriptorPool = scd->descriptor_pool;
+	alloc_info.descriptorPool = mesh->turtle->tsc->descriptor_pool;
 	alloc_info.descriptorSetCount = mesh->nframes;
 	alloc_info.pSetLayouts = layouts;
 
-	if (vkAllocateDescriptorSets(turtle->device, &alloc_info, sets) != VK_SUCCESS) {
+	if (vkAllocateDescriptorSets(mesh->turtle->device, &alloc_info, sets) != VK_SUCCESS) {
 		error("failed to allocate descriptor sets!");
 	}
 
 	for (uint32_t i = 0; i < mesh->nframes; i++) {
+		
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(mesh->uniform_info, i);
 
@@ -196,7 +273,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct turtle *turtle,
 		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		// This hsould be from the object
 		image_info.imageView = mesh->texture_image_view;
-		image_info.sampler = turtle->texture_sampler;
+		image_info.sampler = mesh->turtle->texture_sampler;
 
 		VkWriteDescriptorSet descriptorWrites[2] = {0};
 
@@ -216,7 +293,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh, struct turtle *turtle,
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pImageInfo = &image_info;
 
-		vkUpdateDescriptorSets(turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
+		vkUpdateDescriptorSets(mesh->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
 				       descriptorWrites, 0, NULL);
 	}
 

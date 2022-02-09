@@ -46,16 +46,23 @@ create_vertex_buffers(struct turtle *turtle, const struct trtl_seer_vertexset *v
 	assert(vertices->vertex_size != 0);
 
 	VkDeviceSize bufferSize = vertices->vertex_size * nvertexes;
+	printf("Buffer size is %llu %d %d\n", bufferSize, vertices->vertex_size, nvertexes);
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	create_buffer(turtle, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
 		      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 		      &stagingBuffer, &stagingBufferMemory);
 
-	void *data;
-	vkMapMemory(turtle->device, stagingBufferMemory, 0, bufferSize, 0, &data);
-	memcpy(data, vertices->vertices, bufferSize);
-	vkUnmapMemory(turtle->device, stagingBufferMemory);
+	{
+		void *data;
+		VkResult result =
+		    vkMapMemory(turtle->device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		if (result != VK_SUCCESS) {
+			error_msg(result, "failed to map bytes\n");
+		}
+		memcpy(data, vertices->vertices, bufferSize);
+		vkUnmapMemory(turtle->device, stagingBufferMemory);
+	}
 
 	VkBuffer vertex_buffer;
 	VkDeviceMemory vertex_buffer_memory;

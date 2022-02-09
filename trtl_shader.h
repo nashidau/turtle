@@ -52,9 +52,7 @@ struct trtl_shader *trtl_shader_get(struct turtle *turtle, const char *path);
 	extern uint8_t shader_##NAME##_end;                                                        \
 	__asm__(".data\n"                                                                          \
 		".align 4\n"                                                                       \
-		".global " SYMBOL_PREFIX #NAME "_start\n"                                      	   \
-		".global " SYMBOL_PREFIX #NAME "_end\n"                                            \
-		SYMBOL_PREFIX #NAME "_start:\n"                                                    \
-		".asciz \"" STRING "\"\n"                                                          \
-		SYMBOL_PREFIX #NAME "_end:\n"                                                      \
+		".global " SYMBOL_PREFIX #NAME "_start\n"                                          \
+		".global " SYMBOL_PREFIX #NAME "_end\n" SYMBOL_PREFIX #NAME "_start:\n"            \
+		".asciz \"" STRING "\"\n" SYMBOL_PREFIX #NAME "_end:\n"                            \
 		".previous\n")

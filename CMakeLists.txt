@@ -28,6 +28,7 @@ add_library(turtleobjs OBJECT
 	trtl_events.c
 	trtl_object_canvas.c
 	trtl_object_grid.c
+	trtl_object_mesh.c
 	trtl_object_mesh_old.c
 	trtl_object_sprite.c
 	trtl_pipeline.c
@@ -89,6 +90,8 @@ list(APPEND SHADERS
 	${SHADERS_SOURCE_DIR}/grid/grid-vertex.vert
 	${SHADERS_SOURCE_DIR}/grid/browns.frag
 	${SHADERS_SOURCE_DIR}/grid/red.frag
+	${SHADERS_SOURCE_DIR}/mesh/mesh-vert.vert
+	${SHADERS_SOURCE_DIR}/mesh/mesh.frag
 	${SHADERS_SOURCE_DIR}/sprite/sprite-vertex.vert
 	${SHADERS_SOURCE_DIR}/sprite/sprite-fragment.frag)
 
