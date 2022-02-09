@@ -21,7 +21,6 @@
 #include "trtl_object_canvas.h"
 #include "trtl_object_grid.h"
 #include "trtl_object_mesh.h"
-#include "trtl_object_mesh_old.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
 #include "trtl_strata.h"
@@ -40,7 +39,8 @@ static const trtl_arg_unused char *MODEL_PATH2 = "models/StreetCouch/Day143.obj"
 static const trtl_arg_unused char *TEXTURE_PATH2 = "models/StreetCouch/textures/texture.jpg";
 
 static const trtl_arg_unused char *DUCK_PATH = "models/Rubber_Duck/10602_Rubber_Duck_v1_L3.obj";
-static const trtl_arg_unused char *DUCK_TEXTURE_PATH = "models/Rubber_Duck/10602_Rubber_Duck_v1_diffuse.jpg";
+static const trtl_arg_unused char *DUCK_TEXTURE_PATH =
+    "models/Rubber_Duck/10602_Rubber_Duck_v1_diffuse.jpg";
 
 struct trtl_seer {
 	struct turtle *turtle;
