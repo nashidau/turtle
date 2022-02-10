@@ -155,7 +155,14 @@ mesh_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *l
 }
 
 struct trtl_object *
-trtl_object_mesh_create_old(struct turtle *turtle, const char *path, const char *texture)
+trtl_object_mesh_create(struct turtle *turtle, const char *path, const char *texture)
+{
+	return trtl_object_mesh_create_scaled(turtle, path, texture, 1.0);
+}
+
+struct trtl_object *
+trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const char *texture,
+			      double scale)
 {
 	struct trtl_object_mesh *mesh;
 
@@ -168,7 +175,7 @@ trtl_object_mesh_create_old(struct turtle *turtle, const char *path, const char 
 	mesh->parent.relayer = mesh_resize;
 
 	mesh->nframes = turtle->tsc->nimages;
-	mesh->model = load_model(path);
+	mesh->model = load_model(path, scale);
 	if (!mesh->model) {
 		talloc_free(mesh);
 		return NULL;
@@ -265,7 +272,7 @@ create_descriptor_sets(struct trtl_object_mesh *mesh)
 	}
 
 	for (uint32_t i = 0; i < mesh->nframes; i++) {
-		
+
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(mesh->uniform_info, i);
 

@@ -12,6 +12,8 @@
 struct trtl_swap_chain;
 struct turtle;
 
-struct trtl_object *trtl_object_mesh_create_old(struct turtle *turtle, const char *path,
+struct trtl_object *trtl_object_mesh_create(struct turtle *turtle, const char *path,
 						const char *texture);
+struct trtl_object *trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path,
+						const char *texture, double scale);
 

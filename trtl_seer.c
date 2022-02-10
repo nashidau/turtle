@@ -226,9 +226,9 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		//   seer.seer_ctx, scd, seer.layers[layerid].render_pass, scd->extent,
 		// scd->render->descriptor_set_layout, MODEL_PATH2, TEXTURE_PATH2);
 	} else if (streq(name, "room")) {
-		object = trtl_object_mesh_create_old(turtle, MODEL_PATH, TEXTURE_PATH);
+		object = trtl_object_mesh_create(turtle, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "duck")) {
-		object = trtl_object_mesh_create_old(turtle, DUCK_PATH, DUCK_TEXTURE_PATH);
+		object = trtl_object_mesh_create_scaled(turtle, DUCK_PATH, DUCK_TEXTURE_PATH, 0.1);
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(turtle, NULL);
 	} else if (strncmp(name, "background:", 11) == 0) {

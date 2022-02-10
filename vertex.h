@@ -53,6 +53,6 @@ vertex_binding_description_get(void);
 VkVertexInputAttributeDescription *
 get_attribute_description_pair(uint32_t *nentries);
 
-struct trtl_model *load_model(const char *basename);
+struct trtl_model *load_model(const char *basename, double scale);
 
 
