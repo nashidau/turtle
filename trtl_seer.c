@@ -205,7 +205,7 @@ trtl_seer_object_add(struct turtle *turtle, struct trtl_object *object, trtl_ren
 	return 0;
 }
 
-int
+struct trtl_object *
 trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 				trtl_render_layer_t layerid)
 {
@@ -228,7 +228,7 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 	} else if (streq(name, "room")) {
 		object = trtl_object_mesh_create(turtle, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "duck")) {
-		object = trtl_object_mesh_create_scaled(turtle, DUCK_PATH, DUCK_TEXTURE_PATH, 0.1);
+		object = trtl_object_mesh_create_scaled(turtle, DUCK_PATH, DUCK_TEXTURE_PATH, 0.02);
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(turtle, NULL);
 	} else if (strncmp(name, "background:", 11) == 0) {
@@ -246,9 +246,12 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		error("Unknown object %s\n", name);
 	}
 
-	if (!object) return -1;
+	if (!object) return NULL;;
 
-	return trtl_seer_object_add(turtle, object, layerid);
+	// FIXME: Check return
+	trtl_seer_object_add(turtle, object, layerid);
+
+	return object;
 }
 
 /**
