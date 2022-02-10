@@ -30,7 +30,7 @@
 #include "trtl_texture.h"
 #include "trtl_uniform.h"
 
-struct trtl_stringlist *objs_to_load[2] = {NULL};
+struct trtl_stringlist *objs_to_load[3] = {NULL};
 
 extern bool frame_buffer_resized;
 
@@ -42,6 +42,7 @@ show_usage(const char *binary)
 	puts(" --help | -h    Show help.");
 	puts(" --object | -o [OBJECT] Load a known object");
 	puts(" --background | -b [OBJECT] Load a known object as background");
+	puts(" --top | -t [OBJECT] Load a known object on the top layer");
 }
 
 static void
@@ -52,11 +53,12 @@ parse_arguments(int argc, char **argv)
 	    {"help", no_argument, NULL, 'h'},
 	    {"object", required_argument, NULL, 'o'},
 	    {"background", required_argument, NULL, 'b'},
+	    {"top", required_argument, NULL, 't'},
 	    {NULL, 0, NULL, 0},
 	};
 	int option;
 
-	while ((option = getopt_long(argc, argv, "dho:b:", options, NULL)) != -1) {
+	while ((option = getopt_long(argc, argv, "dho:b:t:", options, NULL)) != -1) {
 		switch (option) {
 		case 'h':
 			show_usage(argv[0]);
@@ -69,6 +71,9 @@ parse_arguments(int argc, char **argv)
 			continue;
 		case 'o':
 			objs_to_load[1] = trtl_stringlist_add(objs_to_load[1], optarg);
+			continue;
+		case 't':
+			objs_to_load[2] = trtl_stringlist_add(objs_to_load[2], optarg);
 			continue;
 		default:
 			show_usage(argv[0]);
@@ -103,7 +108,7 @@ load_objects(struct turtle *turtle)
 	}
 
 	// For each layer, load it
-	for (i = 0; i < 2; i++) {
+	for (i = 0; i < 3; i++) {
 		struct trtl_stringlist *load = objs_to_load[i];
 		while (load != NULL) {
 			trtl_seer_predefined_object_add(load->string, turtle, i);
@@ -120,6 +125,10 @@ main(int argc, char **argv)
 	static const struct trtl_layer_info layers[] = {
 	    /* background */ {.has_depth = true, .clear_on_load = true, .strata = TRTL_STRATA_BASE},
 	    /* Grid */
+	    {.has_depth = true,
+	     .clear_on_load = false,
+	     .strata = TRTL_STRATA_ORTHOGRAPHIC | TRTL_STRATA_BASE},
+	    /* Foreground */
 	    {.has_depth = true,
 	     .clear_on_load = false,
 	     .strata = TRTL_STRATA_ORTHOGRAPHIC | TRTL_STRATA_BASE},
