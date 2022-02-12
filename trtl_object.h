@@ -9,6 +9,8 @@ struct trtl_layer;
 
 // Interface for render objects; implement these methods
 struct trtl_object {
+	struct turtle *turtle;
+
 	// Interface
 	void (*draw)(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t offset);
 	bool (*update)(struct trtl_object *obj, int frame);
