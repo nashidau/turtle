@@ -52,15 +52,17 @@ struct trtl_object_mesh {
 		struct trtl_strata *grid;
 	} strata;
 
+	float rotation;
+
 	struct {
 		uint32_t x;
 		uint32_t y;
-		uint16_t facing;
+		float facing;
 	} dest;
 	struct {
 		uint32_t x;
 		uint32_t y;
-		uint16_t facing;
+		float facing;
 	} cur;
 };
 
@@ -124,7 +126,7 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 	ubo = trtl_uniform_info_address(mesh->uniform_info, frame);
 
 	glm_mat4_identity(ubo->model);
-	glm_rotate(ubo->model, glm_rad(mesh->cur.facing * M_PI), GLM_ZUP);
+	glm_rotate(ubo->model, mesh->cur.facing, GLM_ZUP);
 
 	{
 		vec3 y = {0, 0, 0};
@@ -181,16 +183,19 @@ mesh_move(struct trtl_object *obj, uint32_t snap, uint32_t x, uint32_t y)
 static bool
 mesh_facing(struct trtl_object *obj, uint32_t snap, trtl_grid_direction_t facing)
 {
+#define constant_dtorad(deg)   ((deg) * GLM_PIf / 180.0f)
+
+
 	static float facings[] = {
-	    [TRTL_GRID_NORTH] = 60.0 / (2 * M_PI),
-	    [TRTL_GRID_EAST] = 120.0 / (2 * M_PI),
-	    [TRTL_GRID_SOUTH] = 240.0 / (2 * M_PI),
-	    [TRTL_GRID_WEST] = 300.0 / (2 * M_PI),
+	    [TRTL_GRID_NORTH] = constant_dtorad(60.0),
+	    [TRTL_GRID_EAST] = constant_dtorad(300.0 + 20),
+	    [TRTL_GRID_SOUTH] = constant_dtorad(240.0),
+	    [TRTL_GRID_WEST] = constant_dtorad(120.0 + 20),
 	};
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	assert(mesh);
 
-	mesh->dest.facing = facings[facing];
+	mesh->dest.facing = facings[facing] + mesh->rotation;
 	if (snap) {
 		mesh->cur.facing = mesh->dest.facing;
 	}
@@ -257,6 +262,13 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 	}
 
 	return (struct trtl_object *)mesh;
+}
+
+void
+trtl_object_mesh_rotation_base_set(struct trtl_object *obj, float xrotation)
+{
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	mesh->rotation = xrotation;
 }
 
 static VkDescriptorSetLayout

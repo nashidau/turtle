@@ -16,4 +16,5 @@ struct trtl_object *trtl_object_mesh_create(struct turtle *turtle, const char *p
 						const char *texture);
 struct trtl_object *trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path,
 						const char *texture, double scale);
+void trtl_object_mesh_rotation_base_set(struct trtl_object *obj, float xrotation);
 

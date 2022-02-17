@@ -10,11 +10,13 @@
  * FIXME: Should hold the trtl_uniform objects.
  */
 #include <assert.h>
+#include <math.h>
 #include <string.h>
 
 #include <talloc.h>
 
 #include "vulkan/vulkan_core.h"
+#include "cglm/cglm.h"
 
 #include "helpers.h"
 #include "trtl_object.h"
@@ -229,6 +231,7 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		object = trtl_object_mesh_create(turtle, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "duck")) {
 		object = trtl_object_mesh_create_scaled(turtle, DUCK_PATH, DUCK_TEXTURE_PATH, 0.02);
+		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(turtle, NULL);
 	} else if (strncmp(name, "background:", 11) == 0) {
