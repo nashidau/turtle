@@ -25,7 +25,7 @@
 #include "vertex.h" // FIXME: has trtl_model in it
 
 struct trtl_object_mesh {
-	struct trtl_object parent;
+	struct trtl_grid_object parent;
 	struct turtle *turtle;
 
 	// What we are drawing (sadly one for now)
@@ -51,6 +51,17 @@ struct trtl_object_mesh {
 		struct trtl_strata *base;
 		struct trtl_strata *grid;
 	} strata;
+
+	struct {
+		uint32_t x;
+		uint32_t y;
+		uint16_t facing;
+	} dest;
+	struct {
+		uint32_t x;
+		uint32_t y;
+		uint16_t facing;
+	} cur;
 };
 
 EMBED_SHADER(mesh_vertex, "mesh-vert.spv");
@@ -105,18 +116,15 @@ trtl_object_mesh_destructor(trtl_arg_unused struct trtl_object_mesh *obj)
 static bool
 trtl_object_update_(struct trtl_object *obj, int frame)
 {
-
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	// static int startTime = 0;
 	// int currentTime = 1;
-	static float time = 1.0f;
-	time = time + 1;
 	struct UniformBufferObject *ubo;
 
 	ubo = trtl_uniform_info_address(mesh->uniform_info, frame);
 
 	glm_mat4_identity(ubo->model);
-	glm_rotate(ubo->model, -glm_rad(time), GLM_ZUP);
+	glm_rotate(ubo->model, glm_rad(mesh->cur.facing * M_PI), GLM_ZUP);
 
 	{
 		vec3 y = {0, 0, 0};
@@ -154,6 +162,41 @@ mesh_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *l
 	    mesh->descriptor_set_layout, "mesh_vertex", "mesh_fragment", &vkb, vkx, count);
 }
 
+static bool
+mesh_move(struct trtl_object *obj, uint32_t snap, uint32_t x, uint32_t y)
+{
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	assert(mesh);
+
+	mesh->dest.x = x;
+	mesh->dest.y = y;
+	if (snap) {
+		mesh->cur.x = x;
+		mesh->cur.y = y;
+	}
+
+	return true;
+}
+
+static bool
+mesh_facing(struct trtl_object *obj, uint32_t snap, trtl_grid_direction_t facing)
+{
+	static float facings[] = {
+	    [TRTL_GRID_NORTH] = 60.0 / (2 * M_PI),
+	    [TRTL_GRID_EAST] = 120.0 / (2 * M_PI),
+	    [TRTL_GRID_SOUTH] = 240.0 / (2 * M_PI),
+	    [TRTL_GRID_WEST] = 300.0 / (2 * M_PI),
+	};
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	assert(mesh);
+
+	mesh->dest.facing = facings[facing];
+	if (snap) {
+		mesh->cur.facing = mesh->dest.facing;
+	}
+	return true;
+}
+
 struct trtl_object *
 trtl_object_mesh_create(struct turtle *turtle, const char *path, const char *texture)
 {
@@ -162,7 +205,7 @@ trtl_object_mesh_create(struct turtle *turtle, const char *path, const char *tex
 
 struct trtl_object *
 trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const char *texture,
-			      double scale)
+			       double scale)
 {
 	struct trtl_object_mesh *mesh;
 
@@ -170,9 +213,11 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 
 	talloc_set_destructor(mesh, trtl_object_mesh_destructor);
 	mesh->turtle = turtle;
-	mesh->parent.draw = trtl_object_draw_;
-	mesh->parent.update = trtl_object_update_;
-	mesh->parent.relayer = mesh_resize;
+	mesh->parent.o.draw = trtl_object_draw_;
+	mesh->parent.o.update = trtl_object_update_;
+	mesh->parent.o.relayer = mesh_resize;
+	mesh->parent.move = mesh_move;
+	mesh->parent.facing = mesh_facing;
 
 	mesh->nframes = turtle->tsc->nimages;
 	mesh->model = load_model(path, scale);

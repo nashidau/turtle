@@ -37,8 +37,6 @@ static const struct grid_shaders {
 struct trtl_object_grid {
 	struct trtl_object parent;
 
-	struct turtle *turtle;
-
 	const struct grid_shaders *shader;
 
 	// This is the current active 'title'
@@ -193,14 +191,14 @@ generate_grid(struct trtl_object_grid *grid, uint16_t width, uint16_t height)
 		vertices.nvertexes = vcount;
 		vertices.vertices = vertex;
 
-		grid->vertex_buffer = create_vertex_buffers(grid->turtle, &vertices);
+		grid->vertex_buffer = create_vertex_buffers(grid->parent.turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = icount;
 		indexes.indexes = indices;
-		grid->index_buffer = create_index_buffer(grid->turtle, &indexes);
+		grid->index_buffer = create_index_buffer(grid->parent.turtle, &indexes);
 	}
 	grid->vcount = vcount;
 	grid->icount = icount;
@@ -281,7 +279,7 @@ trtl_grid_create(struct turtle *turtle)
 	struct trtl_object_grid *grid;
 
 	grid = talloc_zero(NULL, struct trtl_object_grid);
-	grid->turtle = turtle;
+	grid->parent.turtle = turtle;
 
 	grid->shader = grid_shaders;
 
@@ -392,14 +390,14 @@ trtl_grid_fill_pattern(struct trtl_object *obj, uint32_t width, uint32_t height,
 		vertices.nvertexes = vcount;
 		vertices.vertices = vertex;
 
-		grid->vertex_buffer = create_vertex_buffers(grid->turtle, &vertices);
+		grid->vertex_buffer = create_vertex_buffers(grid->parent.turtle, &vertices);
 	}
 	{
 		struct trtl_seer_indexset indexes;
 
 		indexes.nindexes = icount;
 		indexes.indexes = indices;
-		grid->index_buffer = create_index_buffer(grid->turtle, &indexes);
+		grid->index_buffer = create_index_buffer(grid->parent.turtle, &indexes);
 	}
 	grid->vcount = vcount;
 	grid->icount = icount;

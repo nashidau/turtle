@@ -20,6 +20,13 @@ struct trtl_object {
 	void (*relayer)(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *layer);
 };
 
+typedef enum {
+	TRTL_GRID_NORTH = 0,
+	TRTL_GRID_EAST = 1,
+	TRTL_GRID_SOUTH = 2,
+	TRTL_GRID_WEST = 3,
+} trtl_grid_direction_t;
+
 // Grid object; trtl_grid_object
 // An object that works within a grid.
 // It has three additional properties;
@@ -28,7 +35,12 @@ struct trtl_object {
 struct trtl_grid_object {
 	struct trtl_object o;
 
-	bool (*move)(struct trtl_object *obj, uint32_t x, uint32_t y);
+	bool (*move)(struct trtl_object *obj, uint32_t snap, uint32_t x, uint32_t y);
 
-	bool (*facing)(struct trtl_object *obj, int facing);
+	bool (*facing)(struct trtl_object *obj, uint32_t snap, trtl_grid_direction_t facing);
 };
+
+#define trtl_object_grid_facing_set(obj, snap, dir)                                                \
+	((struct trtl_grid_object *)obj)->facing(obj, snap, dir);
+#define trtl_object_grid_move(obj, snap, x, y)                                                     \
+	((struct trtl_grid_object *)obj)->facing(obj, snap, x, y);
