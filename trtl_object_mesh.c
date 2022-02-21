@@ -119,9 +119,17 @@ static bool
 trtl_object_update_(struct trtl_object *obj, int frame)
 {
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
-	// static int startTime = 0;
-	// int currentTime = 1;
 	struct UniformBufferObject *ubo;
+
+	if (mesh->cur.facing != mesh->dest.facing) {
+		float diff = mesh->dest.facing - mesh->cur.facing;
+		diff /= 4;
+		if (fabs(diff) < 0.01) {
+			mesh->cur.facing = mesh->dest.facing;
+		} else {
+			mesh->cur.facing += diff;
+		}
+	}
 
 	ubo = trtl_uniform_info_address(mesh->uniform_info, frame);
 
