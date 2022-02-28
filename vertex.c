@@ -160,8 +160,11 @@ load_model(const char *basename, double scale)
 		v->pos.x = vertices[idx.v_idx].x * scale;
 		v->pos.y = vertices[idx.v_idx].y * scale;
 		v->pos.z = vertices[idx.v_idx].z * scale;
-		v->tex_coord.x = texcoords[idx.vt_idx].x;
-		v->tex_coord.y = 1.0f - texcoords[idx.vt_idx].y;
+		// FIXME: Number of text coords shold be range checked.
+		if (attrib.num_texcoords) {
+			v->tex_coord.x = texcoords[idx.vt_idx].x;
+			v->tex_coord.y = 1.0f - texcoords[idx.vt_idx].y;
+		}
 	}
 	int lookups;
 	vhash_netries(vhash, &lookups);

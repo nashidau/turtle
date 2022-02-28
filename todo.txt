@@ -9,8 +9,6 @@ Add a proper event rendering loop
 
 Add animated zoom to quest
 
-Handle resize for mesh.
-
 Finish moving VkPipeline{Layout} out of trtl.
 	- need a pipeline cache
 Maybe add pushconstant support through trtl_uniform
