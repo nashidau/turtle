@@ -44,6 +44,9 @@ static const trtl_arg_unused char *DUCK_PATH = "models/Rubber_Duck/10602_Rubber_
 static const trtl_arg_unused char *DUCK_TEXTURE_PATH =
     "models/Rubber_Duck/10602_Rubber_Duck_v1_diffuse.jpg";
 
+static const trtl_arg_unused char *FISH_PATH = "models/fish/Goldfish_01.obj";
+static const trtl_arg_unused char *DUCK2_PATH = "models/duck2/Duck_01.obj";
+
 struct trtl_seer {
 	struct turtle *turtle;
 
@@ -231,6 +234,12 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		object = trtl_object_mesh_create(turtle, MODEL_PATH, TEXTURE_PATH);
 	} else if (streq(name, "duck")) {
 		object = trtl_object_mesh_create_scaled(turtle, DUCK_PATH, DUCK_TEXTURE_PATH, 0.02);
+		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
+	} else if (streq(name, "duck2")) {
+		object = trtl_object_mesh_create_scaled(turtle, DUCK2_PATH, NULL, 0.1);
+		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
+	} else if (streq(name, "fish")) {
+		object = trtl_object_mesh_create_scaled(turtle, FISH_PATH, DUCK_TEXTURE_PATH, 0.1);
 		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(turtle, NULL);
