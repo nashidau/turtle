@@ -65,14 +65,25 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
 		    char **buf, size_t *len)
 {
 	struct blobby *blobby;
+	char *extra_path = NULL;
 
 	printf("**** File Reader: %s %d %s\n", filename, is_mtl, obj_filename);
 
 	if (is_mtl) {
-		printf("Is MTL\n");
+		// Need to build the path:
+		char *lastsep = rindex(obj_filename, '/');
+		if (!lastsep) {
+			// Not relative - just use filename.
+		} else {
+			asprintf(&extra_path, "%.*s/%s", (int)(lastsep - obj_filename),
+				 obj_filename, filename);
+			filename = extra_path;
+		}
+
+		printf("Is MTL: %s\n", extra_path);
 	}
 
-	blobby = blobby_from_file_ctx(ctx, obj_filename);
+	blobby = blobby_from_file_ctx(ctx, filename);
 
 	if (!blobby) {
 		*len = 0;
@@ -83,6 +94,10 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
 	// FIXME: tinyobj file reader should take const char
 	*buf = (char *)(uintptr_t)blobby->data;
 	*len = blobby->len;
+
+	if (extra_path) {
+		free(extra_path);
+	}
 }
 
 // extern int tinyobj_parse_obj(tinyobj_attrib_t *attrib, tinyobj_shape_t **shapes,
