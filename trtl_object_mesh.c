@@ -68,6 +68,7 @@ struct trtl_object_mesh {
 
 EMBED_SHADER(mesh_vertex, "mesh-vert.spv");
 EMBED_SHADER(mesh_fragment, "mesh.spv");
+EMBED_SHADER(mesh_fragment_notexture, "mesh-notexture.spv");
 
 trtl_alloc static VkDescriptorSet *create_descriptor_sets(struct trtl_object_mesh *mesh);
 static VkDescriptorSetLayout descriptor_set_layout(struct trtl_object_mesh *mesh);
@@ -167,9 +168,17 @@ mesh_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *l
 	uint32_t count;
 	VkVertexInputAttributeDescription *vkx = get_attribute_description_pair(&count);
 	VkVertexInputBindingDescription vkb = vertex_binding_description_get();
+
+	const char *fragment_shader;
+	if (mesh->texture_image_view) {
+		fragment_shader = "mesh_fragment";
+	} else {
+		printf("notextue version\n");
+		fragment_shader = "mesh_fragment_notexture";
+	}
 	mesh->pipeline_info = trtl_pipeline_create_with_strata(
 	    turtle, layer, TRTL_ARRAY_SIZE(mesh->descriptor_set_layout),
-	    mesh->descriptor_set_layout, "mesh_vertex", "mesh_fragment", &vkb, vkx, count);
+	    mesh->descriptor_set_layout, "mesh_vertex", fragment_shader, &vkb, vkx, count);
 }
 
 static bool
@@ -191,8 +200,7 @@ mesh_move(struct trtl_object *obj, uint32_t snap, uint32_t x, uint32_t y)
 static bool
 mesh_facing(struct trtl_object *obj, uint32_t snap, trtl_grid_direction_t facing)
 {
-#define constant_dtorad(deg)   ((deg) * GLM_PIf / 180.0f)
-
+#define constant_dtorad(deg) ((deg)*GLM_PIf / 180.0f)
 
 	static float facings[] = {
 	    [TRTL_GRID_NORTH] = constant_dtorad(60.0),
@@ -242,9 +250,11 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 	//	mesh->uniform_info =
 	//	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
 
-	// FIXME: So leaky (create_texture_image never freed);
-	mesh->texture_image_view =
-	    create_texture_image_view(turtle, create_texture_image(turtle, texture));
+	if (texture) {
+		// FIXME: So leaky (create_texture_image never freed);
+		mesh->texture_image_view =
+		    create_texture_image_view(turtle, create_texture_image(turtle, texture));
+	}
 
 	mesh->strata.base = trtl_seer_strata_get(turtle, "base");
 	mesh->strata.grid = trtl_seer_strata_get(turtle, "grid");
@@ -340,14 +350,8 @@ create_descriptor_sets(struct trtl_object_mesh *mesh)
 
 		VkDescriptorBufferInfo buffer_info =
 		    trtl_uniform_buffer_get_descriptor(mesh->uniform_info, i);
-
-		VkDescriptorImageInfo image_info = {0};
-		image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		// This hsould be from the object
-		image_info.imageView = mesh->texture_image_view;
-		image_info.sampler = mesh->turtle->texture_sampler;
-
 		VkWriteDescriptorSet descriptorWrites[2] = {0};
+		uint32_t ndescriptors = 1;
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = sets[i];
@@ -357,16 +361,26 @@ create_descriptor_sets(struct trtl_object_mesh *mesh)
 		descriptorWrites[0].descriptorCount = 1;
 		descriptorWrites[0].pBufferInfo = &buffer_info;
 
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = sets[i];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pImageInfo = &image_info;
+		if (mesh->texture_image_view) {
+			ndescriptors++;
+			VkDescriptorImageInfo image_info = {0};
+			image_info.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			// This hsould be from the object
+			image_info.imageView = mesh->texture_image_view;
+			image_info.sampler = mesh->turtle->texture_sampler;
 
-		vkUpdateDescriptorSets(mesh->turtle->device, TRTL_ARRAY_SIZE(descriptorWrites),
-				       descriptorWrites, 0, NULL);
+			descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+			descriptorWrites[1].dstSet = sets[i];
+			descriptorWrites[1].dstBinding = 1;
+			descriptorWrites[1].dstArrayElement = 0;
+			descriptorWrites[1].descriptorType =
+			    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+			descriptorWrites[1].descriptorCount = 1;
+			descriptorWrites[1].pImageInfo = &image_info;
+		}
+
+		vkUpdateDescriptorSets(mesh->turtle->device, ndescriptors, descriptorWrites, 0,
+				       NULL);
 	}
 
 	talloc_free(layouts);
