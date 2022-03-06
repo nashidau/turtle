@@ -13,11 +13,11 @@
 
 struct vhash;
 static int32_t vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index,
-			  bool *new);
+			  int32_t material_idx, bool *new);
 static struct vhash *vhash_init(int32_t size);
 static int vhash_netries(struct vhash *vhash, int *lookups);
 
-#define DEBUGTHIS 0
+#define DEBUGTHIS 1
 
 // FIXME: This doesn't need to a function
 trtl_pure VkVertexInputBindingDescription
@@ -138,13 +138,14 @@ load_model(const char *basename, double scale)
 
 	if (DEBUGTHIS) {
 		printf("We have %d Vertices\n", attrib.num_vertices);
+		printf("Model Details:\n Vertices: %d\n Faces: %d\n Face N Verts: %d\n",
+		       attrib.num_vertices, attrib.num_faces, attrib.num_face_num_verts);
+	}
+	if (DEBUGTHIS > 1) {
 		for (uint32_t i = 0; i < num_shapes; i++) {
 			printf("Shape %d %d %d %s\n", i, shapes[i].face_offset, shapes[i].length,
 			       shapes[i].name);
 		}
-
-		printf("Model Details:\n Vertices: %d\n Faces: %d\n Face N Verts: %d\n",
-		       attrib.num_vertices, attrib.num_faces, attrib.num_face_num_verts);
 	}
 
 	model = talloc_zero(NULL, struct trtl_model);
@@ -160,10 +161,13 @@ load_model(const char *basename, double scale)
 	texcoords = (struct pos2d *)attrib.texcoords;
 
 	struct vhash *vhash = vhash_init(attrib.num_faces);
+	int maxn = -1;
 	for (uint32_t i = 0; i < attrib.num_faces; i++) {
 		bool new = true;
 		tinyobj_vertex_index_t idx = attrib.faces[i];
-		int n = vhash_find(vhash, idx.v_idx, idx.vt_idx, &new);
+		printf("Material Id %d: %d\n", i / 3, attrib.material_ids[i / 3]);
+		int n = vhash_find(vhash, idx.v_idx, idx.vt_idx, attrib.material_ids[i / 3], &new);
+		if (n > maxn) maxn = n;
 		// Already seen it
 		model->indices[i] = n;
 		if (!new) {
@@ -180,12 +184,23 @@ load_model(const char *basename, double scale)
 			v->tex_coord.x = texcoords[idx.vt_idx].x;
 			v->tex_coord.y = 1.0f - texcoords[idx.vt_idx].y;
 		}
+
+		// Note the '3' is assuming all triangles here
+		int material_idx = attrib.material_ids[i / 3];
+		assert(material_idx < (int)num_materials);
+		if (material_idx >= 0) {
+			v->color.r = materials[material_idx].diffuse[0];
+			v->color.g = materials[material_idx].diffuse[1];
+			v->color.b = materials[material_idx].diffuse[2];
+		}
 	}
 	int lookups;
 	vhash_netries(vhash, &lookups);
 	talloc_free(vhash);
 
-	if (DEBUGTHIS) {
+	printf("Max N is %d (of %d)\n", maxn, model->nvertices);
+
+	if (DEBUGTHIS > 1) {
 		for (uint32_t j = 0; j < model->nindices; j++) {
 			struct vertex *v = model->vertices + model->indices[j];
 			printf("Vertex %4d: %lf %lf %lf  / %lf %lf\n", j, v->pos.x, v->pos.y,
@@ -209,28 +224,31 @@ struct vhash_node {
 	struct vhash_node *next;
 	uint32_t vertex_index;
 	uint32_t texture_index;
+	int32_t material_idx;
 
 	int32_t vindex;
 };
 
 static uint32_t
-hash(uint32_t vertex_index, uint32_t texture_index, uint32_t size)
+hash(uint32_t vertex_index, uint32_t texture_index, int32_t material_idx, uint32_t size)
 {
-	return (vertex_index + texture_index) % size;
+	return (vertex_index + texture_index ^ material_idx) % size;
 }
 
 // Returns the index to use for this vertex.
 static int32_t
-vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, bool *created)
+vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, int32_t material_idx,
+	   bool *created)
 {
 	struct vhash_node *node;
-	uint32_t key = hash(vertex_index, texture_index, vhash->size);
+	uint32_t key = hash(vertex_index, texture_index, material_idx, vhash->size);
 
 	vhash->lookups++;
 
 	node = vhash->nodes[key];
 	while (node) {
-		if (node->vertex_index == vertex_index && node->texture_index == texture_index) {
+		if (node->vertex_index == vertex_index && node->texture_index == texture_index &&
+				node->material_idx == material_idx) {
 			if (created) *created = false;
 			return node->vindex;
 		}
@@ -242,6 +260,7 @@ vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, b
 	node->texture_index = texture_index;
 	node->vertex_index = vertex_index;
 	node->vindex = vhash->next++;
+	node->material_idx = material_idx;
 
 	node->next = vhash->nodes[key];
 	vhash->nodes[key] = node;
