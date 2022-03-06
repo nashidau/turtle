@@ -91,6 +91,7 @@ list(APPEND SHADERS
 	${SHADERS_SOURCE_DIR}/grid/red.frag
 	${SHADERS_SOURCE_DIR}/mesh/mesh-vert.vert
 	${SHADERS_SOURCE_DIR}/mesh/mesh.frag
+	${SHADERS_SOURCE_DIR}/mesh/mesh-notexture.frag
 	${SHADERS_SOURCE_DIR}/sprite/sprite-vertex.vert
 	${SHADERS_SOURCE_DIR}/sprite/sprite-fragment.frag)
 
@@ -154,3 +155,5 @@ add_custom_target(graphviz ALL
     COMMAND dot -Tpng turtle.dot -o turtle-depends.png
     WORKING_DIRECTORY "${CMAKE_BINARY_DIR}"
 )
+
+# vim: set nospell :
