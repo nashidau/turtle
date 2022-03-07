@@ -165,7 +165,6 @@ load_model(const char *basename, double scale)
 	for (uint32_t i = 0; i < attrib.num_faces; i++) {
 		bool new = true;
 		tinyobj_vertex_index_t idx = attrib.faces[i];
-		printf("Material Id %d: %d\n", i / 3, attrib.material_ids[i / 3]);
 		int n = vhash_find(vhash, idx.v_idx, idx.vt_idx, attrib.material_ids[i / 3], &new);
 		if (n > maxn) maxn = n;
 		// Already seen it

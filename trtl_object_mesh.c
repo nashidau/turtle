@@ -63,6 +63,7 @@ struct trtl_object_mesh {
 		uint32_t x;
 		uint32_t y;
 		float facing;
+		float vrotate; // FIXME: Use a proper set of vectors for this
 	} cur;
 };
 
@@ -136,7 +137,7 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 
 	glm_mat4_identity(ubo->model);
 	glm_rotate(ubo->model, mesh->cur.facing, GLM_ZUP);
-
+	if (mesh->cur.vrotate) glm_rotate(ubo->model, mesh->cur.vrotate, GLM_XUP);
 	{
 		vec3 y = {0, 0, 0};
 		glm_translate(ubo->model, y);
@@ -287,6 +288,13 @@ trtl_object_mesh_rotation_base_set(struct trtl_object *obj, float xrotation)
 {
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	mesh->rotation = xrotation;
+}
+
+void
+trtl_object_mesh_rotation_upright_set(struct trtl_object *obj, float uprotation)
+{
+	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
+	mesh->cur.vrotate = uprotation;
 }
 
 static VkDescriptorSetLayout

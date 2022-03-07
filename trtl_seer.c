@@ -15,8 +15,8 @@
 
 #include <talloc.h>
 
-#include "vulkan/vulkan_core.h"
 #include "cglm/cglm.h"
+#include "vulkan/vulkan_core.h"
 
 #include "helpers.h"
 #include "trtl_object.h"
@@ -236,10 +236,11 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		object = trtl_object_mesh_create_scaled(turtle, DUCK_PATH, DUCK_TEXTURE_PATH, 0.02);
 		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
 	} else if (streq(name, "duck2")) {
-		object = trtl_object_mesh_create_scaled(turtle, DUCK2_PATH, NULL, 0.1);
-		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
+		object = trtl_object_mesh_create_scaled(turtle, DUCK2_PATH, NULL, 0.02);
+		trtl_object_mesh_rotation_upright_set(object, glm_rad(90));
+		trtl_object_mesh_rotation_base_set(object, glm_rad(-140));
 	} else if (streq(name, "fish")) {
-		object = trtl_object_mesh_create_scaled(turtle, FISH_PATH, DUCK_TEXTURE_PATH, 0.1);
+		object = trtl_object_mesh_create_scaled(turtle, FISH_PATH, NULL, 0.02);
 		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
 	} else if (streq(name, "background")) {
 		object = trtl_canvas_create(turtle, NULL);
@@ -258,7 +259,8 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		error("Unknown object %s\n", name);
 	}
 
-	if (!object) return NULL;;
+	if (!object) return NULL;
+	;
 
 	// FIXME: Check return
 	trtl_seer_object_add(turtle, object, layerid);
