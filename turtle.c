@@ -27,7 +27,6 @@
 #include "turtle.h"
 
 // FIXME: Belongs in render frame state
-int zoom = 128;
 bool frame_buffer_resized = false;
 
 static int turtle_destructor(struct turtle *turtle);
