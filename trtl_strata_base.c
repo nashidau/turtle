@@ -52,6 +52,7 @@ resize_callback(void *sbasev, trtl_arg_unused trtl_crier_cry_t cry, const void *
 
 	sbase->width = resize->new_size.width;
 	sbase->height = resize->new_size.height;
+	printf("Screen size is %d, %d\n", sbase->width, sbase->height);
 }
 
 struct trtl_strata *

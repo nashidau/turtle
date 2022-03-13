@@ -2,8 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
 
-layout(constant_id = 0) const int screenWidth = 800;
-layout(constant_id = 1) const int screenHeight = 600;
 layout(constant_id = 2) const int tileSize = 128;
 
 #include "../trtl_strata_base.include"
@@ -28,8 +26,11 @@ mat2 rotate2d(float angle) {
 }
 
 void main() {
-	// FIXME: This 2 is a hack.
-    vec2 screenSize = vec2(screenWidth, screenHeight) / 2.0;
+    // FIXME: This 2 is a hack.
+    vec2 screenSize = vec2(trtl_strata_base.screensize_time_unused.x, trtl_strata_base.screensize_time_unused.y);
+
+
+    //vec2 screenSize = vec2(640, 480);
     vec2 pos = inPosition.xy;
 
     // Center on the top left tile
@@ -47,6 +48,7 @@ void main() {
 
     // Expand out by the tile size
     pos *= tileSize;
+    pos *= 2.0; // Vulkan is -1 to 1
     pos /= screenSize;
 
     // That's our (2d) position
