@@ -230,6 +230,7 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 			       double scale)
 {
 	struct trtl_object_mesh *mesh;
+	struct boundingbox3d bbox = BOUNDINGBOX_INIT;
 
 	mesh = talloc_zero(NULL, struct trtl_object_mesh);
 
@@ -242,7 +243,7 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 	mesh->parent.facing = mesh_facing;
 
 	mesh->nframes = turtle->tsc->nimages;
-	mesh->model = load_model(path, scale);
+	mesh->model = load_model(path);
 	if (!mesh->model) {
 		talloc_free(mesh);
 		return NULL;
@@ -279,6 +280,9 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 		indexes.indexes = mesh->model->indices;
 		mesh->index_buffer = create_index_buffer(turtle, &indexes);
 	}
+
+	// FIXME: Hackery for the duck2 model
+	mesh->cur.vrotate = M_PI / 2;
 
 	return (struct trtl_object *)mesh;
 }

@@ -112,7 +112,7 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
  * Returns a model structure, that should be freed with talloc_free.
  */
 struct trtl_model *
-load_model(const char *basename, double scale)
+load_model(const char *basename)
 {
 	void *ctx;
 	struct trtl_model *model;
@@ -148,6 +148,30 @@ load_model(const char *basename, double scale)
 		}
 	}
 
+	// Some typed helpers
+	vertices = (struct pos3d *)attrib.vertices;
+	texcoords = (struct pos2d *)attrib.texcoords;
+
+	// First; work out our scale factor.  Run through the array, generate the bounding,
+	// and work the scale factor
+	struct boundingbox3d bbox = BOUNDINGBOX_INIT;
+	for (size_t i = 0 ; i < attrib.num_vertices ; i ++){
+		bbox.min.x = MIN(bbox.min.x, vertices[i].x);
+		bbox.min.y = MIN(bbox.min.y, vertices[i].y);
+		bbox.min.z = MIN(bbox.min.z, vertices[i].z);
+		bbox.max.x = MAX(bbox.max.x, vertices[i].x);
+		bbox.max.y = MAX(bbox.max.y, vertices[i].y);
+		bbox.max.z = MAX(bbox.max.z, vertices[i].z);
+	}
+	// Now work out scale factor x/y
+	printf("Min: %f %f %f\n", bbox.min.x, bbox.min.y, bbox.min.z);
+	printf("Max: %f %f %f\n", bbox.max.x, bbox.max.y, bbox.max.z);
+	float scale = bbox.max.x - bbox.min.x;
+	scale = MAX(scale, bbox.max.y - bbox.min.y);
+	scale = MAX(scale, bbox.max.z - bbox.min.z);
+	scale = 1 / scale;
+	printf("Scaling by %f\n", scale);
+
 	model = talloc_zero(NULL, struct trtl_model);
 
 	model->vertices = talloc_array(model, struct vertex, attrib.num_faces);
@@ -157,8 +181,6 @@ load_model(const char *basename, double scale)
 	model->indices = talloc_array(model, uint32_t, attrib.num_faces);
 	model->nindices = attrib.num_faces;
 
-	vertices = (struct pos3d *)attrib.vertices;
-	texcoords = (struct pos2d *)attrib.texcoords;
 
 	struct vhash *vhash = vhash_init(attrib.num_faces);
 	int maxn = -1;
