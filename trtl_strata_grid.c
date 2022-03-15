@@ -30,7 +30,10 @@ struct trtl_strata_grid {
 	struct trtl_uniform_info *uniform_info;
 
 	uint32_t width, height;
-	uint32_t tile_size;
+	struct {
+		int32_t dest;
+		float cur;
+	} tile_size;
 	struct {
 		struct {
 			int32_t x;
@@ -84,8 +87,7 @@ grid_zoom_callback(void *sgridv, trtl_arg_unused trtl_crier_cry_t cry, const voi
 	    talloc_get_type(event, struct trtl_event_grid_zoom);
 	struct trtl_strata_grid *sgrid = talloc_get_type(sgridv, struct trtl_strata_grid);
 
-	sgrid->tile_size = grid_zoom->feature_size;
-	printf("New tile size: %d\n", sgrid->tile_size);
+	sgrid->tile_size.dest = grid_zoom->feature_size;
 }
 
 struct trtl_strata *
@@ -143,11 +145,12 @@ sgrid_update(struct trtl_strata *strata, int frame)
 
 	sgrid->camera.cur.x = move_half(sgrid->camera.dest.x, sgrid->camera.cur.x);
 	sgrid->camera.cur.y = move_half(sgrid->camera.dest.y, sgrid->camera.cur.y);
+	sgrid->tile_size.cur = move_half(sgrid->tile_size.cur, sgrid->tile_size.dest);
 
 	uniforms->camera_center[0] = sgrid->camera.cur.x;
 	uniforms->camera_center[1] = sgrid->camera.cur.y;
 
-	uniforms->tile_size[0] = sgrid->tile_size;
+	uniforms->tile_size[0] = sgrid->tile_size.cur;
 
 	trtl_uniform_update(sgrid->uniform, frame);
 
