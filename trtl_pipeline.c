@@ -32,7 +32,7 @@ trtl_alloc static VkSpecializationInfo *
 set_specialise_info(VkExtent2D *extent)
 {
 	VkSpecializationInfo *info = talloc_zero(NULL, VkSpecializationInfo);
-	info->mapEntryCount = 3;
+	info->mapEntryCount = 2;
 	int *data = talloc_zero_array(info, int, info->mapEntryCount);
 	VkSpecializationMapEntry *entries =
 	    talloc_zero_array(info, VkSpecializationMapEntry, info->mapEntryCount);
@@ -50,14 +50,7 @@ set_specialise_info(VkExtent2D *extent)
 	entries[1].offset = sizeof(int);
 	data[1] = extent->height;
 
-	// Tile size
-	entries[2].constantID = 2;
-	entries[2].size = sizeof(int);
-	// FIXME: This whole thing should be a struct, then the casing is much better
-	entries[2].offset = 2 * sizeof(int);
-	data[2] = 128;
-
-	info->dataSize = entries[2].offset + entries[2].size;
+	info->dataSize = entries[1].offset + entries[1].size;
 	info->pData = data;
 	return info;
 }

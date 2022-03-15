@@ -6,13 +6,15 @@
 #endif
 
 #ifdef TRTL_SHADER
-layout(set = 1, binding = 0) uniform TrtlStrataGridObject {
+layout(std140, set = 1, binding = 0) uniform TrtlStrataGridObject {
     vec2 camera_center;
+    vec2 tile_size; // one element is unused
 } trtl_strata_grid;
 #else
 struct trtl_strata_grid_uniforms {
   // 0,1 is width, height
   vec2 camera_center;
+  vec2 tile_size;  // one element if unused
 };
 #endif
 // vim: set syn=glsl sw=4 sts=4 :

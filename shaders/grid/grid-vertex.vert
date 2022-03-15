@@ -2,8 +2,6 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : enable
 
-layout(constant_id = 2) const int tileSize = 128;
-
 #include "../trtl_strata_base.include"
 #include "../trtl_strata_grid.include"
 
@@ -47,7 +45,7 @@ void main() {
     pos.y = pos.y / 2.0;
 
     // Expand out by the tile size
-    pos *= tileSize;
+    pos *= trtl_strata_grid.tile_size.x;
     pos *= 2.0; // Vulkan is -1 to 1
     pos /= screenSize;
 

@@ -3,7 +3,9 @@
 
 layout(constant_id = 0) const int screenWidth = 800;
 layout(constant_id = 1) const int screenHeight = 600;
-layout(constant_id = 2) const int tileSize = 128;
+
+// FIXME: Bring in the strata
+float tileSize = 128; 
 
 struct sprite_info {
     vec2 pos;

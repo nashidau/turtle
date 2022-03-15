@@ -18,7 +18,7 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 
 void main() {
-	float scale = 128 / trtl_strata_base.screensize_time_unused.x;
+	float scale = trtl_strata_grid.tile_size.x / trtl_strata_base.screensize_time_unused.x * 2.0;
 	vec3 iTmp = inPosition * scale;
 	//gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0);
 	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(iTmp, 1.0);

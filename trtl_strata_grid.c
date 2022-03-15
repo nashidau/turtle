@@ -29,9 +29,16 @@ struct trtl_strata_grid {
 	struct trtl_uniform_info *uniform_info;
 
 	uint32_t width, height;
+	uint32_t tile_size;
 	struct {
-		int32_t x;
-		int32_t y;
+		struct {
+			int32_t x;
+			int32_t y;
+		} dest;
+		struct {
+			float x;
+			float y;
+		} cur;
 	} camera;
 };
 
@@ -69,6 +76,17 @@ grid_move_callback(void *sgridv, trtl_arg_unused trtl_crier_cry_t cry, const voi
 	sgrid->camera.y = grid_move->y;
 }
 
+static void
+grid_zoom_callback(void *sgridv, trtl_arg_unused trtl_crier_cry_t cry, const void *event)
+{
+	struct trtl_event_grid_zoom *grid_zoom =
+	    talloc_get_type(event, struct trtl_event_grid_zoom);
+	struct trtl_strata_grid *sgrid = talloc_get_type(sgridv, struct trtl_strata_grid);
+
+	sgrid->tile_size = grid_zoom->feature_size;
+	printf("New tile size: %d\n", sgrid->tile_size);
+}
+
 struct trtl_strata *
 trtl_strata_grid_init(struct turtle *turtle)
 {
@@ -94,6 +112,7 @@ trtl_strata_grid_init(struct turtle *turtle)
 
 	trtl_crier_listen(turtle->events->crier, "trtl_event_resize", resize_callback, sgrid);
 	trtl_crier_listen(turtle->events->crier, "trtl_event_grid_move", grid_move_callback, sgrid);
+	trtl_crier_listen(turtle->events->crier, "trtl_event_grid_zoom", grid_zoom_callback, sgrid);
 
 	return &sgrid->strata;
 }
@@ -107,6 +126,8 @@ sgrid_update(struct trtl_strata *strata, int frame)
 
 	uniforms->camera_center[0] = sgrid->camera.x;
 	uniforms->camera_center[1] = sgrid->camera.y;
+
+	uniforms->tile_size[0] = sgrid->tile_size;
 
 	trtl_uniform_update(sgrid->uniform, frame);
 
