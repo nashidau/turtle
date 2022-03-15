@@ -7,6 +7,7 @@
  *
  * Should be added to the seer in the system layer.
  */
+#include <math.h>
 #include <sys/time.h>
 #include <time.h>
 
@@ -72,8 +73,8 @@ grid_move_callback(void *sgridv, trtl_arg_unused trtl_crier_cry_t cry, const voi
 	    talloc_get_type(event, struct trtl_event_grid_move);
 	struct trtl_strata_grid *sgrid = talloc_get_type(sgridv, struct trtl_strata_grid);
 
-	sgrid->camera.x = grid_move->x;
-	sgrid->camera.y = grid_move->y;
+	sgrid->camera.dest.x = grid_move->x;
+	sgrid->camera.dest.y = grid_move->y;
 }
 
 static void
@@ -110,11 +111,27 @@ trtl_strata_grid_init(struct turtle *turtle)
 	sgrid->width = 800;
 	sgrid->height = 640;
 
+	sgrid->camera.cur.x = 0;
+	sgrid->camera.cur.y = 0;
+	sgrid->camera.dest.x = 0;
+	sgrid->camera.dest.y = 0;
+
 	trtl_crier_listen(turtle->events->crier, "trtl_event_resize", resize_callback, sgrid);
 	trtl_crier_listen(turtle->events->crier, "trtl_event_grid_move", grid_move_callback, sgrid);
 	trtl_crier_listen(turtle->events->crier, "trtl_event_grid_zoom", grid_zoom_callback, sgrid);
 
 	return &sgrid->strata;
+}
+
+static float
+move_half(float dest, float cur)
+{
+	float diff = dest - cur;
+	diff /= 2;
+	if (fabs(diff) < 0.01)
+		return dest;
+	else
+		return cur + diff;
 }
 
 static bool
@@ -124,8 +141,11 @@ sgrid_update(struct trtl_strata *strata, int frame)
 	struct trtl_strata_grid_uniforms *uniforms =
 	    trtl_uniform_info_address(sgrid->uniform_info, frame);
 
-	uniforms->camera_center[0] = sgrid->camera.x;
-	uniforms->camera_center[1] = sgrid->camera.y;
+	sgrid->camera.cur.x = move_half(sgrid->camera.dest.x, sgrid->camera.cur.x);
+	sgrid->camera.cur.y = move_half(sgrid->camera.dest.y, sgrid->camera.cur.y);
+
+	uniforms->camera_center[0] = sgrid->camera.cur.x;
+	uniforms->camera_center[1] = sgrid->camera.cur.y;
 
 	uniforms->tile_size[0] = sgrid->tile_size;
 
