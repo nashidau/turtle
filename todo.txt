@@ -1,9 +1,7 @@
+Add some monsters from quest.
+
 Get rid of the constants:
 	- maybe save the code in wiki so O can see it in the future
-
-Handle loading a mesh without a texure.
-	Fish is an exmaple: poly.pizza has a lot
-
 
 Sprite2:
 	- Rename to sprite soonish
