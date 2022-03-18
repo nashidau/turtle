@@ -6,6 +6,13 @@
  * 	set 1: strata 'grid', isometric rendering support
  * 	set 2: binding 0:  Our uniform buffer
  * 		binding 1: Texture
+ *
+ *
+ * So we track the objects we draw with a big array.  Each  has the index of the model pointer.
+ * Then the objects current geometry.
+ *
+ *
+ * FIXME: models should be tracked by the loader - use refernce counting to keep track.
  */
 #include <string.h>
 #include <talloc.h>
@@ -24,12 +31,28 @@
 #include "turtle.h"
 #include "vertex.h" // FIXME: has trtl_model in it
 
+// Position information about a single object.
+struct mesh_geometry {
+	struct {
+		uint32_t x;
+		uint32_t y;
+		float facing;
+	} dest;
+	struct {
+		uint32_t x;
+		uint32_t y;
+		float facing;
+	} cur;
+};
+
 struct trtl_object_mesh {
 	struct trtl_grid_object parent;
 	struct turtle *turtle;
 
 	// What we are drawing (sadly one for now)
 	struct trtl_model *model;
+	float rotation;
+	float vrotate; // FIXME: Use a proper set of vectors for this
 
 	uint32_t nframes;
 
@@ -52,19 +75,7 @@ struct trtl_object_mesh {
 		struct trtl_strata *grid;
 	} strata;
 
-	float rotation;
-
-	struct {
-		uint32_t x;
-		uint32_t y;
-		float facing;
-	} dest;
-	struct {
-		uint32_t x;
-		uint32_t y;
-		float facing;
-		float vrotate; // FIXME: Use a proper set of vectors for this
-	} cur;
+	struct mesh_geometry mgeo;
 };
 
 EMBED_SHADER(mesh_vertex, "mesh-vert.spv");
@@ -125,21 +136,21 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	struct UniformBufferObject *ubo;
 
-	if (mesh->cur.facing != mesh->dest.facing) {
-		float diff = mesh->dest.facing - mesh->cur.facing;
+	if (mesh->mgeo.cur.facing != mesh->mgeo.dest.facing) {
+		float diff = mesh->mgeo.dest.facing - mesh->mgeo.cur.facing;
 		diff /= 4;
 		if (fabs(diff) < 0.01) {
-			mesh->cur.facing = mesh->dest.facing;
+			mesh->mgeo.cur.facing = mesh->mgeo.dest.facing;
 		} else {
-			mesh->cur.facing += diff;
+			mesh->mgeo.cur.facing += diff;
 		}
 	}
 
 	ubo = trtl_uniform_info_address(mesh->uniform_info, frame);
 
 	glm_mat4_identity(ubo->model);
-	glm_rotate(ubo->model, mesh->cur.facing, GLM_ZUP);
-	if (mesh->cur.vrotate) glm_rotate(ubo->model, mesh->cur.vrotate, GLM_XUP);
+	glm_rotate(ubo->model, mesh->mgeo.cur.facing, GLM_ZUP);
+	if (mesh->vrotate) glm_rotate(ubo->model, mesh->vrotate, GLM_XUP);
 	{
 		vec3 y = {0, 0, 0};
 		glm_translate(ubo->model, y);
@@ -190,11 +201,11 @@ mesh_move(struct trtl_object *obj, uint32_t snap, uint32_t x, uint32_t y)
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	assert(mesh);
 
-	mesh->dest.x = x;
-	mesh->dest.y = y;
+	mesh->mgeo.dest.x = x;
+	mesh->mgeo.dest.y = y;
 	if (snap) {
-		mesh->cur.x = x;
-		mesh->cur.y = y;
+		mesh->mgeo.cur.x = x;
+		mesh->mgeo.cur.y = y;
 	}
 
 	return true;
@@ -214,9 +225,9 @@ mesh_facing(struct trtl_object *obj, uint32_t snap, trtl_grid_direction_t facing
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
 	assert(mesh);
 
-	mesh->dest.facing = facings[facing] + mesh->rotation;
+	mesh->mgeo.dest.facing = facings[facing] + mesh->rotation;
 	if (snap) {
-		mesh->cur.facing = mesh->dest.facing;
+		mesh->mgeo.cur.facing = mesh->mgeo.dest.facing;
 	}
 	return true;
 }
@@ -284,7 +295,7 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 	}
 
 	// FIXME: Hackery for the duck2 model
-	mesh->cur.vrotate = M_PI / 2;
+	mesh->vrotate = M_PI / 2;
 
 	return (struct trtl_object *)mesh;
 }
@@ -300,7 +311,7 @@ void
 trtl_object_mesh_rotation_upright_set(struct trtl_object *obj, float uprotation)
 {
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
-	mesh->cur.vrotate = uprotation;
+	mesh->vrotate = uprotation;
 }
 
 static VkDescriptorSetLayout
