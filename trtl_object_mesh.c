@@ -94,15 +94,17 @@ trtl_object_draw_(struct trtl_object *obj, VkCommandBuffer cmd_buffer, int32_t o
 	vkCmdBindPipeline(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 			  mesh->pipeline_info->pipeline);
 
-	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh->vertex_buffer, &offsets);
-	vkCmdBindIndexBuffer(cmd_buffer, mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
-
+	// Bind in the strata.
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				mesh->pipeline_info->pipeline_layout, 0, 1, mesh->descriptor_set[0],
 				0, NULL);
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				mesh->pipeline_info->pipeline_layout, 1, 1, mesh->descriptor_set[1],
 				0, NULL);
+
+	vkCmdBindVertexBuffers(cmd_buffer, 0, 1, &mesh->vertex_buffer, &offsets);
+	vkCmdBindIndexBuffer(cmd_buffer, mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
+
 	vkCmdBindDescriptorSets(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
 				mesh->pipeline_info->pipeline_layout, 2, 1, mesh->descriptor_set[2],
 				0, NULL);
