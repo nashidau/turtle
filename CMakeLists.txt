@@ -112,6 +112,7 @@ foreach(source IN LISTS SHADERS)
       ${source}
     OUTPUT ${SHADERS_BINARY_DIR}/${FILENAME}.spv
     DEPENDS ${SHADERS_BINARY_DIR}
+    DEPENDS ${source}
     COMMENT "Compiling Shader ${FILENAME}"
   )
   list(APPEND SPV_SHADERS ${SHADERS_BINARY_DIR}/${FILENAME}.spv)
