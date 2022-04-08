@@ -3,6 +3,8 @@
 # ubuntu 18.04 (github actions) 3.12.4 apparently
 cmake_minimum_required(VERSION 3.10)
 
+set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
+
 set(CMAKE_BUILD_TYPE Debug)
 
 project(turtle VERSION 0.1)
