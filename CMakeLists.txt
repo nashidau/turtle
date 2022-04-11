@@ -28,6 +28,7 @@ add_library(turtleobjs OBJECT
 	trtl_barriers.c
 	trtl_crier.c
 	trtl_events.c
+	trtl_loader.c
 	trtl_loader_file.c
 	trtl_object_canvas.c
 	trtl_object_grid.c

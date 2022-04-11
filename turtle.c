@@ -15,6 +15,7 @@
 #include "helpers.h"
 #include "trtl_barriers.h"
 #include "trtl_events.h"
+#include "trtl_loader.h"
 #include "trtl_scribe.h"
 #include "trtl_seer.h"
 #include "trtl_shader.h"
@@ -477,6 +478,9 @@ turtle_init(int nlayers, const struct trtl_layer_info *layers)
 	for (uint32_t i = 0; i < turtle->tsc->nimages; i++) {
 		turtle->images_in_flight[i] = VK_NULL_HANDLE;
 	}
+
+	// Create default file loader (.)
+	trtl_loader_init(turtle);
 
 	return turtle;
 }

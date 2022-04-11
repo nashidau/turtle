@@ -65,6 +65,10 @@ struct turtle {
 	struct trtl_timer *render_timer;
 
 	PFN_vkDebugMarkerSetObjectNameEXT set_object_name;
+
+
+	// Our generic loader
+	struct trtl_loader *loader;
 };
 
 struct trtl_swap_chain {

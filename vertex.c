@@ -83,6 +83,8 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
 		printf("Is MTL: %s\n", extra_path);
 	}
 
+	
+
 	blobby = blobby_from_file_ctx(ctx, filename);
 
 	if (!blobby) {

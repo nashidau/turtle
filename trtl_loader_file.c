@@ -1,7 +1,7 @@
 
-#include <talloc.h>
 #include "trtl_loader_file.h"
 #include "blobby.h"
+#include <talloc.h>
 
 struct trtl_loader_file {
 	struct trtl_loader loader;
@@ -9,7 +9,8 @@ struct trtl_loader_file {
 };
 
 struct blobby *
-floader_load(struct trtl_loader *loader, const char *objname) {
+floader_load(struct trtl_loader *loader, const char *objname)
+{
 	struct trtl_loader_file *floader = talloc_get_type(loader, struct trtl_loader_file);
 	const char *path;
 	struct blobby *blobby;
@@ -19,7 +20,7 @@ floader_load(struct trtl_loader *loader, const char *objname) {
 		return NULL;
 	}
 
-	blobby = blobby_from_file(path);	
+	blobby = blobby_from_file(path);
 	if (blobby) {
 		return blobby;
 	}
@@ -31,7 +32,8 @@ floader_load(struct trtl_loader *loader, const char *objname) {
 }
 
 struct trtl_loader *
-trtl_loader_file(const char *path) {
+trtl_loader_file(const char *path)
+{
 	struct trtl_loader_file *floader;
 
 	if (!path) {
@@ -39,7 +41,7 @@ trtl_loader_file(const char *path) {
 	}
 
 	floader = talloc_zero(NULL, struct trtl_loader_file);
-	floader->path =talloc_strdup(floader, path);
+	floader->path = talloc_strdup(floader, path);
 	floader->loader.load = floader_load;
 
 	return &floader->loader;
