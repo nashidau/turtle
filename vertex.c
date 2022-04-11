@@ -83,8 +83,6 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
 		printf("Is MTL: %s\n", extra_path);
 	}
 
-	
-
 	blobby = blobby_from_file_ctx(ctx, filename);
 
 	if (!blobby) {
@@ -114,7 +112,7 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
  * Returns a model structure, that should be freed with talloc_free.
  */
 struct trtl_model *
-load_model(const char *basename)
+load_model(struct turtle *turtle, const char *basename)
 {
 	void *ctx;
 	struct trtl_model *model;
@@ -157,7 +155,7 @@ load_model(const char *basename)
 	// First; work out our scale factor.  Run through the array, generate the bounding,
 	// and work the scale factor
 	struct boundingbox3d bbox = BOUNDINGBOX_INIT;
-	for (size_t i = 0 ; i < attrib.num_vertices ; i ++){
+	for (size_t i = 0; i < attrib.num_vertices; i++) {
 		bbox.min.x = MIN(bbox.min.x, vertices[i].x);
 		bbox.min.y = MIN(bbox.min.y, vertices[i].y);
 		bbox.min.z = MIN(bbox.min.z, vertices[i].z);
@@ -182,7 +180,6 @@ load_model(const char *basename)
 	// Load our indices
 	model->indices = talloc_array(model, uint32_t, attrib.num_faces);
 	model->nindices = attrib.num_faces;
-
 
 	struct vhash *vhash = vhash_init(attrib.num_faces);
 	int maxn = -1;
@@ -271,7 +268,7 @@ vhash_find(struct vhash *vhash, uint32_t vertex_index, uint32_t texture_index, i
 	node = vhash->nodes[key];
 	while (node) {
 		if (node->vertex_index == vertex_index && node->texture_index == texture_index &&
-				node->material_idx == material_idx) {
+		    node->material_idx == material_idx) {
 			if (created) *created = false;
 			return node->vindex;
 		}

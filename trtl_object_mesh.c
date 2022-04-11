@@ -256,7 +256,7 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 	mesh->parent.facing = mesh_facing;
 
 	mesh->nframes = turtle->tsc->nimages;
-	mesh->model = load_model(path);
+	mesh->model = load_model(turtle, path);
 	if (!mesh->model) {
 		talloc_free(mesh);
 		return NULL;
