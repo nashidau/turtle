@@ -1,7 +1,7 @@
 # CMake version literally just picked from the tutorial.
 # brew shows 3.21.1 for mac
 # ubuntu 18.04 (github actions) 3.12.4 apparently
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.12)
 
 #set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
 
@@ -16,6 +16,7 @@ set(CMAKE_C_STANDARD 17)
 set(CMAKE_C_STANDARD_REQUIRED True)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 
 # Our main turtle library
 add_library(turtleobjs OBJECT
@@ -50,6 +51,8 @@ add_library(turtleobjs OBJECT
 	vertex.c)
 # shared libraries need PIC
 set_property(TARGET turtleobjs PROPERTY POSITION_INDEPENDENT_CODE 1)
+
+target_compile_definitions(turtleobjs PUBLIC TURTLE_DATA_PATH="${PROJECT_SOURCE_DIR}")
 
 add_dependencies(turtleobjs shaders)
 
