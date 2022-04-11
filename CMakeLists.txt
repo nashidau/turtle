@@ -3,7 +3,7 @@
 # ubuntu 18.04 (github actions) 3.12.4 apparently
 cmake_minimum_required(VERSION 3.10)
 
-set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
+#set_property(GLOBAL PROPERTY GLOBAL_DEPENDS_DEBUG_MODE 1)
 
 set(CMAKE_BUILD_TYPE Debug)
 
@@ -105,6 +105,7 @@ add_custom_command(
   OUTPUT ${SHADERS_BINARY_DIR}
   COMMENT "Creating ${SHADERS_BINARY_DIR}"
 )
+
 
 foreach(source IN LISTS SHADERS)
   get_filename_component(FILENAME ${source} NAME_WLE)
