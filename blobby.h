@@ -2,6 +2,7 @@
 #include <stddef.h>
 
 struct blobby {
+	const char *source;
 	size_t len;
 	const char *data;
 };
