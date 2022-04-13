@@ -71,9 +71,9 @@ target_link_libraries(turtlestatic PUBLIC dl)
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
-# FIXME: Clang specific so far. Need a GCC and windowsy one too.
-set(COMPILE_OPTIONS
-	-O
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  set(COMPILE_OPTIONS
+	-O3
 	-Werror
 	-Wall -Wextra
 	-Walloca -Wformat=2 -Wformat-security -Wnull-dereference
@@ -84,6 +84,13 @@ set(COMPILE_OPTIONS
 	-Wshift-sign-overflow -Wshorten-64-to-32 -Wswitch-enum
 	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive
 	-fstack-protector-strong)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(COMPILE_OPTIONS -Wall -Werror -Wextra)
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
+  # using Intel C++
+elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  set(COMPILE_OPTIONS /W4 /WX)
+endif()
 
 target_compile_options(turtle PRIVATE ${COMPILE_OPTIONS})
 target_compile_options(turtleobjs PRIVATE ${COMPILE_OPTIONS})
