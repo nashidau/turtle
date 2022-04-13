@@ -71,6 +71,8 @@ tinyobj_file_reader(void *turtlev, const char *filename, int is_mtl, const char 
 	char *extra_path = NULL;
 	struct turtle *turtle = turtlev;
 
+	// FIXME: Static and not cleaned up.
+	// Should be part of the context passed in (which is cleaned up when loaded).
 	static const char *rootfilename = NULL;
 	static struct blobby *root = NULL;
 
@@ -84,7 +86,8 @@ tinyobj_file_reader(void *turtlev, const char *filename, int is_mtl, const char 
 		if (!lastsep) {
 			// Not relative - just use filename.
 		} else {
-			asprintf(&extra_path, "%.*s/%s", (int)(lastsep - root->source),
+			// clean up when the blobby goes.
+			extra_path = talloc_asprintf(root, "%.*s/%s", (int)(lastsep - root->source),
 				 root->source, filename);
 			filename = extra_path;
 		}
