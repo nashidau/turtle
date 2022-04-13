@@ -46,7 +46,7 @@ create_vertex_buffers(struct turtle *turtle, const struct trtl_seer_vertexset *v
 	assert(vertices->vertex_size != 0);
 
 	VkDeviceSize bufferSize = vertices->vertex_size * nvertexes;
-	printf("Buffer size is %llu %d %d\n", bufferSize, vertices->vertex_size, nvertexes);
+	printf("Buffer size is %zu %d %d\n", (size_t)bufferSize, vertices->vertex_size, nvertexes);
 	VkBuffer stagingBuffer;
 	VkDeviceMemory stagingBufferMemory;
 	create_buffer(turtle, bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
