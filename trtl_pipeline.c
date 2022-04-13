@@ -116,11 +116,9 @@ trtl_pipeline_create(struct turtle *turtle, VkRenderPass render_pass, VkExtent2D
 		btmp = vertex_binding_description_get();
 		binding_description = &btmp;
 	}
-	bool free_attribute = false;
 	if (attribute_description == NULL) {
 		tofree = get_attribute_description_pair(&nattributes);
 		attribute_description = tofree;
-		free_attribute = true;
 	}
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {0};
