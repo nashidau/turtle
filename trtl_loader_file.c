@@ -12,18 +12,21 @@ struct blobby *
 floader_load(struct trtl_loader *loader, const char *objname)
 {
 	struct trtl_loader_file *floader = talloc_get_type(loader, struct trtl_loader_file);
-	const char *path;
+	char *path;
 	struct blobby *blobby;
 
-	path = talloc_asprintf("%s/%s", floader->path, objname);
+	path = talloc_asprintf(NULL, "%s/%s", floader->path, objname);
+printf("file loader loading: %s\n", path);
 	if (!path) {
 		return NULL;
 	}
 
 	blobby = blobby_from_file(path);
 	if (blobby) {
+		blobby->source = talloc_steal(blobby, path);
 		return blobby;
 	}
+	talloc_free(path);
 
 	if (loader->next) {
 		return loader->next->load(loader->next, objname);

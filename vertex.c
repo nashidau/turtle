@@ -6,6 +6,9 @@
 
 #include <talloc.h>
 
+#include "trtl_loader.h"
+#include "turtle.h"
+
 #include "../../tinyobjloader-c/tinyobj_loader_c.h"
 #include "blobby.h"
 #include "helpers.h"
@@ -61,34 +64,46 @@ get_attribute_description_pair(uint32_t *nentries)
 }
 
 static void
-tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj_filename,
+tinyobj_file_reader(void *turtlev, const char *filename, int is_mtl, const char *obj_filename,
 		    char **buf, size_t *len)
 {
 	struct blobby *blobby;
 	char *extra_path = NULL;
+	struct turtle *turtle = turtlev;
+
+	static const char *rootfilename = NULL;
+	static struct blobby *root = NULL;
 
 	printf("**** File Reader: %s %d %s\n", filename, is_mtl, obj_filename);
 
 	if (is_mtl) {
+		assert(streq(rootfilename, obj_filename) == true);
 		// Need to build the path:
-		char *lastsep = rindex(obj_filename, '/');
+		char *lastsep = rindex(root->source, '/');
+		printf("loast sep from %s is %s\n", root->source, lastsep);
 		if (!lastsep) {
 			// Not relative - just use filename.
 		} else {
-			asprintf(&extra_path, "%.*s/%s", (int)(lastsep - obj_filename),
-				 obj_filename, filename);
+			asprintf(&extra_path, "%.*s/%s", (int)(lastsep - root->source),
+				 root->source, filename);
 			filename = extra_path;
 		}
 
 		printf("Is MTL: %s\n", extra_path);
+		blobby = blobby_from_file_ctx(turtle, filename);
+	} else {
+		printf("Loading:  %p %p %p\n", turtle, turtle->loader, turtle->loader->load);
+		blobby = turtle->loader->load(turtle->loader, obj_filename);
 	}
-
-	blobby = blobby_from_file_ctx(ctx, filename);
 
 	if (!blobby) {
 		*len = 0;
 		*buf = 0;
 		return;
+	}
+	if (!is_mtl) {
+		rootfilename = obj_filename;
+		root = blobby;
 	}
 
 	// FIXME: tinyobj file reader should take const char
@@ -114,7 +129,6 @@ tinyobj_file_reader(void *ctx, const char *filename, int is_mtl, const char *obj
 struct trtl_model *
 load_model(struct turtle *turtle, const char *basename)
 {
-	void *ctx;
 	struct trtl_model *model;
 	tinyobj_attrib_t attrib;
 	tinyobj_shape_t *shapes;
@@ -124,17 +138,13 @@ load_model(struct turtle *turtle, const char *basename)
 	size_t num_shapes;
 	size_t num_materials;
 
-	ctx = talloc_init("Model Data buffer: %s", basename);
-
-	int ret = tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials, &num_materials,
-				    basename, tinyobj_file_reader, ctx, TINYOBJ_FLAG_TRIANGULATE);
+	int ret =
+	    tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials, &num_materials, basename,
+			      tinyobj_file_reader, turtle, TINYOBJ_FLAG_TRIANGULATE);
 	if (ret != 0) {
 		printf("parse object failed\n");
 		exit(1);
 	}
-
-	// Release the file buffer (blobby) allocated in the reader
-	talloc_free(ctx);
 
 	if (DEBUGTHIS) {
 		printf("We have %d Vertices\n", attrib.num_vertices);
