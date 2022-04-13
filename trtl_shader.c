@@ -35,7 +35,8 @@ struct trtl_shader_cache {
 };
 
 struct trtl_shader_cache *
-trtl_shader_cache_init(struct turtle *turtle){
+trtl_shader_cache_init(struct turtle *turtle)
+{
 	struct trtl_shader_cache *shader_cache;
 
 	shader_cache = talloc_zero(turtle, struct trtl_shader_cache);
@@ -47,11 +48,12 @@ trtl_shader_cache_init(struct turtle *turtle){
 }
 
 static int
-shader_destory(struct trtl_shader *shader) {
+shader_destory(struct trtl_shader *shader)
+{
 	struct shader_node *node = shader->internal;
 	printf("Shader destroy: %s Count %d\n", node->path, node->count);
-	
-	node->count --;
+
+	node->count--;
 
 	if (node->count > 1) {
 		return 0;
@@ -64,7 +66,8 @@ shader_destory(struct trtl_shader *shader) {
 }
 
 static int
-shader_node_destroy(struct shader_node *node) {
+shader_node_destroy(struct shader_node *node)
+{
 	// Remove it from the list
 	// Urgh; singly linked
 	struct trtl_shader_cache *cache = node->cache;
@@ -74,7 +77,7 @@ shader_node_destroy(struct shader_node *node) {
 		cache->shaders = node->next;
 	} else {
 		struct shader_node *ntmp;
-		for (ntmp = cache->shaders ; ntmp && ntmp->next != node ; ntmp = ntmp->next) {
+		for (ntmp = cache->shaders; ntmp && ntmp->next != node; ntmp = ntmp->next) {
 			;
 		}
 		assert(ntmp); // We should always find it
@@ -85,18 +88,18 @@ shader_node_destroy(struct shader_node *node) {
 	return 0;
 }
 
-
 // given a shader node create a shader object and set it's destructor
 static struct trtl_shader *
-shader_create(struct shader_node *node) {
+shader_create(struct shader_node *node)
+{
 	// Owner should go to the parent object.
 	struct trtl_shader *shader = talloc_zero(NULL, struct trtl_shader);
 	shader->shader = node->shader;
 	shader->path = node->path;
 	shader->internal = node;
 
-	node->count ++;
-	
+	node->count++;
+
 	talloc_set_destructor(shader, shader_destory);
 
 	return shader;
@@ -109,16 +112,16 @@ trtl_shader_get(struct turtle *turtle, const char *path)
 	struct blobby *blobby;
 
 	printf("searching for %s\n", path);
-	for (struct shader_node *node = shader_cache->shaders ; node ; node = node->next) {
+	for (struct shader_node *node = shader_cache->shaders; node; node = node->next) {
 		if (streq(node->path, path)) {
-			return shader_create(node);	
+			return shader_create(node);
 		}
 	}
 
 	blobby = blobby_binary(path);
 	if (blobby == NULL) {
 		if (streq(path, "test_shader")) {
-			blobby = blobby_from_string((const char*)shader_test_shader_start);
+			blobby = blobby_from_string((const char *)shader_test_shader_start);
 		}
 	}
 
