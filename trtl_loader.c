@@ -18,7 +18,6 @@ add_path(void *ctx, struct trtl_loader *wrapped, const char *path) {
 int trtl_loader_init(struct turtle *turtle){
 	if (turtle->loader != NULL) {
 		error("Loader already allocated\n");
-		return -1;
 	}
 	
 	// FIXME: Should include:
