@@ -265,7 +265,7 @@ struct vhash_node {
 static uint32_t
 hash(uint32_t vertex_index, uint32_t texture_index, int32_t material_idx, uint32_t size)
 {
-	return (vertex_index + texture_index ^ material_idx) % size;
+	return ((vertex_index + texture_index) ^ material_idx) % size;
 }
 
 // Returns the index to use for this vertex.
