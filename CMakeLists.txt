@@ -73,6 +73,7 @@ target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
 
 target_compile_options(turtle PRIVATE -Werror -Wall -Wextra)
+target_compile_options(turtleobjs PRIVATE -Werror -Wall -Wextra)
 target_compile_options(turtlestatic PRIVATE -Werror -Wall -Wextra)
 
 INCLUDE(FindPkgConfig)
