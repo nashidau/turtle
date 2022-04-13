@@ -71,10 +71,23 @@ target_link_libraries(turtlestatic PUBLIC dl)
 target_include_directories(turtleobjs PRIVATE ./third-party)
 target_include_directories(turtleobjs PRIVATE ./third-party/cglm/include)
 
+# FIXME: Clang specific so far. Need a GCC and windowsy one too.
+set(COMPILE_OPTIONS
+	-O
+	-Werror
+	-Wall -Wextra
+	-Walloca -Wformat=2 -Wformat-security -Wnull-dereference
+	-Wstack-protector -Wstrict-overflow=3 -Warray-bounds
+	-Warray-bounds-pointer-arithmetic -Wassign-enum -Wbad-function-cast
+	-Wconditional-uninitialized  -Wformat-type-confusion
+	-Widiomatic-parentheses -Wloop-analysis -Wpointer-arith
+	-Wshift-sign-overflow -Wshorten-64-to-32 -Wswitch-enum
+	-Wtautological-constant-in-range-compare -Wunreachable-code-aggressive
+	-fstack-protector-strong)
 
-target_compile_options(turtle PRIVATE -Werror -Wall -Wextra)
-target_compile_options(turtleobjs PRIVATE -Werror -Wall -Wextra)
-target_compile_options(turtlestatic PRIVATE -Werror -Wall -Wextra)
+target_compile_options(turtle PRIVATE ${COMPILE_OPTIONS})
+target_compile_options(turtleobjs PRIVATE ${COMPILE_OPTIONS})
+target_compile_options(turtlestatic PRIVATE ${COMPILE_OPTIONS})
 
 INCLUDE(FindPkgConfig)
 pkg_check_modules(CHECK check)
