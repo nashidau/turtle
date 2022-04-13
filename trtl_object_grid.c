@@ -108,8 +108,6 @@ static const VkVertexInputBindingDescription grid_binding_descriptor = {
 
 #define N_VERTEX_ATTRIBUTE_DESCRIPTORS TRTL_ARRAY_SIZE(grid_vertex_description)
 
-static VkDescriptorSetLayout grid_create_descriptor_set_layout(VkDevice device);
-
 // Inline function to cast from abstract to concrete type.
 // FIXME: Make Debug and non-debug do different things
 static inline struct trtl_object_grid *
@@ -447,30 +445,4 @@ trtl_grid_set_active_tile(struct trtl_object *obj, float x, float y, int motion)
 	grid->dest.y = y;
 
 	return 0;
-}
-
-static VkDescriptorSetLayout
-grid_create_descriptor_set_layout(VkDevice device)
-{
-	VkDescriptorSetLayout descriptor_set_layout;
-
-	VkDescriptorSetLayoutBinding ubo_layout_binding = {0};
-	ubo_layout_binding.binding = 0;
-	ubo_layout_binding.descriptorCount = 1;
-	ubo_layout_binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	ubo_layout_binding.pImmutableSamplers = NULL;
-	ubo_layout_binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-
-	VkDescriptorSetLayoutBinding bindings[1];
-	bindings[0] = ubo_layout_binding;
-	VkDescriptorSetLayoutCreateInfo layoutInfo = {0};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	layoutInfo.bindingCount = TRTL_ARRAY_SIZE(bindings);
-	layoutInfo.pBindings = bindings;
-
-	if (vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &descriptor_set_layout) !=
-	    VK_SUCCESS) {
-		error("failed to create descriptor set layout!");
-	}
-	return descriptor_set_layout;
 }

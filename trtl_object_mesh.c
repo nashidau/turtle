@@ -240,10 +240,9 @@ trtl_object_mesh_create(struct turtle *turtle, const char *path, const char *tex
 
 struct trtl_object *
 trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const char *texture,
-			       double scale)
+			       trtl_arg_unused double scale)
 {
 	struct trtl_object_mesh *mesh;
-	struct boundingbox3d bbox = BOUNDINGBOX_INIT;
 
 	mesh = talloc_zero(NULL, struct trtl_object_mesh);
 
