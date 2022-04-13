@@ -30,6 +30,6 @@ struct trtl_solo *trtl_solo_start(void);
 #define trtl_solo_end(_solo)                                                                       \
 	do {                                                                                       \
 		struct trtl_solo *_tmp;                                                            \
-		(&_tmp == &_solo);                                                                 \
+		(void)(&_tmp == &_solo);                                                           \
 		talloc_free(_solo);                                                                \
 	} while (0)
