@@ -43,4 +43,4 @@ struct trtl_grid_object {
 #define trtl_object_grid_facing_set(obj, snap, dir)                                                \
 	((struct trtl_grid_object *)obj)->facing(obj, snap, dir);
 #define trtl_object_grid_move(obj, snap, x, y)                                                     \
-	((struct trtl_grid_object *)obj)->facing(obj, snap, x, y);
+	((struct trtl_grid_object *)obj)->move(obj, snap, x, y);
