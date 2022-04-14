@@ -63,40 +63,40 @@ get_attribute_description_pair(uint32_t *nentries)
 	return descriptions;
 }
 
+struct file_reader_context {
+	struct turtle *turtle;
+	struct blobby *root;
+	char *basepath;
+};
+
 static void
-tinyobj_file_reader(void *turtlev, const char *filename, int is_mtl, const char *obj_filename,
+tinyobj_file_reader(void *contextv, const char *filename, int is_mtl, const char *obj_filename,
 		    char **buf, size_t *len)
 {
 	struct blobby *blobby;
 	char *extra_path = NULL;
-	struct turtle *turtle = turtlev;
-
-	// FIXME: Static and not cleaned up.
-	// Should be part of the context passed in (which is cleaned up when loaded).
-	static const char *rootfilename = NULL;
-	static struct blobby *root = NULL;
+	struct file_reader_context *context = contextv;
 
 	printf("**** File Reader: %s %d %s\n", filename, is_mtl, obj_filename);
 
 	if (is_mtl) {
-		assert(streq(rootfilename, obj_filename) == true);
 		// Need to build the path:
-		char *lastsep = rindex(root->source, '/');
-		printf("loast sep from %s is %s\n", root->source, lastsep);
+		char *lastsep = rindex(context->root->source, '/');
+		printf("loast sep from %s is %s\n", context->root->source, lastsep);
 		if (!lastsep) {
 			// Not relative - just use filename.
 		} else {
 			// clean up when the blobby goes.
-			extra_path = talloc_asprintf(root, "%.*s/%s", (int)(lastsep - root->source),
-				 root->source, filename);
-			filename = extra_path;
+			filename = talloc_asprintf(context, "%.*s/%s",
+						   (int)(lastsep - context->root->source),
+						   context->root->source, filename);
 		}
 
 		printf("Is MTL: %s\n", extra_path);
-		blobby = blobby_from_file_ctx(turtle, filename);
+		blobby = blobby_from_file_ctx(context, filename);
 	} else {
-		printf("Loading:  %p %p %p\n", turtle, turtle->loader, turtle->loader->load);
-		blobby = turtle->loader->load(turtle->loader, obj_filename);
+		blobby = context->turtle->loader->load(context->turtle->loader, obj_filename);
+		context->root = talloc_steal(context, blobby);
 	}
 
 	if (!blobby) {
@@ -104,18 +104,10 @@ tinyobj_file_reader(void *turtlev, const char *filename, int is_mtl, const char 
 		*buf = 0;
 		return;
 	}
-	if (!is_mtl) {
-		rootfilename = obj_filename;
-		root = blobby;
-	}
 
 	// FIXME: tinyobj file reader should take const char
 	*buf = (char *)(uintptr_t)blobby->data;
 	*len = blobby->len;
-
-	if (extra_path) {
-		free(extra_path);
-	}
 }
 
 // extern int tinyobj_parse_obj(tinyobj_attrib_t *attrib, tinyobj_shape_t **shapes,
@@ -141,12 +133,19 @@ load_model(struct turtle *turtle, const char *basename)
 	size_t num_shapes;
 	size_t num_materials;
 
-	int ret =
-	    tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials, &num_materials, basename,
-			      tinyobj_file_reader, turtle, TINYOBJ_FLAG_TRIANGULATE);
-	if (ret != 0) {
-		printf("parse object failed\n");
-		exit(1);
+	{
+		struct file_reader_context *context;
+		context = talloc_zero(NULL, struct file_reader_context);
+		context->turtle = turtle;
+
+		int ret = tinyobj_parse_obj(&attrib, &shapes, &num_shapes, &materials,
+					    &num_materials, basename, tinyobj_file_reader, context,
+					    TINYOBJ_FLAG_TRIANGULATE);
+		talloc_free(context);
+		if (ret != 0) {
+			printf("parse object failed\n");
+			exit(1);
+		}
 	}
 
 	if (DEBUGTHIS) {
