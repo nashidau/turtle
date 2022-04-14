@@ -193,6 +193,8 @@ mesh_resize(struct trtl_object *obj, struct turtle *turtle, struct trtl_layer *l
 	mesh->pipeline_info = trtl_pipeline_create_with_strata(
 	    turtle, layer, TRTL_ARRAY_SIZE(mesh->descriptor_set_layout),
 	    mesh->descriptor_set_layout, "mesh_vertex", fragment_shader, &vkb, vkx, count);
+
+	talloc_free(vkx);
 }
 
 static bool
