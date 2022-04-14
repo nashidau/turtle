@@ -310,7 +310,7 @@ vhash_init(int32_t size)
 	vhash = talloc(NULL, struct vhash);
 	vhash->size = size;
 	vhash->next = 0;
-	vhash->nodes = talloc_zero_array(NULL, struct vhash_node *, size);
+	vhash->nodes = talloc_zero_array(vhash, struct vhash_node *, size);
 	vhash->lookups = 0;
 
 	return vhash;
