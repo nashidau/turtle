@@ -10,7 +10,7 @@ add_path(void *ctx, struct trtl_loader *wrapped, const char *path) {
 
 	loader = trtl_loader_file(path);
 	loader->next = wrapped;
-	talloc_steal(loader, ctx);
+	talloc_steal(ctx, loader);
 
 	return loader;
 }
