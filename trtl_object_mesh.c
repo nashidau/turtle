@@ -262,6 +262,7 @@ trtl_object_mesh_create_scaled(struct turtle *turtle, const char *path, const ch
 		talloc_free(mesh);
 		return NULL;
 	}
+	talloc_steal(mesh, mesh->model);
 
 	//	mesh->uniform_info =
 	//	    trtl_uniform_alloc_type(evil_global_uniform, struct UniformBufferObject);
