@@ -19,10 +19,6 @@ Finish moving VkPipeline{Layout} out of trtl.
 Maybe add pushconstant support through trtl_uniform
 	- so bind then push the cosntant at draw tim
 
-Add trtl_crier -> message system
-	- addd creier event to pipeline and descriptor set to autoamtically nalde the events
-	when it happens.
-
 Make it possible to add and remove objects at run time.
 
 There needs to be a generic buffer library to allocate vertexes and indexes.
@@ -30,17 +26,13 @@ This should also probably handle updating the data and sending to the engine.
 	So basically when an object is created, it allocates some space in the
 	vertex and index buffers, and uses references to them
 
-Texture loading needs to have it's own class.
-Loading a texture should go to the texture service
-	it looks up to see if it's there
-	otherwise loads and binds it to VkImageBuffer or whatever it is.
-	When the object finishes with it, it frees the usage.
-
 Focus & a keyboard model
 
-Others:
-	bear used to generate the compile commands.
-	Automate somehow; either with cmake or a script or something to do.
+bear used to generate the compile commands.
+
+add running tests to the standard build target
+
+generate xcode project file to compile on mac in a more reasoable manner
 
 Simple Tasks:
 	- create_vertex_buffers verte set api is kinda dumb for it's current use
