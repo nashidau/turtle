@@ -15,8 +15,6 @@ layout(location = 2) out vec2 tilePos;
 layout(location = 3) out uvec3 tileDataOut;
 layout(location = 4) out float time;
 
-const float pi = 3.141592653589793;
-const float degree45 = pi / 4.0;
 
 mat2 rotate2d(float angle) {
 	return mat2(cos(angle), -sin(angle),
@@ -24,11 +22,9 @@ mat2 rotate2d(float angle) {
 }
 
 void main() {
-    // FIXME: This 2 is a hack.
-    vec2 screenSize = vec2(trtl_strata_base.screensize_time_unused.x, trtl_strata_base.screensize_time_unused.y);
+    vec2 screenSize = vec2(trtl_strata_base.screensize_time_unused.x,
+		    trtl_strata_base.screensize_time_unused.y);
 
-
-    //vec2 screenSize = vec2(640, 480);
     vec2 pos = inPosition.xy;
 
     // Center on the top left tile

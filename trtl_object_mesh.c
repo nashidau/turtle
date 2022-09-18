@@ -78,6 +78,12 @@ struct trtl_object_mesh {
 	struct mesh_geometry mgeo;
 };
 
+struct mesh_shader_info {
+	mat4 model;  // Transformation of the model - rotation and the like.
+	vec4 position; // last is ignoed
+	float facing;
+};
+
 EMBED_SHADER(mesh_vertex, "mesh-vert.spv");
 EMBED_SHADER(mesh_fragment, "mesh.spv");
 EMBED_SHADER(mesh_fragment_notexture, "mesh-notexture.spv");
@@ -134,7 +140,7 @@ static bool
 trtl_object_update_(struct trtl_object *obj, int frame)
 {
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
-	struct UniformBufferObject *ubo;
+	struct mesh_shader_info *shader_info;
 
 	if (mesh->mgeo.cur.facing != mesh->mgeo.dest.facing) {
 		float diff = mesh->mgeo.dest.facing - mesh->mgeo.cur.facing;
@@ -146,21 +152,29 @@ trtl_object_update_(struct trtl_object *obj, int frame)
 		}
 	}
 
-	ubo = trtl_uniform_info_address(mesh->uniform_info, frame);
+	shader_info = trtl_uniform_info_address(mesh->uniform_info, frame);
+	shader_info->position[0] = 0;
+	shader_info->position[1] = 1;
+	shader_info->position[2] = 0;
+	shader_info->position[3] = 0; // should be dead space
+	shader_info->facing = mesh->mgeo.cur.facing;
 
-	glm_mat4_identity(ubo->model);
-	glm_rotate(ubo->model, mesh->mgeo.cur.facing, GLM_ZUP);
-	if (mesh->vrotate) glm_rotate(ubo->model, mesh->vrotate, GLM_XUP);
+
+	glm_mat4_identity(shader_info->model);
+	glm_rotate(shader_info->model, mesh->mgeo.cur.facing, GLM_ZUP);
+	if (mesh->vrotate) glm_rotate(shader_info->model, mesh->vrotate, GLM_XUP);
 	{
 		vec3 y = {0, 0, 0};
-		glm_translate(ubo->model, y);
+		glm_translate(shader_info->model, y);
 	}
+	shader_info->model[1][1] *= -1;
 
+	/*
 	glm_lookat((vec3){2.0f, 2.0f, 2.0f}, GLM_VEC3_ZERO, GLM_ZUP, ubo->view);
 
 	glm_perspective(glm_rad(45), 800 / 640.0, 0.1f, 10.0f, ubo->proj);
 	ubo->proj[1][1] *= -1;
-
+*/
 	// We updated
 	return true;
 }

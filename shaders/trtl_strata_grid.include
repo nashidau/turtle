@@ -6,10 +6,56 @@
 #endif
 
 #ifdef TRTL_SHADER
+const float pi = 3.141592653589793;
+const float degree45 = pi / 4.0;
+
 layout(std140, set = 1, binding = 0) uniform TrtlStrataGridObject {
     vec2 camera_center;
     vec2 tile_size; // one element is unused
 } trtl_strata_grid;
+
+
+// (Shader) Helper methods.
+
+
+// Generally these are pretty terrible.  Useful for prototyping, but
+// can nearly all be optimised.
+
+// Convert degrees to radians.
+float toRad(float degree) {
+    return degree * pi / 180.0;
+}
+
+// Rotate around the Y axis.
+mat3 rotateYaxis(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    return mat3(c, 0,   s,
+	        0, 1.0, 0,
+		-s, 0, c);
+}
+
+mat3 rotateXaxis(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+
+    return mat3(1.0, 0, 0,
+		0, c, -s,
+		0, -s, c);
+}
+
+
+
+mat3 rotateZaxis(float angle) {
+    float c = cos(angle);
+    float s = sin(angle);
+    
+    return mat3(c, -s, 0,
+            s, c, 0,
+            0, 0, 1);
+}
+
 #else
 struct trtl_strata_grid_uniforms {
   // 0,1 is width, height
