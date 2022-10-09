@@ -11,10 +11,10 @@ layout(set=2, binding = 0) uniform UniformBufferObject {
 	mat4 proj;
 } ubo;
 */
-layout(set=2, binding = 0) uniform MeshInfoObject {
+layout(set=2, binding = 0) uniform MeshShaderInfo {
+	float angle; // In radian
 	mat4 model;
 	vec3 position;
-	float angle;
 } meshinfo;
 
 layout(location = 0) in vec3 inPosition;
@@ -25,17 +25,23 @@ layout(location = 0) out vec3 fragColor;
 layout(location = 1) out vec2 fragTexCoord;
 
 void main() {
-	vec3 pos = inPosition.xyz * rotateZaxis(toRad(45.0)) * rotateXaxis(toRad(-60.0));
+	//vec3 pos = inPosition.xyz * rotateZaxis(toRad(45.0)) * rotateXaxis(toRad(-60.0));
+	vec3 pos = inPosition.xyz * rotateYaxis(meshinfo.angle);
 	/*
 	pos.y = (pos.y + pos.z) / 2.0;
 	*/
 //	pos.z = +0.5;
 //	pos.z /= 100.0;
 	//pos.z -= 0.5;
-	pos.z *= 1.0;
+//	pos.z *= 1.0;
 	pos.z /= 128.0;
-	pos.z += 0.5;
+//fixme: why won't this adjust the z dimtneion of hte obect on teh screen
+//	- because z clipping isn't on.  I shoudl set the z to the color and see what happens
 	pos.y *= -1.0;
+
+	float scale = (trtl_strata_grid.tile_size.x / trtl_strata_base.screensize_time_unused.x) 
+		* 2.0; // should be:w
+	pos *= scale;
 	gl_Position = vec4(pos, 1.0);
 
 #if 0

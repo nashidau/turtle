@@ -79,9 +79,9 @@ struct trtl_object_mesh {
 };
 
 struct mesh_shader_info {
+	float facing;
 	mat4 model;  // Transformation of the model - rotation and the like.
 	vec4 position; // last is ignoed
-	float facing;
 };
 
 EMBED_SHADER(mesh_vertex, "mesh-vert.spv");
@@ -233,9 +233,9 @@ mesh_facing(struct trtl_object *obj, uint32_t snap, trtl_grid_direction_t facing
 #define constant_dtorad(deg) ((deg)*GLM_PIf / 180.0f)
 
 	static float facings[] = {
-	    [TRTL_GRID_NORTH] = constant_dtorad(60.0),
+	    [TRTL_GRID_NORTH] = constant_dtorad(240.0),
 	    [TRTL_GRID_EAST] = constant_dtorad(300.0 + 20),
-	    [TRTL_GRID_SOUTH] = constant_dtorad(240.0),
+	    [TRTL_GRID_SOUTH] = constant_dtorad(60.0),
 	    [TRTL_GRID_WEST] = constant_dtorad(120.0 + 20),
 	};
 	struct trtl_object_mesh *mesh = trtl_object_mesh(obj);
