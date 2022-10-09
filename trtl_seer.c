@@ -237,8 +237,6 @@ trtl_seer_predefined_object_add(const char *name, struct turtle *turtle,
 		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
 	} else if (streq(name, "duck2")) {
 		object = trtl_object_mesh_create_scaled(turtle, DUCK2_PATH, NULL, 0.02);
-		trtl_object_mesh_rotation_upright_set(object, glm_rad(90));
-		trtl_object_mesh_rotation_base_set(object, glm_rad(-140));
 	} else if (streq(name, "fish")) {
 		object = trtl_object_mesh_create_scaled(turtle, FISH_PATH, NULL, 0.02);
 		trtl_object_mesh_rotation_base_set(object, glm_rad(-60));
