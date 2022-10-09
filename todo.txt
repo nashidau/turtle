@@ -4,7 +4,7 @@ Get rid of the constants:
 	- maybe save the code in wiki so O can see it in the future
 
 Sprite2:
-	- Rename to sprite soonish
+	- Rename to sprite soon
 	- Add support for multiple objects
 	- add zoom support
 	- fix height/width of sprites
@@ -16,8 +16,8 @@ Add animated zoom to quest
 
 Finish moving VkPipeline{Layout} out of trtl.
 	- need a pipeline cache
-Maybe add pushconstant support through trtl_uniform
-	- so bind then push the cosntant at draw tim
+Maybe add push constant support through trtl_uniform
+	- so bind then push the constant at draw time
 
 Make it possible to add and remove objects at run time.
 
@@ -26,16 +26,17 @@ This should also probably handle updating the data and sending to the engine.
 	So basically when an object is created, it allocates some space in the
 	vertex and index buffers, and uses references to them
 
+Need to create a file format which contains rotation (and licence info), the obj file,
+any textures and shove it all in one object to load.
+
 Focus & a keyboard model
 
-bear used to generate the compile commands.
+Add running tests to the standard build target
 
-add running tests to the standard build target
-
-generate xcode project file to compile on mac in a more reasoable manner
+Generate XCode project file to compile on mac in a more reasonable manner
 
 Simple Tasks:
-	- create_vertex_buffers verte set api is kinda dumb for it's current use
+	- create_vertex_buffers vertex set API is kinda dumb for it's current use
 	- Clean some fixes.
 	- vertex.h -> trtl_model?
 	- Add some tests for trtl_object_draw
